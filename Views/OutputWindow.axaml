@@ -1,0 +1,10 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ShowCast.Views.OutputWindow"
+        Title="ShowCast Output"
+        Background="Black"
+        SystemDecorations="None"
+        CanResize="False"
+        ShowInTaskbar="False">
+    <Image x:Name="RenderImage" Stretch="Fill"/>
+</Window>

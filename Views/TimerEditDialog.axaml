@@ -1,0 +1,98 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ShowCast.Views.TimerEditDialog"
+        Title="Timer"
+        Width="300" SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="#2d2d2d"
+        SystemDecorations="BorderOnly">
+
+    <Border BorderBrush="#555555" BorderThickness="1">
+    <Grid RowDefinitions="32,*,Auto">
+
+        <!-- Title bar -->
+        <Border Grid.Row="0" Background="#1e1e1e"
+                BorderBrush="#555555" BorderThickness="0,0,0,1"
+                PointerPressed="OnTitleBarPressed">
+            <TextBlock Text="TIMER" FontWeight="Bold" FontSize="12"
+                       Foreground="White" VerticalAlignment="Center" Margin="12,0"/>
+        </Border>
+
+        <!-- Form -->
+        <StackPanel Grid.Row="1" Spacing="12" Margin="14,12,14,4">
+
+            <!-- Name -->
+            <StackPanel Spacing="4">
+                <TextBlock Text="NAME" FontSize="10" FontWeight="Bold" Foreground="#888888" LetterSpacing="1"/>
+                <TextBox x:Name="NameBox" Background="#3a3a3a" Foreground="White"
+                         BorderBrush="#555555" Padding="8,5"/>
+            </StackPanel>
+
+            <!-- Type selector -->
+            <StackPanel Spacing="4">
+                <TextBlock Text="TYPE" FontSize="10" FontWeight="Bold" Foreground="#888888" LetterSpacing="1"/>
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button x:Name="TypeCounterBtn" Content="Counter" Classes="tool-btn"
+                            Click="OnTypeCounter"/>
+                    <Button x:Name="TypeClockBtn"   Content="Clock"   Classes="tool-btn"
+                            Click="OnTypeClock"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Counter settings -->
+            <StackPanel x:Name="CounterPanel" Spacing="10">
+
+                <Grid ColumnDefinitions="*,12,*">
+                    <StackPanel Grid.Column="0" Spacing="4">
+                        <TextBlock Text="FROM (M:SS)" FontSize="10" FontWeight="Bold" Foreground="#888888"/>
+                        <TextBox x:Name="FromBox" Text="5:00" Background="#3a3a3a" Foreground="White"
+                                 BorderBrush="#555555" Padding="8,5"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Spacing="4">
+                        <TextBlock Text="TO (M:SS)" FontSize="10" FontWeight="Bold" Foreground="#888888"/>
+                        <TextBox x:Name="ToBox" Text="0:00" Background="#3a3a3a" Foreground="White"
+                                 BorderBrush="#555555" Padding="8,5"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Warning -->
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                    <CheckBox x:Name="WarnCheck" Grid.Column="0"
+                              Content="Warn at" IsChecked="True"
+                              Foreground="White" FontSize="12"/>
+                    <TextBox x:Name="WarnOffsetBox" Grid.Column="2"
+                             Text="30" Width="50"
+                             Background="#3a3a3a" Foreground="White"
+                             BorderBrush="#555555" Padding="8,5"
+                             TextAlignment="Center"/>
+                    <TextBlock Grid.Column="3" Text=" sec" Foreground="#888888"
+                               VerticalAlignment="Center" FontSize="12"/>
+                </Grid>
+
+                <!-- Overflow -->
+                <CheckBox x:Name="OverflowCheck" Content="Continue past end (overflow)"
+                          Foreground="White" FontSize="12"/>
+
+            </StackPanel>
+
+            <!-- Clock settings -->
+            <StackPanel x:Name="ClockPanel" IsVisible="False" Spacing="4">
+                <TextBlock Text="TARGET TIME (HH:MM)" FontSize="10" FontWeight="Bold" Foreground="#888888" LetterSpacing="1"/>
+                <TextBox x:Name="ClockTimeBox" Text="12:00"
+                         Background="#3a3a3a" Foreground="White"
+                         BorderBrush="#555555" Padding="8,5"/>
+            </StackPanel>
+
+        </StackPanel>
+
+        <!-- Footer buttons -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right"
+                    Margin="14,8,14,14" Spacing="8">
+            <Button Content="Cancel" Classes="btn-secondary" Click="OnCancel"/>
+            <Button Content="  Save  " Classes="btn-primary" Click="OnSave"/>
+        </StackPanel>
+
+    </Grid>
+    </Border>
+</Window>

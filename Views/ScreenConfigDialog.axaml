@@ -1,0 +1,194 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ShowCast.ViewModels"
+        x:Class="ShowCast.Views.ScreenConfigDialog"
+        Title="Screen Configuration"
+        Width="720" Height="540"
+        MinWidth="600" MinHeight="400"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="#2d2d2d">
+
+    <DockPanel>
+
+        <!-- ── Footer ── -->
+        <Border DockPanel.Dock="Bottom" Background="#1e1e1e" Padding="12,8"
+                BorderBrush="#555555" BorderThickness="0,1,0,0">
+            <Button Content="Close" Click="OnClose"
+                    Classes="btn-secondary" Width="90"
+                    HorizontalAlignment="Right"/>
+        </Border>
+
+        <!-- ── Two-panel body ── -->
+        <Grid ColumnDefinitions="190,1,*">
+
+            <!-- Left: output list ───────────────────────────── -->
+            <DockPanel Grid.Column="0" Background="#252525">
+
+                <Border DockPanel.Dock="Top" Classes="panel-header">
+                    <Grid ColumnDefinitions="*,Auto,Auto">
+                        <TextBlock Grid.Column="0" Text="OUTPUTS" FontSize="12"/>
+                        <!-- Add -->
+                        <Button Grid.Column="1"
+                                Content="+" Width="22" Height="20" Padding="0"
+                                FontSize="14" FontWeight="Bold"
+                                Background="Transparent" Foreground="#888888"
+                                BorderThickness="0" CornerRadius="3"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                Click="OnAddOutput">
+                            <Button.Styles>
+                                <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="#3a3a3a"/>
+                                </Style>
+                            </Button.Styles>
+                        </Button>
+                        <!-- Remove -->
+                        <Button Grid.Column="2"
+                                Content="−" Width="22" Height="20" Padding="0"
+                                FontSize="16" FontWeight="Bold"
+                                Background="Transparent" Foreground="#888888"
+                                BorderThickness="0" CornerRadius="3"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                Click="OnRemoveOutput">
+                            <Button.Styles>
+                                <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="#3a3a3a"/>
+                                </Style>
+                            </Button.Styles>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <ListBox x:Name="OutputList"
+                         Background="Transparent" Padding="4"
+                         SelectionChanged="OnOutputSelected">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Name}" FontSize="13" Padding="2,4"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+            </DockPanel>
+
+            <!-- Divider -->
+            <Border Grid.Column="1" Background="#555555"/>
+
+            <!-- Right: settings form ────────────────────────── -->
+            <ScrollViewer Grid.Column="2"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto">
+
+                <Border Padding="20,16">
+                <StackPanel x:Name="SettingsPanel" Spacing="14">
+
+                    <!-- ── Name ── -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="NAME" FontSize="10" FontWeight="Bold"
+                                   Foreground="#888888" LetterSpacing="1"/>
+                        <TextBox Text="{Binding Name}"
+                                 Background="#3a3a3a" Foreground="White"
+                                 BorderBrush="#555555" FontSize="13" Height="34"
+                                 VerticalContentAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- ── Type ── -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="TYPE" FontSize="10" FontWeight="Bold"
+                                   Foreground="#888888" LetterSpacing="1"/>
+                        <ComboBox SelectedIndex="{Binding TypeIndex}"
+                                  HorizontalAlignment="Left" MinWidth="180"
+                                  Background="#3a3a3a" Foreground="White">
+                            <ComboBoxItem Content="Display"/>
+                            <ComboBoxItem Content="NDI"/>
+                            <ComboBoxItem Content="Preview"/>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <!-- ── Monitor (Display only) ── -->
+                    <StackPanel Spacing="4" IsVisible="{Binding IsDisplay}">
+                        <TextBlock Text="MONITOR LAYOUT" FontSize="10" FontWeight="Bold"
+                                   Foreground="#888888" LetterSpacing="1"/>
+                        <Border x:Name="MonitorLayoutHost"
+                                Height="110" Background="#1a1a1a"
+                                CornerRadius="4" BorderBrush="#3d3d3d" BorderThickness="1"
+                                ClipToBounds="True"/>
+                        <TextBlock Text="MONITOR" FontSize="10" FontWeight="Bold"
+                                   Foreground="#888888" LetterSpacing="1" Margin="0,6,0,0"/>
+                        <ComboBox ItemsSource="{Binding AvailableMonitors}"
+                                  SelectedIndex="{Binding DisplayIndex}"
+                                  HorizontalAlignment="Stretch"
+                                  Background="#3a3a3a" Foreground="White"/>
+                    </StackPanel>
+
+                    <!-- ── NDI Stream Name (NDI only) ── -->
+                    <StackPanel Spacing="4" IsVisible="{Binding IsNDI}">
+                        <TextBlock Text="NDI STREAM NAME" FontSize="10" FontWeight="Bold"
+                                   Foreground="#888888" LetterSpacing="1"/>
+                        <TextBox Text="{Binding NdiStreamName}"
+                                 Watermark="e.g. ShowCast-Program"
+                                 Background="#3a3a3a" Foreground="White"
+                                 BorderBrush="#555555" FontSize="13" Height="34"
+                                 VerticalContentAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- ── Resolution ── -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="RESOLUTION" FontSize="10" FontWeight="Bold"
+                                   Foreground="#888888" LetterSpacing="1"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <NumericUpDown Value="{Binding Width}"
+                                           Minimum="320" Maximum="7680"
+                                           Increment="2" FormatString="0"
+                                           Width="150" Height="34"
+                                           Background="#3a3a3a" Foreground="White"/>
+                            <TextBlock Text="×" Foreground="#888888"
+                                       VerticalAlignment="Center" FontSize="16"/>
+                            <NumericUpDown Value="{Binding Height}"
+                                           Minimum="180" Maximum="4320"
+                                           Increment="2" FormatString="0"
+                                           Width="150" Height="34"
+                                           Background="#3a3a3a" Foreground="White"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- ── Frame Rate ── -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="FRAME RATE" FontSize="10" FontWeight="Bold"
+                                   Foreground="#888888" LetterSpacing="1"/>
+                        <ComboBox SelectedIndex="{Binding FrameRateIndex}"
+                                  HorizontalAlignment="Left" MinWidth="140"
+                                  Background="#3a3a3a" Foreground="White">
+                            <ComboBoxItem Content="23.976 fps"/>
+                            <ComboBoxItem Content="24 fps"/>
+                            <ComboBoxItem Content="25 fps"/>
+                            <ComboBoxItem Content="29.97 fps"/>
+                            <ComboBoxItem Content="30 fps"/>
+                            <ComboBoxItem Content="50 fps"/>
+                            <ComboBoxItem Content="59.94 fps"/>
+                            <ComboBoxItem Content="60 fps"/>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <!-- ── Options ── -->
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="OPTIONS" FontSize="10" FontWeight="Bold"
+                                   Foreground="#888888" LetterSpacing="1"/>
+                        <CheckBox Content="Open fullscreen on monitor"
+                                  IsChecked="{Binding Fullscreen}"
+                                  IsVisible="{Binding IsDisplay}"
+                                  Foreground="White"/>
+                        <CheckBox Content="Enabled"
+                                  IsChecked="{Binding Enabled}"
+                                  Foreground="White"/>
+                    </StackPanel>
+
+                </StackPanel>
+                </Border>
+            </ScrollViewer>
+
+        </Grid>
+    </DockPanel>
+</Window>

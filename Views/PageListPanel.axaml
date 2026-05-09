@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ShowCast.Views.PageListPanel">
+
+    <DockPanel LastChildFill="True">
+
+        <!-- Header: targeted output -> active package -->
+        <Border DockPanel.Dock="Top" Classes="panel-header">
+            <StackPanel Spacing="2">
+                <TextBlock Text="{Binding SelectedOutput.Name, FallbackValue='No Output Selected',
+                                          StringFormat='&#x25B6; {0}'}"
+                           FontSize="10" Foreground="#e07050" FontWeight="Bold"/>
+                <TextBlock Text="{Binding SelectedOutput.ActivePackage.Name,
+                                          FallbackValue='No package loaded'}"
+                           FontWeight="Bold" FontSize="12" Foreground="White"/>
+            </StackPanel>
+        </Border>
+
+        <!-- CLEAR for the targeted output only -->
+        <Button DockPanel.Dock="Bottom" Content="CLEAR"
+                Classes="btn-secondary"
+                Padding="0,8"
+                HorizontalContentAlignment="Center"
+                HorizontalAlignment="Stretch"
+                Margin="4"
+                Click="OnClear"/>
+
+        <!-- Page list for the targeted output's active package -->
+        <ListBox x:Name="PageList"
+                 ItemsSource="{Binding Pages}"
+                 SelectedItem="{Binding SelectedPage}"
+                 Background="Transparent" Padding="4">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Border Padding="4,6" CornerRadius="5">
+                        <TextBlock Text="{Binding Name}" FontSize="13"
+                                   Foreground="White"/>
+                    </Border>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+    </DockPanel>
+</UserControl>

@@ -1,0 +1,77 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:core="using:ShowCast.Core"
+             x:Class="ShowCast.Views.OutputMonitorPanel">
+
+    <DockPanel LastChildFill="True">
+
+        <Border DockPanel.Dock="Top" Classes="panel-header">
+            <TextBlock Text="OUTPUTS"/>
+        </Border>
+
+        <!-- Tip text -->
+        <Border DockPanel.Dock="Top" Padding="8,4,8,0">
+            <TextBlock Text="Click an output to target it" FontSize="10"
+                       Foreground="#888888" TextWrapping="Wrap"/>
+        </Border>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <ItemsControl x:Name="OutputList" Padding="6">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="core:OutputState">
+                        <!-- Each card is a button so it's clickable -->
+                        <Button x:Name="OutputCard"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                Padding="0" Margin="0,0,0,6"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Click="OnOutputCardClicked"
+                                Tag="{Binding}">
+                            <Border x:Name="CardBorder"
+                                    Classes="surface-card"
+                                    Padding="8">
+                                <StackPanel Spacing="6">
+
+                                    <!-- Output name + type badge -->
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding Name}"
+                                                   FontWeight="Bold" FontSize="12"
+                                                   Foreground="White"/>
+                                        <Border Grid.Column="1"
+                                                Background="#555555"
+                                                CornerRadius="3" Padding="4,1">
+                                            <TextBlock Text="{Binding Type}"
+                                                       FontSize="9" Foreground="White"/>
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- Mini render area -->
+                                    <Border x:Name="ThumbBorder"
+                                            Background="Black" Height="100"
+                                            CornerRadius="5" ClipToBounds="True"
+                                            BorderBrush="#555555" BorderThickness="1">
+                                        <Image x:Name="ThumbImage" Stretch="Uniform"/>
+                                    </Border>
+
+                                    <!-- Live page name -->
+                                    <TextBlock Text="{Binding LivePage.Name, FallbackValue='&#x2014; No Signal &#x2014;'}"
+                                               FontSize="10" Foreground="#888888"
+                                               TextTrimming="CharacterEllipsis"/>
+
+                                    <!-- Loaded package name -->
+                                    <TextBlock Text="{Binding ActivePackage.Name, FallbackValue=''}"
+                                               FontSize="10" Foreground="#666666"
+                                               TextTrimming="CharacterEllipsis"/>
+
+                                </StackPanel>
+                            </Border>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+    </DockPanel>
+</UserControl>

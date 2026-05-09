@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ShowCast.Views.ShowPanel">
+
+    <DockPanel LastChildFill="True">
+
+        <Border DockPanel.Dock="Top" Classes="panel-header">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0" Text="SHOWS"/>
+                <Button Grid.Column="1"
+                        Content="+" Width="22" Height="20" Padding="0"
+                        FontSize="14" FontWeight="Bold"
+                        Background="Transparent" Foreground="#888888"
+                        BorderThickness="0" CornerRadius="3"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#3a3a3a"/>
+                        </Style>
+                        <Style Selector="Button:pointerover">
+                            <Setter Property="Foreground" Value="White"/>
+                        </Style>
+                    </Button.Styles>
+                    <Button.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedRight">
+                            <MenuItem Header="New Folder" Click="OnAddFolder"/>
+                            <MenuItem Header="New Show"   Click="OnAddShow"/>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+            </Grid>
+        </Border>
+
+        <ListBox ItemsSource="{Binding Shows}"
+                 SelectedItem="{Binding SelectedShow}"
+                 Background="Transparent" Padding="4"
+                 ContextRequested="OnContextRequested">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Name}" FontSize="13"
+                               Foreground="White" Padding="4,3"/>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+    </DockPanel>
+</UserControl>

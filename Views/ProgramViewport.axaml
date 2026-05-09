@@ -1,0 +1,51 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ShowCast.ViewModels"
+             xmlns:views="using:ShowCast.Views"
+             x:Class="ShowCast.Views.ProgramViewport">
+
+    <UserControl.Styles>
+        <Style Selector="Border.output-cell">
+            <Setter Property="BorderBrush" Value="#333333"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Border.output-cell.selected">
+            <Setter Property="BorderBrush" Value="#2a82da"/>
+        </Style>
+    </UserControl.Styles>
+
+    <ItemsControl x:Name="OutputGrid" Background="Black" Tapped="OnOutputTapped">
+        <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+                <StackPanel Orientation="Vertical"/>
+            </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:OutputPreviewItem">
+                <Border Classes="output-cell"
+                        Classes.selected="{Binding IsSelected}"
+                        Background="Black">
+                    <Grid>
+                        <views:WebView2PreviewControl
+                            Output="{Binding Output}"
+                            Roles="{Binding Output.Roles}"/>
+                        <Border VerticalAlignment="Bottom"
+                                Background="#cc1a1a1a"
+                                Padding="5,3">
+                            <StackPanel Spacing="1">
+                                <TextBlock Text="{Binding Label}"
+                                           FontSize="9" FontWeight="Bold"
+                                           Foreground="#e07050"/>
+                                <TextBlock Text="{Binding Name}"
+                                           FontSize="8"
+                                           Foreground="#888888"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+</UserControl>

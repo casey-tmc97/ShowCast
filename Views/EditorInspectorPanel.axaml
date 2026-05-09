@@ -1,0 +1,445 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:ShowCast.Views"
+             x:Class="ShowCast.Views.EditorInspectorPanel"
+             Background="#252525">
+
+    <UserControl.Resources>
+        <!-- ── Collapsible section expander ──────────────────────────────── -->
+        <ControlTheme x:Key="SectionExpander" TargetType="Expander">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="IsExpanded" Value="True"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <StackPanel>
+
+                        <!-- Top divider rule -->
+                        <Border Height="1" Background="#3a3a3a" Margin="0,6,0,0"/>
+
+                        <!-- Clickable header toggle -->
+                        <ToggleButton Name="PART_toggle"
+                                      IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}"
+                                      HorizontalAlignment="Stretch"
+                                      HorizontalContentAlignment="Stretch"
+                                      Background="Transparent"
+                                      Foreground="#888888"
+                                      BorderThickness="0"
+                                      Padding="0,5,0,3"
+                                      Cursor="Hand">
+                            <ToggleButton.Styles>
+                                <Style Selector="ToggleButton:pointerover /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                </Style>
+                                <Style Selector="ToggleButton:checked /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                </Style>
+                                <Style Selector="ToggleButton:pressed /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                </Style>
+                            </ToggleButton.Styles>
+                            <Grid ColumnDefinitions="*,14">
+                                <TextBlock Grid.Column="0"
+                                           Text="{TemplateBinding Header}"
+                                           FontSize="12" FontWeight="Bold"
+                                           Foreground="#cccccc"
+                                           VerticalAlignment="Center"/>
+                                <!-- Caret: ▸ by default; style below sets it to ▾ when expanded -->
+                                <TextBlock Grid.Column="1" Name="ExpandCaret"
+                                           Text="▸"
+                                           FontSize="9" Foreground="#666666"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Right"/>
+                            </Grid>
+                        </ToggleButton>
+
+                        <!-- Collapsible content -->
+                        <ContentPresenter Name="PART_ContentPresenter"
+                                          Content="{TemplateBinding Content}"
+                                          IsVisible="{TemplateBinding IsExpanded}"/>
+                    </StackPanel>
+                </ControlTemplate>
+            </Setter>
+
+            <!-- Swap caret direction when expanded -->
+            <Style Selector="^:expanded /template/ TextBlock#ExpandCaret">
+                <Setter Property="Text" Value="▾"/>
+            </Style>
+        </ControlTheme>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+
+        <Style Selector="TextBlock.field-label">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#aaaaaa"/>
+            <Setter Property="Margin" Value="0,0,0,2"/>
+        </Style>
+
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="#2a2a2a"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555555"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+
+        <!-- option-toggle class = Bold / Italic / Align buttons (NOT the Expander toggle) -->
+        <Style Selector="ToggleButton.option-toggle">
+            <Setter Property="Background" Value="#3a3a3a"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555555"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+        <Style Selector="ToggleButton.option-toggle:checked /template/ ContentPresenter">
+            <Setter Property="Background" Value="#3b82f6"/>
+        </Style>
+        <Style Selector="ToggleButton.option-toggle:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4a4a4a"/>
+        </Style>
+
+        <Style Selector="Button.align-btn">
+            <Setter Property="Background" Value="#3a3a3a"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555555"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Width" Value="34"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+        <Style Selector="Button.align-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4a4a4a"/>
+        </Style>
+
+        <Style Selector="ComboBox">
+            <Setter Property="Background" Value="#2a2a2a"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#555555"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Padding" Value="6,0"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+
+    </UserControl.Styles>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="10" Spacing="0">
+
+            <!-- No selection placeholder -->
+            <TextBlock x:Name="NoSelMsg"
+                       Text="Select a layer to edit its properties"
+                       Foreground="#555555" FontSize="12" FontStyle="Italic"
+                       TextWrapping="Wrap" IsVisible="True"
+                       Margin="0,20,0,0"/>
+
+            <!-- ══ LAYER (Common) ══ -->
+            <Expander x:Name="CommonSection" IsVisible="False"
+                      Theme="{StaticResource SectionExpander}"
+                      Header="LAYER">
+                <StackPanel Margin="0,2,0,0">
+
+                    <TextBlock Classes="field-label" Text="Name"/>
+                    <TextBox x:Name="LayerNameBox"
+                             LostFocus="OnLayerNameLostFocus"
+                             KeyDown="OnLayerNameKeyDown"/>
+
+                    <Grid ColumnDefinitions="*,8,Auto">
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Classes="field-label" Text="Opacity"/>
+                            <Slider x:Name="OpacitySlider" Minimum="0" Maximum="100" Value="100"
+                                    ValueChanged="OnOpacityChanged" Margin="0,4,0,6"/>
+                        </StackPanel>
+                        <TextBlock Grid.Column="2" x:Name="OpacityLabel"
+                                   Text="100%" Foreground="#888888" FontSize="11"
+                                   VerticalAlignment="Center" Width="36"/>
+                    </Grid>
+
+                    <TextBlock Classes="field-label" Text="Blend Mode"/>
+                    <ComboBox x:Name="BlendModeBox" SelectionChanged="OnBlendModeChanged">
+                        <ComboBoxItem Content="Normal"/>
+                        <ComboBoxItem Content="Multiply"/>
+                        <ComboBoxItem Content="Screen"/>
+                        <ComboBoxItem Content="Overlay"/>
+                        <ComboBoxItem Content="Add"/>
+                    </ComboBox>
+
+                </StackPanel>
+            </Expander>
+
+            <!-- ══ TRANSFORM ══ -->
+            <Expander x:Name="TransformSection" IsVisible="False"
+                      Theme="{StaticResource SectionExpander}"
+                      Header="TRANSFORM">
+                <StackPanel Margin="0,2,0,0">
+
+                    <Grid ColumnDefinitions="*,6,*">
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Classes="field-label" Text="X (px)"/>
+                            <TextBox x:Name="LayerXBox" LostFocus="OnTransformLostFocus" KeyDown="OnTransformKeyDown"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Classes="field-label" Text="Y (px)"/>
+                            <TextBox x:Name="LayerYBox" LostFocus="OnTransformLostFocus" KeyDown="OnTransformKeyDown"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,6,*">
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Classes="field-label" Text="W (px)"/>
+                            <TextBox x:Name="LayerWBox" LostFocus="OnTransformLostFocus" KeyDown="OnTransformKeyDown"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Classes="field-label" Text="H (px)"/>
+                            <TextBox x:Name="LayerHBox" LostFocus="OnTransformLostFocus" KeyDown="OnTransformKeyDown"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Classes="field-label" Text="Rotation (°)"/>
+                    <TextBox x:Name="LayerRotBox" LostFocus="OnTransformLostFocus" KeyDown="OnTransformKeyDown"/>
+
+                </StackPanel>
+            </Expander>
+
+            <!-- ══ ALIGN TO CANVAS ══ -->
+            <Expander x:Name="AlignSection" IsVisible="False"
+                      Theme="{StaticResource SectionExpander}"
+                      Header="ALIGN TO CANVAS">
+                <StackPanel Margin="0,2,0,0">
+
+                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,0,4">
+                        <Button Classes="align-btn" Content="⊢ L"  ToolTip.Tip="Align left edge"    Tag="Left"    Click="OnAlignCanvas"/>
+                        <Button Classes="align-btn" Content="↔"    ToolTip.Tip="Center horizontally" Tag="CenterH" Click="OnAlignCanvas"/>
+                        <Button Classes="align-btn" Content="R ⊣"  ToolTip.Tip="Align right edge"   Tag="Right"   Click="OnAlignCanvas"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,0,8">
+                        <Button Classes="align-btn" Content="⊤ T"  ToolTip.Tip="Align top edge"     Tag="Top"     Click="OnAlignCanvas"/>
+                        <Button Classes="align-btn" Content="↕"    ToolTip.Tip="Center vertically"  Tag="CenterV" Click="OnAlignCanvas"/>
+                        <Button Classes="align-btn" Content="B ⊥"  ToolTip.Tip="Align bottom edge"  Tag="Bottom"  Click="OnAlignCanvas"/>
+                    </StackPanel>
+
+                </StackPanel>
+            </Expander>
+
+            <!-- ══ TEXT ══ -->
+            <Expander x:Name="TextSection" IsVisible="False"
+                      Theme="{StaticResource SectionExpander}"
+                      Header="TEXT">
+                <StackPanel Margin="0,2,0,0">
+
+                    <TextBlock Classes="field-label" Text="Timer Source"/>
+                    <ComboBox x:Name="TimerSourceBox"
+                              HorizontalAlignment="Stretch"
+                              Margin="0,0,0,6"
+                              SelectionChanged="OnTimerSourceChanged"/>
+
+
+                    <Grid ColumnDefinitions="*,6,70">
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Classes="field-label" Text="Font"/>
+                            <ComboBox x:Name="FontFamilyBox"
+                                      HorizontalAlignment="Stretch"
+                                      MaxDropDownHeight="300"
+                                      SelectionChanged="OnFontFamilySelectionChanged"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Classes="field-label" Text="Size (px)"/>
+                            <TextBox x:Name="FontSizeBox" LostFocus="OnFontSizeLostFocus" KeyDown="OnSingleLineKeyDown"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Classes="field-label" Text="Color"/>
+                    <local:ColorPickerField x:Name="TextColorPicker" Margin="0,0,0,6"/>
+
+                    <TextBlock Classes="field-label" Text="Style"/>
+                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,0,6">
+                        <ToggleButton Classes="option-toggle" x:Name="BoldBtn"   Content="B" FontWeight="Bold"  Click="OnStyleClick"/>
+                        <ToggleButton Classes="option-toggle" x:Name="ItalicBtn" Content="I" FontStyle="Italic" Click="OnStyleClick"/>
+                    </StackPanel>
+
+                    <TextBlock Classes="field-label" Text="H Alignment"/>
+                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,0,6">
+                        <ToggleButton Classes="option-toggle" x:Name="AlignLeftBtn"   Content="Left"   Click="OnAlignClick"/>
+                        <ToggleButton Classes="option-toggle" x:Name="AlignCenterBtn" Content="Center" Click="OnAlignClick"/>
+                        <ToggleButton Classes="option-toggle" x:Name="AlignRightBtn"  Content="Right"  Click="OnAlignClick"/>
+                    </StackPanel>
+
+                    <TextBlock Classes="field-label" Text="V Alignment"/>
+                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,0,6">
+                        <ToggleButton Classes="option-toggle" x:Name="VAlignTopBtn" Content="Top"    Click="OnVAlignClick"/>
+                        <ToggleButton Classes="option-toggle" x:Name="VAlignMidBtn" Content="Middle" Click="OnVAlignClick"/>
+                        <ToggleButton Classes="option-toggle" x:Name="VAlignBotBtn" Content="Bottom" Click="OnVAlignClick"/>
+                    </StackPanel>
+
+                    <TextBlock Classes="field-label" Text="Stroke Color"/>
+                    <local:ColorPickerField x:Name="TextStrokePicker" Margin="0,0,0,6"/>
+
+                    <TextBlock Classes="field-label" Text="Stroke Width (px)"/>
+                    <TextBox x:Name="TextStrokeWidthBox" LostFocus="OnTextStrokeWidthLostFocus" KeyDown="OnSingleLineKeyDown"/>
+
+                </StackPanel>
+            </Expander>
+
+            <!-- ══ IMAGE ══ -->
+            <Expander x:Name="ImageSection" IsVisible="False"
+                      Theme="{StaticResource SectionExpander}"
+                      Header="IMAGE">
+                <StackPanel Margin="0,2,0,0">
+
+                    <TextBlock Classes="field-label" Text="File"/>
+                    <Grid ColumnDefinitions="*,6,Auto" Margin="0,0,0,6">
+                        <TextBox Grid.Column="0" x:Name="ImagePathBox"
+                                 IsReadOnly="True"
+                                 Foreground="#aaaaaa"
+                                 FontSize="11"
+                                 VerticalContentAlignment="Center"/>
+                        <Button Grid.Column="2" Content="Browse…"
+                                Background="#3a3a3a" Foreground="White"
+                                BorderBrush="#555555" BorderThickness="1"
+                                Padding="8,0" Height="28" FontSize="12"
+                                CornerRadius="4"
+                                Click="OnBrowseImage"/>
+                    </Grid>
+
+                    <TextBlock Classes="field-label" Text="Fit Mode"/>
+                    <ComboBox x:Name="ImageFitBox" SelectionChanged="OnImageFitChanged">
+                        <ComboBoxItem Content="Fit (letterbox)"/>
+                        <ComboBoxItem Content="Fill (crop)"/>
+                        <ComboBoxItem Content="Stretch"/>
+                    </ComboBox>
+
+                    <TextBlock Classes="field-label" Text="Opacity"/>
+                    <Grid ColumnDefinitions="*,36" Margin="0,0,0,8">
+                        <Slider x:Name="ImageOpacitySlider" Grid.Column="0"
+                                Minimum="0" Maximum="100" Value="100"
+                                ValueChanged="OnImageOpacityChanged"/>
+                        <TextBlock x:Name="ImageOpacityLabel" Grid.Column="1"
+                                   Text="100%" Foreground="#888888" FontSize="11"
+                                   VerticalAlignment="Center" Margin="4,0,0,0"/>
+                    </Grid>
+
+                </StackPanel>
+            </Expander>
+
+            <!-- ══ FILL / SHAPE ══ -->
+            <Expander x:Name="FillSection" IsVisible="False"
+                      Theme="{StaticResource SectionExpander}"
+                      Header="FILL">
+                <StackPanel Margin="0,2,0,0">
+
+                    <TextBlock Classes="field-label" Text="Shape"/>
+                    <ComboBox x:Name="ShapeKindBox" SelectionChanged="OnShapeKindChanged">
+                        <ComboBoxItem Content="Rectangle"/>
+                        <ComboBoxItem Content="Ellipse"/>
+                        <ComboBoxItem Content="Rounded Rect"/>
+                        <ComboBoxItem Content="Triangle"/>
+                    </ComboBox>
+
+                    <TextBlock Classes="field-label" Text="Corner Radius (px)"/>
+                    <TextBox x:Name="CornerRadiusBox" LostFocus="OnCornerRadiusLostFocus" KeyDown="OnSingleLineKeyDown"/>
+
+                    <TextBlock Classes="field-label" Text="Fill Color"/>
+                    <local:ColorPickerField x:Name="FillColorPicker" Margin="0,0,0,6"/>
+
+                    <TextBlock Classes="field-label" Text="Stroke Color"/>
+                    <local:ColorPickerField x:Name="FillStrokePicker" Margin="0,0,0,6"/>
+
+                    <TextBlock Classes="field-label" Text="Stroke Width (px)"/>
+                    <TextBox x:Name="FillStrokeWidthBox" LostFocus="OnFillStrokeWidthLostFocus" KeyDown="OnSingleLineKeyDown"/>
+
+                </StackPanel>
+            </Expander>
+
+            <!-- ══ ANIMATION ══ -->
+            <Expander x:Name="AnimSection" IsVisible="False"
+                      Theme="{StaticResource SectionExpander}"
+                      Header="ANIMATION">
+                <StackPanel Margin="0,2,0,0">
+
+                    <TextBlock Classes="field-label" Text="Entry"/>
+                    <ComboBox x:Name="EntryAnimBox" SelectionChanged="OnEntryAnimChanged">
+                        <ComboBoxItem Content="None"/>
+                        <ComboBoxItem Content="Fade In"/>
+                        <ComboBoxItem Content="Slide In Left"/>
+                        <ComboBoxItem Content="Slide In Right"/>
+                        <ComboBoxItem Content="Slide In Up"/>
+                        <ComboBoxItem Content="Slide In Down"/>
+                        <ComboBoxItem Content="Zoom In"/>
+                    </ComboBox>
+
+                    <Grid ColumnDefinitions="*,6,*">
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Classes="field-label" Text="Duration (ms)"/>
+                            <TextBox x:Name="EntryDurationBox"
+                                     LostFocus="OnEntryDurationLostFocus"
+                                     KeyDown="OnAnimKeyDown"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Classes="field-label" Text="Delay (ms)"/>
+                            <TextBox x:Name="EntryDelayBox"
+                                     LostFocus="OnEntryDelayLostFocus"
+                                     KeyDown="OnAnimKeyDown"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Classes="field-label" Text="Easing"/>
+                    <ComboBox x:Name="EntryEasingBox" SelectionChanged="OnEntryEasingChanged">
+                        <ComboBoxItem Content="Ease Out (default)"/>
+                        <ComboBoxItem Content="Linear"/>
+                        <ComboBoxItem Content="Ease In"/>
+                        <ComboBoxItem Content="Ease In/Out"/>
+                    </ComboBox>
+
+                    <TextBlock Classes="field-label" Text="Hold Duration (ms)" Margin="0,8,0,2"/>
+                    <TextBox x:Name="HoldDurationBox"
+                             LostFocus="OnHoldDurationLostFocus"
+                             KeyDown="OnAnimKeyDown"/>
+
+                    <TextBlock Classes="field-label" Text="Exit" Margin="0,8,0,2"/>
+                    <ComboBox x:Name="ExitAnimBox" SelectionChanged="OnExitAnimChanged">
+                        <ComboBoxItem Content="None"/>
+                        <ComboBoxItem Content="Fade Out"/>
+                        <ComboBoxItem Content="Slide Out Left"/>
+                        <ComboBoxItem Content="Slide Out Right"/>
+                        <ComboBoxItem Content="Slide Out Up"/>
+                        <ComboBoxItem Content="Slide Out Down"/>
+                        <ComboBoxItem Content="Zoom Out"/>
+                    </ComboBox>
+
+                    <Grid ColumnDefinitions="*,6,*">
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Classes="field-label" Text="Duration (ms)"/>
+                            <TextBox x:Name="ExitDurationBox"
+                                     LostFocus="OnExitDurationLostFocus"
+                                     KeyDown="OnAnimKeyDown"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Classes="field-label" Text="Delay (ms)"/>
+                            <TextBox x:Name="ExitDelayBox"
+                                     LostFocus="OnExitDelayLostFocus"
+                                     KeyDown="OnAnimKeyDown"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Classes="field-label" Text="Easing"/>
+                    <ComboBox x:Name="ExitEasingBox" SelectionChanged="OnExitEasingChanged">
+                        <ComboBoxItem Content="Ease In (default)"/>
+                        <ComboBoxItem Content="Linear"/>
+                        <ComboBoxItem Content="Ease Out"/>
+                        <ComboBoxItem Content="Ease In/Out"/>
+                    </ComboBox>
+
+                </StackPanel>
+            </Expander>
+
+        </StackPanel>
+    </ScrollViewer>
+
+</UserControl>

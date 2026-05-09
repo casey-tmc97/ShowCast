@@ -1,0 +1,170 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="using:ShowCast.Views"
+             x:Class="ShowCast.Views.PageEditorOverlay"
+             Background="#2d2d2d">
+
+    <Grid RowDefinitions="40,*">
+
+        <!-- ── Editor toolbar ── -->
+        <Border Grid.Row="0"
+                Background="#1a1a1a"
+                BorderBrush="#555555" BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+
+                <!-- Back -->
+                <Button Grid.Column="0" Content="← Back"
+                        Classes="tool-btn"
+                        Margin="8,5,4,5"
+                        Click="OnBack"
+                        ToolTip.Tip="Close editor (saves automatically)"/>
+
+                <!-- Undo / Redo -->
+                <Button Grid.Column="1" Content="↩ Undo"
+                        Classes="tool-btn"
+                        Margin="4,5"
+                        Click="OnUndo"
+                        ToolTip.Tip="Undo (Ctrl+Z)"/>
+                <Button Grid.Column="2" Content="↪ Redo"
+                        Classes="tool-btn"
+                        Margin="4,5"
+                        Click="OnRedo"
+                        ToolTip.Tip="Redo (Ctrl+Y)"/>
+
+                <!-- Page name -->
+                <TextBlock Grid.Column="3"
+                           Text="{Binding EditingPageName, FallbackValue='Page Editor'}"
+                           Foreground="#cccccc" FontSize="13" FontWeight="Bold"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center"/>
+
+                <!-- Add Text -->
+                <Button Grid.Column="4" Content="+ Text"
+                        Classes="tool-btn"
+                        Margin="4,5"
+                        Click="OnAddText"
+                        ToolTip.Tip="Add text layer"/>
+
+                <!-- Add Shape -->
+                <Button Grid.Column="5" Content="+ Shape"
+                        Classes="tool-btn"
+                        Margin="4,5"
+                        Click="OnAddShape"
+                        ToolTip.Tip="Add shape layer"/>
+
+                <!-- Add Image -->
+                <Button Grid.Column="6" Content="+ Image"
+                        Classes="tool-btn"
+                        Margin="4,5"
+                        Click="OnAddImage"
+                        ToolTip.Tip="Add image layer (opens file picker)"/>
+
+                <!-- Toggle Rulers -->
+                <ToggleButton Grid.Column="7"
+                              Content="Rulers"
+                              Classes="tool-btn"
+                              Margin="4,5"
+                              IsChecked="{Binding ShowRulers}"
+                              ToolTip.Tip="Toggle rulers"/>
+
+                <!-- Grid size dropdown (None = off) -->
+                <ComboBox Grid.Column="8"
+                          x:Name="GridSizeBox"
+                          Width="90" Height="26" FontSize="11"
+                          Margin="4,5"
+                          SelectedIndex="0"
+                          ToolTip.Tip="Grid overlay size (None = off)"
+                          SelectionChanged="OnGridSizeChanged">
+                    <ComboBoxItem Content="Grid: None"/>
+                    <ComboBoxItem Content="Grid: 25px"/>
+                    <ComboBoxItem Content="Grid: 50px"/>
+                    <ComboBoxItem Content="Grid: 75px"/>
+                    <ComboBoxItem Content="Grid: 100px"/>
+                </ComboBox>
+
+                <!-- Toggle Snap -->
+                <ToggleButton Grid.Column="9"
+                              Content="Snap"
+                              Classes="tool-btn"
+                              Margin="4,5"
+                              IsChecked="{Binding SnapToGrid}"
+                              ToolTip.Tip="Snap to grid while dragging"/>
+
+                <!-- Toggle Broadcast Safe -->
+                <ToggleButton Grid.Column="10"
+                              Content="Safe"
+                              Classes="tool-btn"
+                              Margin="4,5"
+                              IsChecked="{Binding ShowSafeBoundaries}"
+                              ToolTip.Tip="Show broadcast safe boundaries (action 5%, title 10%)"/>
+
+                <!-- Delete selected -->
+                <Button Grid.Column="11" Content="Del Layer"
+                        Classes="tool-btn"
+                        Margin="4,5,8,5"
+                        Click="OnDeleteLayer"
+                        ToolTip.Tip="Delete selected layer (Delete key)"/>
+
+                <!-- Preview animations -->
+                <Button Grid.Column="12" Content="▶ Preview"
+                        Classes="tool-btn"
+                        Margin="4,5,8,5"
+                        Click="OnPreviewAnimation"
+                        ToolTip.Tip="Preview layer entry/exit animations"/>
+
+            </Grid>
+        </Border>
+
+        <!-- ── 3-column workspace ── -->
+        <Grid Grid.Row="1" ColumnDefinitions="220,4,*,4,260">
+
+            <!-- Left: Package viewer (top 2/3) + Layer list (bottom 1/3) -->
+            <Border Grid.Column="0"
+                    BorderBrush="#555555" BorderThickness="0,0,1,0">
+                <Grid RowDefinitions="2*,4,*">
+
+                    <!-- Package filmstrip -->
+                    <views:EditorShowPanel Grid.Row="0"/>
+
+                    <!-- Splitter -->
+                    <GridSplitter Grid.Row="1"
+                                  ResizeDirection="Rows"
+                                  Background="#555555"
+                                  VerticalAlignment="Stretch"
+                                  HorizontalAlignment="Stretch"/>
+
+                    <!-- Layer list -->
+                    <Border Grid.Row="2"
+                            BorderBrush="#555555" BorderThickness="0,1,0,0">
+                        <views:EditorLayerPanel/>
+                    </Border>
+
+                </Grid>
+            </Border>
+
+            <GridSplitter Grid.Column="1"
+                          ResizeDirection="Columns"
+                          Background="#555555"
+                          HorizontalAlignment="Stretch"/>
+
+            <!-- Center: Interactive canvas -->
+            <Border Grid.Column="2" Background="#2d2d2d">
+                <views:EditorCanvas x:Name="TheCanvas"/>
+            </Border>
+
+            <GridSplitter Grid.Column="3"
+                          ResizeDirection="Columns"
+                          Background="#555555"
+                          HorizontalAlignment="Stretch"/>
+
+            <!-- Right: Property inspector -->
+            <Border Grid.Column="4"
+                    BorderBrush="#555555" BorderThickness="1,0,0,0">
+                <views:EditorInspectorPanel/>
+            </Border>
+
+        </Grid>
+
+    </Grid>
+
+</UserControl>

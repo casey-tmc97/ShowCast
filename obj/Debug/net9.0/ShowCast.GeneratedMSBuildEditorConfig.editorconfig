@@ -1,0 +1,85 @@
+is_global = true
+build_property.AvaloniaNameGeneratorIsEnabled = true
+build_property.AvaloniaNameGeneratorBehavior = InitializeComponent
+build_property.AvaloniaNameGeneratorDefaultFieldModifier = internal
+build_property.AvaloniaNameGeneratorFilterByPath = *
+build_property.AvaloniaNameGeneratorFilterByNamespace = *
+build_property.AvaloniaNameGeneratorViewFileNamingStrategy = NamespaceAndClassName
+build_property.AvaloniaNameGeneratorAttachDevTools = true
+build_property.TargetFramework = net9.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = 
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = ShowCast
+build_property.ProjectDir = C:\Users\Casey_Pittman\Documents\GitHub\ShowCast\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.EffectiveAnalysisLevelStyle = 9.0
+build_property.EnableCodeStyleSeverity = 
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/App.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Assets/Theme.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/AddEditEventDialog.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/BottomBar.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/EditorInspectorPanel.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/EditorLayerPanel.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/EditorShowPanel.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/ItemsPanel.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/MainWindow.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/OutputMonitorPanel.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/OutputWindow.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/PageEditorOverlay.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/PageGridPanel.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/PageListPanel.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/ProgramViewport.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/RundownPanel.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/SchedulerDialog.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/ScreenConfigDialog.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/ShowPanel.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/TimerEditDialog.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/TimerPanel.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml

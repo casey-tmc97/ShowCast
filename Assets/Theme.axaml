@@ -1,0 +1,138 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ═══════════════════════════════════════════════════════
+         ShowCast Dark Theme — matched to TimecodeApp style
+         Clean, functional, solid colors, no frills
+         ═══════════════════════════════════════════════════════ -->
+
+    <!-- ── Panel headers ── -->
+    <Style Selector="Border.panel-header">
+        <Setter Property="Background" Value="#1e1e1e"/>
+        <Setter Property="Padding" Value="10,6"/>
+    </Style>
+    <Style Selector="Border.panel-header TextBlock">
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Foreground" Value="White"/>
+    </Style>
+
+    <!-- ── Surface cards (output cards, etc.) ── -->
+    <Style Selector="Border.surface-card">
+        <Setter Property="Background" Value="#3a3a3a"/>
+        <Setter Property="CornerRadius" Value="5"/>
+        <Setter Property="BorderBrush" Value="#555555"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <!-- ── Primary action buttons (GO LIVE) ── -->
+    <Style Selector="Button.btn-primary">
+        <Setter Property="Background" Value="#c0392b"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Padding" Value="14,4"/>
+        <Setter Property="CornerRadius" Value="5"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+    <Style Selector="Button.btn-primary:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#e04838"/>
+    </Style>
+    <Style Selector="Button.btn-primary:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="#a33025"/>
+    </Style>
+
+    <!-- ── Secondary buttons (CLEAR, etc.) ── -->
+    <Style Selector="Button.btn-secondary">
+        <Setter Property="Background" Value="#555555"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Padding" Value="14,4"/>
+        <Setter Property="CornerRadius" Value="5"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+    <Style Selector="Button.btn-secondary:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#666666"/>
+    </Style>
+    <Style Selector="Button.btn-secondary:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="#444444"/>
+    </Style>
+
+    <!-- ── Toolbar buttons ── -->
+    <Style Selector="Button.tool-btn">
+        <Setter Property="Background" Value="#3a3a3a"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Padding" Value="10,5"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="CornerRadius" Value="5"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="#555555"/>
+    </Style>
+    <Style Selector="Button.tool-btn:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#4a4a4a"/>
+    </Style>
+    <Style Selector="Button.tool-btn:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="#333333"/>
+    </Style>
+
+    <!-- ── Toolbar toggle buttons ── -->
+    <Style Selector="ToggleButton.tool-btn">
+        <Setter Property="Background" Value="#3a3a3a"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Padding" Value="10,5"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="CornerRadius" Value="5"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="#555555"/>
+    </Style>
+    <Style Selector="ToggleButton.tool-btn:checked /template/ ContentPresenter">
+        <Setter Property="Background" Value="#3b82f6"/>
+    </Style>
+    <Style Selector="ToggleButton.tool-btn:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#4a4a4a"/>
+    </Style>
+    <Style Selector="ToggleButton.tool-btn:checked:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#5b92f6"/>
+    </Style>
+
+    <!-- ── Divider lines ── -->
+    <Style Selector="Border.divider-v">
+        <Setter Property="Width" Value="1"/>
+        <Setter Property="Background" Value="#555555"/>
+        <Setter Property="Margin" Value="0,7"/>
+    </Style>
+    <Style Selector="Border.divider-h">
+        <Setter Property="Height" Value="1"/>
+        <Setter Property="Background" Value="#555555"/>
+    </Style>
+
+    <!-- ── ListBox / ListBoxItem ── -->
+    <Style Selector="ListBox">
+        <Setter Property="Background" Value="Transparent"/>
+    </Style>
+    <Style Selector="ListBoxItem">
+        <Setter Property="CornerRadius" Value="5"/>
+        <Setter Property="Margin" Value="2,1"/>
+        <Setter Property="Foreground" Value="White"/>
+    </Style>
+    <Style Selector="ListBoxItem TextBlock">
+        <Setter Property="Foreground" Value="White"/>
+    </Style>
+    <Style Selector="ListBoxItem:selected">
+        <Setter Property="Foreground" Value="White"/>
+    </Style>
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+        <Setter Property="Background" Value="#3b82f6"/>
+        <Setter Property="Foreground" Value="White"/>
+    </Style>
+    <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#3a3a3a"/>
+        <Setter Property="Foreground" Value="White"/>
+    </Style>
+
+    <!-- ── Menu styling ── -->
+    <Style Selector="Menu">
+        <Setter Property="Background" Value="Transparent"/>
+    </Style>
+
+</Styles>

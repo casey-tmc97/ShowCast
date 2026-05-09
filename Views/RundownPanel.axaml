@@ -1,0 +1,97 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ShowCast.Views.RundownPanel">
+
+    <DockPanel LastChildFill="True">
+
+        <!-- ── Header ───────────────────────────────────────────────────── -->
+        <Border DockPanel.Dock="Top" Classes="panel-header">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <TextBlock Grid.Column="0" Text="RUNDOWNS"/>
+
+                <!-- Add folder button -->
+                <Button Grid.Column="1"
+                        ToolTip.Tip="New Folder"
+                        Width="22" Height="20" Padding="0"
+                        Background="Transparent" Foreground="#888888"
+                        BorderThickness="0" CornerRadius="3"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Click="OnAddFolder">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#3a3a3a"/>
+                        </Style>
+                        <Style Selector="Button:pointerover">
+                            <Setter Property="Foreground" Value="White"/>
+                        </Style>
+                    </Button.Styles>
+                    <TextBlock Text="&#128193;" FontSize="11"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Button>
+
+                <!-- Add rundown button -->
+                <Button Grid.Column="2"
+                        Content="+" Width="22" Height="20" Padding="0"
+                        FontSize="14" FontWeight="Bold"
+                        ToolTip.Tip="New Rundown"
+                        Background="Transparent" Foreground="#888888"
+                        BorderThickness="0" CornerRadius="3"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Click="OnAddRundown">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#3a3a3a"/>
+                        </Style>
+                        <Style Selector="Button:pointerover">
+                            <Setter Property="Foreground" Value="White"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- ── Tree list ────────────────────────────────────────────────── -->
+        <ListBox x:Name="TreeList"
+                 ItemsSource="{Binding RundownTree}"
+                 Background="Transparent" Padding="4"
+                 SelectionChanged="OnSelectionChanged"
+                 ContextRequested="OnContextRequested">
+
+            <ListBox.ItemContainerTheme>
+                <ControlTheme TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                    <Setter Property="Padding" Value="0"/>
+                </ControlTheme>
+            </ListBox.ItemContainerTheme>
+
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal" Height="26" VerticalAlignment="Center">
+
+                        <!-- Indent spacer -->
+                        <Border Width="{Binding IndentMargin}"/>
+
+                        <!-- Expand/collapse caret (folders only) -->
+                        <TextBlock Text="{Binding ExpandIcon}"
+                                   IsVisible="{Binding IsFolder}"
+                                   FontSize="10" Foreground="#888888"
+                                   Width="14"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Center"/>
+
+                        <!-- Padding spacer for rundown rows so name aligns -->
+                        <Border Width="14" IsVisible="{Binding IsRundown}"/>
+
+                        <!-- Name -->
+                        <TextBlock Text="{Binding Name}"
+                                   FontSize="13" Foreground="White"
+                                   VerticalAlignment="Center"
+                                   Margin="2,0,0,0"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+    </DockPanel>
+</UserControl>

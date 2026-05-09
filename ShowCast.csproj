@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>ShowCast</AssemblyName>
+    <RootNamespace>ShowCast</RootNamespace>
+    <!-- Exclude the NDI 6 SDK example folder that was installed inside the project tree.
+         DefaultItemExcludes runs at glob-expansion time, before Compile items are formed. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);NDI 6 SDK\**;NDI 6 SDK/**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Docs\manual.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- NDI SDK native DLL - must be Content (not None) for the copy to fire -->
+  <ItemGroup>
+    <Content Include="NDI\Processing.NDI.Lib.x64.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- UI Framework -->
+    <PackageReference Include="Avalonia"                    Version="11.2.2" />
+    <PackageReference Include="Avalonia.Desktop"            Version="11.2.2" />
+    <PackageReference Include="Avalonia.Themes.Fluent"      Version="11.2.2" />
+    <PackageReference Include="Avalonia.Controls.DataGrid"  Version="11.2.2" />
+    <PackageReference Include="Avalonia.ReactiveUI"         Version="11.2.2" />
+
+    <!-- MVVM -->
+    <PackageReference Include="ReactiveUI"                  Version="20.1.63" />
+
+    <!-- 2D rendering (slide compositor) - SkiaSharp is Avalonia's built-in renderer -->
+    <PackageReference Include="SkiaSharp"                   Version="2.88.9" />
+
+    <!-- Serialization (show file save/load) -->
+    <PackageReference Include="System.Text.Json"            Version="9.0.0" />
+  </ItemGroup>
+
+</Project>

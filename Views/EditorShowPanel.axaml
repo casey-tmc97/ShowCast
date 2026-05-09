@@ -1,0 +1,75 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ShowCast.ViewModels"
+             x:Class="ShowCast.Views.EditorShowPanel"
+             Background="#1e1e1e">
+
+    <UserControl.Styles>
+
+        <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2a2a2a"/>
+        </Style>
+        <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="#1a2a3a"/>
+        </Style>
+
+    </UserControl.Styles>
+
+    <DockPanel LastChildFill="True">
+
+        <!-- Header -->
+        <Border DockPanel.Dock="Top" Classes="panel-header">
+            <TextBlock Text="PACKAGE"/>
+        </Border>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <ListBox x:Name="SlideList"
+                     ItemsSource="{Binding EditorPages}"
+                     SelectedItem="{Binding SelectedEditorPage}"
+                     Background="Transparent"
+                     Padding="0"
+                     SelectionChanged="OnSelectionChanged">
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:PageViewModel}">
+                        <StackPanel Margin="6,5,6,1">
+
+                            <!-- Drop insert indicator -->
+                            <Border Height="2"
+                                    Margin="0,0,0,3"
+                                    Background="#5599ff"
+                                    CornerRadius="1"
+                                    IsVisible="{Binding ShowDropIndicator}"/>
+
+                            <!-- Thumbnail with editing border -->
+                            <Border x:Name="ThumbBorder"
+                                    BorderThickness="2"
+                                    BorderBrush="Transparent"
+                                    CornerRadius="2">
+                                <Image Source="{Binding Thumbnail}"
+                                       Stretch="Fill"
+                                       Width="188" Height="106"
+                                       IsHitTestVisible="False"/>
+                            </Border>
+
+                            <!-- Page name -->
+                            <TextBlock Text="{Binding Name}"
+                                       Foreground="#cccccc"
+                                       FontSize="11"
+                                       Margin="0,3,0,4"
+                                       TextTrimming="CharacterEllipsis"
+                                       HorizontalAlignment="Center"/>
+
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </ScrollViewer>
+
+    </DockPanel>
+
+</UserControl>

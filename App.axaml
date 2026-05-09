@@ -1,0 +1,30 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ShowCast.App"
+             RequestedThemeVariant="Dark">
+
+    <Application.Styles>
+        <FluentTheme />
+
+        <!-- ═══ Global modern styles ═══ -->
+        <StyleInclude Source="avares://ShowCast/Assets/Theme.axaml"/>
+    </Application.Styles>
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <!-- Force ListBox text to white in all states -->
+                    <SolidColorBrush x:Key="ListBoxItemForeground" Color="White"/>
+                    <SolidColorBrush x:Key="ListBoxItemForegroundPointerOver" Color="White"/>
+                    <SolidColorBrush x:Key="ListBoxItemForegroundPressed" Color="White"/>
+                    <SolidColorBrush x:Key="ListBoxItemForegroundSelected" Color="White"/>
+                    <SolidColorBrush x:Key="ListBoxItemForegroundSelectedPointerOver" Color="White"/>
+                    <SolidColorBrush x:Key="ListBoxItemForegroundSelectedPressed" Color="White"/>
+                    <SolidColorBrush x:Key="ListBoxItemForegroundDisabled" Color="#888888"/>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
+</Application>

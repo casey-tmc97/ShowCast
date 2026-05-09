@@ -1,0 +1,129 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:core="using:ShowCast.Core"
+             xmlns:local="using:ShowCast.Views"
+             x:Class="ShowCast.Views.EditorLayerPanel">
+
+    <UserControl.Styles>
+        <Style Selector="Button.layer-icon">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Width" Value="22"/>
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="Foreground" Value="#888888"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Button.layer-icon:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#3a3a3a"/>
+        </Style>
+        <Style Selector="Button.layer-icon:pointerover">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+        <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2a4a7a"/>
+        </Style>
+        <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#333333"/>
+        </Style>
+    </UserControl.Styles>
+
+    <DockPanel LastChildFill="True">
+
+        <!-- Header -->
+        <Border DockPanel.Dock="Top" Classes="panel-header">
+            <TextBlock Text="LAYERS"/>
+        </Border>
+
+        <!-- Footer: layer ordering / duplicate buttons -->
+        <Border DockPanel.Dock="Bottom"
+                Background="#1e1e1e"
+                BorderBrush="#555555" BorderThickness="0,1,0,0">
+            <StackPanel Orientation="Horizontal" Spacing="2" Margin="4,3">
+                <Button Content="↑" Classes="layer-icon"
+                        ToolTip.Tip="Move layer up (raise)"
+                        Click="OnMoveUp"/>
+                <Button Content="↓" Classes="layer-icon"
+                        ToolTip.Tip="Move layer down (lower)"
+                        Click="OnMoveDown"/>
+                <Button Content="⊤" Classes="layer-icon"
+                        ToolTip.Tip="Bring to front"
+                        Click="OnBringFront"/>
+                <Button Content="⊥" Classes="layer-icon"
+                        ToolTip.Tip="Send to back"
+                        Click="OnSendBack"/>
+                <Border Width="1" Background="#555555" Margin="2,3"/>
+                <Button Content="⧉" Classes="layer-icon"
+                        ToolTip.Tip="Duplicate layer"
+                        Click="OnDuplicate"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Layer list (top = highest ZOrder, Photoshop-style) -->
+        <ListBox x:Name="LayerList"
+                 ItemsSource="{Binding EditingLayers}"
+                 Background="Transparent"
+                 Padding="0"
+                 SelectionChanged="OnSelectionChanged">
+            <ListBox.ItemTemplate>
+                <DataTemplate DataType="{x:Type core:SlideLayer}">
+                    <Grid ColumnDefinitions="22,22,*,22,22" Height="32"
+                          Background="Transparent">
+
+                        <!-- Visibility eye -->
+                        <Button Grid.Column="0" Classes="layer-icon"
+                                Content="●"
+                                Click="OnEyeClick"
+                                Tag="{Binding .}"
+                                ToolTip.Tip="Toggle visibility"/>
+
+                        <!-- Type badge -->
+                        <Border Grid.Column="1"
+                                Background="#2a2a2a"
+                                Width="18" Height="18"
+                                CornerRadius="3"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Center">
+                            <TextBlock Text="{Binding Type,
+                                              Converter={x:Static local:EditorLayerPanel.TypeBadge}}"
+                                       FontSize="9" FontWeight="Bold"
+                                       Foreground="#aaaaaa"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                        </Border>
+
+                        <!-- Layer name -->
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding Name}"
+                                   Foreground="White" FontSize="12"
+                                   VerticalAlignment="Center"
+                                   Margin="4,0,0,0"
+                                   TextTrimming="CharacterEllipsis"/>
+
+                        <!-- Lock toggle -->
+                        <Button Grid.Column="3" Classes="layer-icon"
+                                Content="{Binding Locked, Converter={x:Static local:EditorLayerPanel.LockIcon}}"
+                                Click="OnLockClick"
+                                Tag="{Binding .}"
+                                ToolTip.Tip="Toggle lock"/>
+
+                        <!-- Delete -->
+                        <Button Grid.Column="4" Classes="layer-icon"
+                                Content="×" FontSize="15"
+                                Click="OnDeleteClick"
+                                Tag="{Binding .}"
+                                ToolTip.Tip="Delete layer"/>
+
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+    </DockPanel>
+</UserControl>

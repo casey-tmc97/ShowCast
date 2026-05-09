@@ -1,0 +1,129 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ShowCast.ViewModels"
+             x:Class="ShowCast.Views.TimerPanel">
+
+    <DockPanel LastChildFill="True">
+
+        <!-- Header -->
+        <Border DockPanel.Dock="Top" Classes="panel-header">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="TIMERS" VerticalAlignment="Center"/>
+                <Button Grid.Column="1"
+                        Content="+" Width="24" Height="24" Padding="0"
+                        Background="#555555" Foreground="White"
+                        FontSize="16" FontWeight="Bold"
+                        CornerRadius="4" BorderThickness="0"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Click="OnAddTimer">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#666666"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- Empty hint -->
+        <Border DockPanel.Dock="Top" Padding="8,6,8,0" x:Name="EmptyHint">
+            <TextBlock Text="No timers — click + to add one"
+                       FontSize="10" Foreground="#666666" TextWrapping="Wrap"/>
+        </Border>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <ItemsControl x:Name="TimerList" Padding="6">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:TimerViewModel">
+                        <Border Classes="surface-card" Padding="8,6" Margin="0,0,0,4">
+                            <Grid ColumnDefinitions="34,*,30,30,30">
+
+                                <!-- Play/Pause -->
+                                <Button Grid.Column="0"
+                                        Content="{Binding PlayPauseIcon}"
+                                        Tag="{Binding}" Click="OnPlayPause"
+                                        Width="28" Height="28" Padding="0"
+                                        FontSize="12"
+                                        Background="#555555" Foreground="White"
+                                        CornerRadius="14" BorderThickness="0"
+                                        HorizontalContentAlignment="Center"
+                                        VerticalContentAlignment="Center"
+                                        VerticalAlignment="Center"/>
+
+                                <!-- Name + time + optional target -->
+                                <StackPanel Grid.Column="1" Spacing="1"
+                                            VerticalAlignment="Center" Margin="6,0">
+                                    <TextBlock Text="{Binding Name}"
+                                               FontSize="10" Foreground="#aaaaaa"/>
+                                    <TextBlock Text="{Binding DisplayText}"
+                                               Foreground="{Binding DisplayBrush}"
+                                               FontSize="17" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding TargetTimeDisplay}"
+                                               IsVisible="{Binding IsClockType}"
+                                               FontSize="9" Foreground="#666666"/>
+                                </StackPanel>
+
+                                <!-- Reset -->
+                                <Button Grid.Column="2"
+                                        Content="⏹"
+                                        Tag="{Binding}" Click="OnReset"
+                                        Width="26" Height="26" Padding="0"
+                                        FontSize="11"
+                                        Background="#444444" Foreground="#bbbbbb"
+                                        CornerRadius="4" BorderThickness="0"
+                                        HorizontalContentAlignment="Center"
+                                        VerticalContentAlignment="Center"
+                                        VerticalAlignment="Center">
+                                    <Button.Styles>
+                                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                            <Setter Property="Background" Value="#555555"/>
+                                        </Style>
+                                    </Button.Styles>
+                                </Button>
+
+                                <!-- Edit -->
+                                <Button Grid.Column="3"
+                                        Content="✎"
+                                        Tag="{Binding}" Click="OnEditTimer"
+                                        Width="26" Height="26" Padding="0"
+                                        FontSize="12"
+                                        Background="#444444" Foreground="#bbbbbb"
+                                        CornerRadius="4" BorderThickness="0"
+                                        HorizontalContentAlignment="Center"
+                                        VerticalContentAlignment="Center"
+                                        VerticalAlignment="Center">
+                                    <Button.Styles>
+                                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                            <Setter Property="Background" Value="#555555"/>
+                                        </Style>
+                                    </Button.Styles>
+                                </Button>
+
+                                <!-- Delete -->
+                                <Button Grid.Column="4"
+                                        Content="✕"
+                                        Tag="{Binding}" Click="OnDeleteTimer"
+                                        Width="26" Height="26" Padding="0"
+                                        FontSize="11"
+                                        Background="#444444" Foreground="#bbbbbb"
+                                        CornerRadius="4" BorderThickness="0"
+                                        HorizontalContentAlignment="Center"
+                                        VerticalContentAlignment="Center"
+                                        VerticalAlignment="Center">
+                                    <Button.Styles>
+                                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                            <Setter Property="Background" Value="#8b1a1a"/>
+                                        </Style>
+                                    </Button.Styles>
+                                </Button>
+
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+    </DockPanel>
+</UserControl>

@@ -1,0 +1,201 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ShowCast.ViewModels"
+        xmlns:views="using:ShowCast.Views"
+        x:Class="ShowCast.Views.MainWindow"
+        Title="ShowCast"
+        Width="1600" Height="900"
+        MinWidth="1200" MinHeight="700"
+        Background="#2d2d2d"
+        SystemDecorations="BorderOnly">
+
+    <Grid RowDefinitions="Auto,*,Auto,Auto">
+
+        <!-- ══ Combined title bar + menu bar ══ -->
+        <Border Grid.Row="0"
+                Background="#1e1e1e"
+                BorderBrush="#555555" BorderThickness="0,0,0,1"
+                Height="36">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto,Auto,Auto">
+
+                <!-- App name (click to open app menu) -->
+                <Menu Grid.Column="0" Background="Transparent" VerticalAlignment="Center">
+                    <MenuItem Padding="12,0,8,0">
+                        <MenuItem.Header>
+                            <TextBlock Text="ShowCast"
+                                       FontSize="14" FontWeight="Bold"
+                                       Foreground="#e07050"/>
+                        </MenuItem.Header>
+                        <MenuItem Header="Settings">
+                            <MenuItem Header="Screens"  Click="OnScreenConfig"/>
+                            <MenuItem Header="Schedule" Click="OnScheduler"/>
+                            <MenuItem Header="Network"/>
+                            <MenuItem Header="Advanced"/>
+                        </MenuItem>
+                    </MenuItem>
+                </Menu>
+
+                <!-- Divider -->
+                <Border Grid.Column="1" Classes="divider-v"/>
+
+                <!-- File / View / Help menu -->
+                <Menu Grid.Column="2" Background="Transparent" VerticalAlignment="Center"
+                      Margin="4,0">
+                    <MenuItem Header="_File" Foreground="White">
+                        <MenuItem Header="_New Show" InputGesture="Ctrl+N" Click="OnNew"/>
+                        <Separator />
+                        <MenuItem Header="_Quit" Click="OnQuit"/>
+                    </MenuItem>
+                    <MenuItem Header="_Edit" Foreground="White">
+                        <MenuItem Header="_Undo" InputGesture="Ctrl+Z" Click="OnUndo"
+                                  IsEnabled="{Binding CanUndo}"/>
+                        <MenuItem Header="_Redo" InputGesture="Ctrl+Y" Click="OnRedo"
+                                  IsEnabled="{Binding CanRedo}"/>
+                    </MenuItem>
+                    <MenuItem Header="_Help" Foreground="White">
+                        <MenuItem Header="User Manual" InputGesture="F1" Click="OnManual"/>
+                    </MenuItem>
+                </Menu>
+
+                <!-- Drag area -->
+                <Border Grid.Column="4" Background="Transparent"
+                        PointerPressed="OnTitleBarPressed"
+                        DoubleTapped="OnTitleBarDoubleTapped"/>
+
+                <!-- Divider -->
+                <Border Grid.Column="7" Classes="divider-v" Margin="4,7"/>
+
+                <!-- Window controls -->
+                <StackPanel Grid.Column="8" Orientation="Horizontal" Margin="2,0,0,0">
+
+                    <Button Content="&#x2013;" Width="46" Height="36"
+                            Background="Transparent" Foreground="#888888"
+                            FontSize="18" FontWeight="Bold" Padding="0" CornerRadius="0"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
+                            Click="OnMinimize">
+                        <Button.Styles>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="#3a3a3a"/>
+                            </Style>
+                            <Style Selector="Button:pointerover">
+                                <Setter Property="Foreground" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+
+                    <Button x:Name="MaximizeBtn" Content="&#x2610;" Width="46" Height="36"
+                            Background="Transparent" Foreground="#888888"
+                            FontSize="16" Padding="0" CornerRadius="0"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
+                            Click="OnMaximize">
+                        <Button.Styles>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="#3a3a3a"/>
+                            </Style>
+                            <Style Selector="Button:pointerover">
+                                <Setter Property="Foreground" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+
+                    <Button Content="&#x2715;" Width="46" Height="36"
+                            Background="Transparent" Foreground="#888888"
+                            FontSize="16" FontWeight="Bold" Padding="0" CornerRadius="0"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
+                            Click="OnClose">
+                        <Button.Styles>
+                            <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="#c0392b"/>
+                            </Style>
+                            <Style Selector="Button:pointerover">
+                                <Setter Property="Foreground" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+
+                </StackPanel>
+
+            </Grid>
+        </Border>
+
+        <!-- ── Main workspace ── -->
+        <Grid Grid.Row="1">
+
+        <!-- Normal workspace: Show+Rundown | splitter | PageGrid | splitter | RightPanel -->
+        <Grid x:Name="WorkspaceGrid" ColumnDefinitions="200,4,*,4,300">
+
+            <!-- Left column: Show + Rundown + Items -->
+            <Border Grid.Column="0" MinWidth="140" BorderBrush="#555555" BorderThickness="0,0,0,0">
+                <Grid x:Name="LeftGrid" RowDefinitions="*,4,*,4,*">
+                    <views:ShowPanel Grid.Row="0" />
+                    <GridSplitter Grid.Row="1" ResizeDirection="Rows"
+                                  Background="#555555"
+                                  HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                    <views:RundownPanel Grid.Row="2" />
+                    <GridSplitter Grid.Row="3" ResizeDirection="Rows"
+                                  Background="#555555"
+                                  HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                    <views:ItemsPanel Grid.Row="4" />
+                </Grid>
+            </Border>
+
+            <!-- Left resize handle -->
+            <GridSplitter Grid.Column="1"
+                          ResizeDirection="Columns"
+                          Background="#555555"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"/>
+
+            <!-- Page grid -->
+            <Border Grid.Column="2" BorderBrush="#555555" BorderThickness="0,0,0,0">
+                <views:PageGridPanel />
+            </Border>
+
+            <!-- Right resize handle -->
+            <GridSplitter Grid.Column="3"
+                          ResizeDirection="Columns"
+                          Background="#555555"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"/>
+
+            <!-- Right panel: Program preview (with output selector) + timers -->
+            <Grid x:Name="RightGrid" Grid.Column="4" RowDefinitions="*,4,*">
+                <Border Grid.Row="0" Background="Black"
+                        BorderBrush="#555555" BorderThickness="0,0,0,0">
+                    <views:ProgramViewport />
+                </Border>
+                <GridSplitter Grid.Row="1" ResizeDirection="Rows"
+                              Background="#555555"
+                              HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                <Border Grid.Row="2">
+                    <views:TimerPanel />
+                </Border>
+            </Grid>
+
+        </Grid>
+
+        <!-- Page editor overlay (covers workspace when editing) -->
+        <views:PageEditorOverlay IsVisible="{Binding IsEditorOpen}"/>
+
+        </Grid>
+
+        <!-- ── Bottom bar ── -->
+        <views:BottomBar Grid.Row="2" />
+
+        <!-- ── Status bar ── -->
+        <Border Grid.Row="3" Background="#1e1e1e" Height="24" Padding="10,0"
+                BorderBrush="#555555" BorderThickness="0,1,0,0">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0" Text="Ready"
+                           Foreground="#888888" VerticalAlignment="Center" FontSize="11"/>
+                <TextBlock Grid.Column="1"
+                           Text="{Binding SelectedOutput.LivePage.Name, FallbackValue='No Signal'}"
+                           Foreground="#888888" FontSize="11" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+    </Grid>
+</Window>

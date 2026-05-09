@@ -1,0 +1,261 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ShowCast.ViewModels"
+        x:Class="ShowCast.Views.SchedulerDialog"
+        Title="Rundown Scheduler"
+        Width="820" Height="560"
+        CanResize="False"
+        Background="#2d2d2d"
+        SystemDecorations="BorderOnly"
+        WindowStartupLocation="CenterOwner">
+
+    <Window.Styles>
+
+        <Style Selector="Border.day-cell">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Border.day-cell:pointerover">
+            <Setter Property="Background" Value="#3a3a3a"/>
+        </Style>
+        <Style Selector="Border.day-cell.selected">
+            <Setter Property="Background" Value="#1a4a8a"/>
+        </Style>
+        <Style Selector="Border.day-cell.today">
+            <Setter Property="BorderBrush" Value="#e07050"/>
+            <Setter Property="BorderThickness" Value="2"/>
+        </Style>
+
+        <Style Selector="TextBlock.day-num">
+            <Setter Property="Foreground" Value="#cccccc"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+        <Style Selector="TextBlock.day-num.other-month">
+            <Setter Property="Foreground" Value="#555555"/>
+        </Style>
+        <Style Selector="TextBlock.day-num.today">
+            <Setter Property="Foreground" Value="#e07050"/>
+        </Style>
+
+        <Style Selector="Border.event-row">
+            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="Padding" Value="8,6"/>
+        </Style>
+
+        <Style Selector="Button.nav">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#cccccc"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style Selector="Button.nav:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#3a3a3a"/>
+        </Style>
+
+        <Style Selector="Button.icon-btn">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#888888"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="4,2"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style Selector="Button.edit-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2a4a2a"/>
+            <Setter Property="Foreground" Value="#88cc88"/>
+        </Style>
+        <Style Selector="Button.del-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#5a1a1a"/>
+            <Setter Property="Foreground" Value="#ff6666"/>
+        </Style>
+
+        <Style Selector="Button.add-btn">
+            <Setter Property="Background" Value="#1a5096"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="20,6"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+        <Style Selector="Button.add-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#245faa"/>
+        </Style>
+
+        <Style Selector="Button.close-btn">
+            <Setter Property="Background" Value="#3a3a3a"/>
+            <Setter Property="Foreground" Value="#cccccc"/>
+            <Setter Property="Padding" Value="20,6"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+
+    </Window.Styles>
+
+    <Border BorderBrush="#555555" BorderThickness="1">
+        <Grid RowDefinitions="36,*,44">
+
+            <!-- Title bar -->
+            <Border Grid.Row="0" Background="#1e1e1e"
+                    BorderBrush="#555555" BorderThickness="0,0,0,1">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="Rundown Scheduler"
+                               FontSize="13" FontWeight="Bold"
+                               Foreground="#e07050"
+                               VerticalAlignment="Center" Margin="16,0"/>
+                    <Button Grid.Column="1" Content="✕" Click="OnClose"
+                            Background="Transparent" Foreground="#888888"
+                            BorderThickness="0" Padding="12,0"
+                            FontSize="14" VerticalAlignment="Stretch"/>
+                </Grid>
+            </Border>
+
+            <!-- Main content -->
+            <Grid Grid.Row="1" ColumnDefinitions="400,1,*">
+
+                <!-- LEFT: Calendar -->
+                <StackPanel Margin="12,12,8,12">
+
+                    <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
+                        <Button Classes="nav" Content="‹" Click="OnPrevMonth"/>
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding MonthLabel}"
+                                   FontSize="14" FontWeight="Bold"
+                                   Foreground="#dddddd"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                        <Button Grid.Column="2" Classes="nav" Content="›" Click="OnNextMonth"/>
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,*,*,*,*,*,*" Margin="0,0,0,4">
+                        <TextBlock Text="SU" FontSize="10" FontWeight="Bold" Foreground="#666666" HorizontalAlignment="Center" Grid.Column="0"/>
+                        <TextBlock Text="MO" FontSize="10" FontWeight="Bold" Foreground="#666666" HorizontalAlignment="Center" Grid.Column="1"/>
+                        <TextBlock Text="TU" FontSize="10" FontWeight="Bold" Foreground="#666666" HorizontalAlignment="Center" Grid.Column="2"/>
+                        <TextBlock Text="WE" FontSize="10" FontWeight="Bold" Foreground="#666666" HorizontalAlignment="Center" Grid.Column="3"/>
+                        <TextBlock Text="TH" FontSize="10" FontWeight="Bold" Foreground="#666666" HorizontalAlignment="Center" Grid.Column="4"/>
+                        <TextBlock Text="FR" FontSize="10" FontWeight="Bold" Foreground="#666666" HorizontalAlignment="Center" Grid.Column="5"/>
+                        <TextBlock Text="SA" FontSize="10" FontWeight="Bold" Foreground="#666666" HorizontalAlignment="Center" Grid.Column="6"/>
+                    </Grid>
+
+                    <ItemsControl x:Name="CalendarGrid"
+                                  ItemsSource="{Binding CalendarDays}"
+                                  Tapped="OnDayTapped">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="7"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:CalendarDayViewModel}">
+                                <Border Classes="day-cell"
+                                        Classes.selected="{Binding IsSelected}"
+                                        Classes.today="{Binding IsToday}"
+                                        Height="52" Margin="1">
+                                    <Grid RowDefinitions="*,10">
+                                        <TextBlock Classes="day-num"
+                                                   Classes.other-month="{Binding !IsCurrentMonth}"
+                                                   Classes.today="{Binding IsToday}"
+                                                   Text="{Binding DayText}"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"/>
+                                        <Ellipse Grid.Row="1"
+                                                 Width="5" Height="5"
+                                                 Fill="#e07050"
+                                                 HorizontalAlignment="Center"
+                                                 VerticalAlignment="Center"
+                                                 IsVisible="{Binding HasEvents}"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                </StackPanel>
+
+                <!-- Divider -->
+                <Border Grid.Column="1" Background="#444444"/>
+
+                <!-- RIGHT: Event list for selected day -->
+                <Grid Grid.Column="2" RowDefinitions="Auto,*" Margin="12,12,12,12">
+
+                    <TextBlock Grid.Row="0"
+                               Text="{Binding SelectedDayLabel}"
+                               FontSize="13" FontWeight="Bold"
+                               Foreground="#dddddd"
+                               Margin="0,0,0,10"/>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding SelectedDayEvents}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:ScheduledEventDisplay}">
+                                    <Border Classes="event-row">
+                                        <Grid ColumnDefinitions="48,*,Auto,Auto,Auto">
+
+                                            <TextBlock Grid.Column="0"
+                                                       Text="{Binding TimeLabel}"
+                                                       FontSize="12" FontWeight="Bold"
+                                                       Foreground="#e07050"
+                                                       VerticalAlignment="Center"/>
+
+                                            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Label}"
+                                                           FontSize="12" FontWeight="Bold"
+                                                           Foreground="#dddddd"/>
+                                                <TextBlock Text="{Binding Subtitle}"
+                                                           FontSize="10" Foreground="#888888"/>
+                                            </StackPanel>
+
+                                            <CheckBox Grid.Column="2"
+                                                      IsChecked="{Binding IsEnabled}"
+                                                      ToolTip.Tip="Enable/disable"
+                                                      VerticalAlignment="Center"
+                                                      Margin="4,0"/>
+
+                                            <Button Grid.Column="3"
+                                                    Classes="icon-btn edit-btn"
+                                                    Content="✏"
+                                                    Click="OnEditEvent"
+                                                    VerticalAlignment="Center"/>
+
+                                            <Button Grid.Column="4"
+                                                    Classes="icon-btn del-btn"
+                                                    Content="✕"
+                                                    Click="OnDeleteEvent"
+                                                    VerticalAlignment="Center"/>
+
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                </Grid>
+
+            </Grid>
+
+            <!-- Footer -->
+            <Border Grid.Row="2" Background="#1e1e1e"
+                    BorderBrush="#555555" BorderThickness="0,1,0,0">
+                <Grid ColumnDefinitions="*,Auto,Auto" Margin="16,0">
+                    <Button Classes="add-btn"
+                            Content="+ Add Event"
+                            Click="OnAddEvent"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"/>
+                    <Button Grid.Column="2" Classes="close-btn"
+                            Content="Close"
+                            Click="OnClose"
+                            VerticalAlignment="Center"
+                            Margin="8,0,0,0"/>
+                </Grid>
+            </Border>
+
+        </Grid>
+    </Border>
+
+</Window>

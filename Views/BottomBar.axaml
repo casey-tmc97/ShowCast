@@ -1,0 +1,68 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ShowCast.ViewModels"
+             x:Class="ShowCast.Views.BottomBar">
+
+    <UserControl.Styles>
+        <Style Selector="Button.active-view">
+            <Setter Property="Background" Value="#555555"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Border Background="#1e1e1e" BorderBrush="#555555" BorderThickness="0,1,0,0" Height="44" Padding="8,0">
+        <Grid ColumnDefinitions="Auto,*,Auto">
+
+            <!-- ── Left: slide actions ── -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center"/>
+
+            <!-- ── Right: view controls ── -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+
+                <!-- Grid / Table toggle -->
+                <Border Background="#3a3a3a" CornerRadius="5" Padding="2"
+                        BorderBrush="#555555" BorderThickness="1">
+                    <StackPanel Orientation="Horizontal" Spacing="2">
+                        <Button x:Name="GridViewBtn"
+                                Classes="tool-btn"
+                                ToolTip.Tip="Grid view"
+                                Click="OnGridView"
+                                BorderThickness="0">
+                            <TextBlock Text="&#x229E;" FontSize="14"/>
+                        </Button>
+                        <Button x:Name="TableViewBtn"
+                                Classes="tool-btn"
+                                ToolTip.Tip="Table view"
+                                Click="OnTableView"
+                                BorderThickness="0">
+                            <TextBlock Text="&#x2261;" FontSize="14"/>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <Separator Width="1" Background="#555555" Margin="2,0"/>
+
+                <!-- Thumbnail size slider -->
+                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <TextBlock Text="Size" FontSize="11" Foreground="#888888"
+                               VerticalAlignment="Center"/>
+                    <Slider Value="{Binding ThumbSize}"
+                            Minimum="100" Maximum="500"
+                            Width="110"
+                            VerticalAlignment="Center"
+                            ToolTip.Tip="Thumbnail size">
+                        <Slider.Styles>
+                            <Style Selector="Slider /template/ Thumb">
+                                <Setter Property="Width" Value="12"/>
+                                <Setter Property="Height" Value="12"/>
+                            </Style>
+                        </Slider.Styles>
+                    </Slider>
+                </StackPanel>
+
+            </StackPanel>
+
+        </Grid>
+    </Border>
+</UserControl>
