@@ -28,7 +28,16 @@ public partial class MainWindow : Window
         if (VM is null) return;
         if (File.Exists(AppFolders.SessionFile))
         {
-            await VM.LoadSessionAsync(AppFolders.SessionFile);
+            await VM.LoadSessionAsync(
+                AppFolders.SessionFile,
+                confirmMigration: () => AlertDialog.ShowConfirm(
+                    this,
+                    "Upgrade File Format",
+                    "This file was saved with an older version of ShowCast. Upgrade it to the current format?"),
+                showError: msg => AlertDialog.ShowError(
+                    this,
+                    "Cannot Open File",
+                    msg));
             RestoreWindowState(VM.ShowFile.Settings);
         }
         VM.OutputStates.CollectionChanged += (_, _) => UpdateRightGridLayout();
