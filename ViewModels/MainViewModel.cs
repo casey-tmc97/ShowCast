@@ -1105,7 +1105,7 @@ public class MainViewModel : ViewModelBase
         if (pvm is null) return;
         _history.Clear();
         RaiseHistoryChanged();
-        _editingPackage = FindPackageForPage(pvm.Model);
+        _editingPackage = pvm.Owner;
         RebuildEditorPages(pvm.Model);
         IsEditorOpen        = true;
         EditingPage         = pvm.Model;
@@ -1153,15 +1153,6 @@ public class MainViewModel : ViewModelBase
         SelectedLayer   = null;
         EditingLayers.Clear();
         RefreshPageList();
-    }
-
-    Package? FindPackageForPage(Page page)
-    {
-        foreach (var show in ShowFile.Shows)
-            foreach (var pkg in show.Packages)
-                if (pkg.Pages.Contains(page))
-                    return pkg;
-        return null;
     }
 
     void RebuildEditorPages(Page? current)
@@ -1377,7 +1368,7 @@ public class MainViewModel : ViewModelBase
 
     public void DuplicatePage(PageViewModel? pvm)
     {
-        var package = IsEditorOpen ? _editingPackage : (FindPackageForPage(pvm?.Model!) ?? SelectedOutput?.ActivePackage);
+        var package = IsEditorOpen ? _editingPackage : (pvm?.Owner ?? SelectedOutput?.ActivePackage);
         if (package is null || pvm is null) return;
 
         var src  = pvm.Model;
@@ -1428,7 +1419,7 @@ public class MainViewModel : ViewModelBase
 
     public void MovePageToPackage(PageViewModel pvm, Package targetPackage)
     {
-        var sourcePackage = FindPackageForPage(pvm.Model);
+        var sourcePackage = pvm.Owner;
         if (sourcePackage is null || sourcePackage == targetPackage) return;
 
         _pageOrderHistory.Push(sourcePackage, targetPackage);
@@ -1471,7 +1462,7 @@ public class MainViewModel : ViewModelBase
     public void CutPage(PageViewModel? pvm)
     {
         if (pvm is null) return;
-        var package = FindPackageForPage(pvm.Model) ?? SelectedOutput?.ActivePackage;
+        var package = pvm.Owner ?? SelectedOutput?.ActivePackage;
         if (package is not null) _pageOrderHistory.Push(package);
         _clipboardPage = pvm.Model.Clone();
         RemovePage(pvm);
