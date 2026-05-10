@@ -42,6 +42,7 @@ public class MainViewModel : ViewModelBase
         await ShowFileSerializer.SaveAsync(_showFile, path);
     }
 
+    /// <summary>Loads a session file, optionally prompting the user for migration or surfacing errors.</summary>
     /// <param name="confirmMigration">
     /// If provided, called when the file needs migration. Return true to proceed, false to cancel.
     /// If null, migration is applied automatically (headless/test callers).
