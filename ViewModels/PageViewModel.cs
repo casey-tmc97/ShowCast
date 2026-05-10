@@ -12,10 +12,12 @@ public class PageViewModel : ViewModelBase
     private const int ThumbH = 180;
 
     public Page Model { get; }
+    public Package? Owner { get; }
 
-    public PageViewModel(Page page)
+    public PageViewModel(Page page, Package? owner = null)
     {
         Model = page;
+        Owner = owner;
         RebuildThumbnail();
     }
 

@@ -1057,7 +1057,7 @@ public class MainViewModel : ViewModelBase
             Pages.Clear();
             foreach (var page in pkg.Pages)
             {
-                var pvm = new PageViewModel(page);
+                var pvm = new PageViewModel(page, pkg);
                 pvm.IsLive = page == livePage;
                 Pages.Add(pvm);
             }
@@ -1074,7 +1074,7 @@ public class MainViewModel : ViewModelBase
                 group.Pages.Clear();
                 foreach (var page in pkg.Pages)
                 {
-                    var pvm = new PageViewModel(page);
+                    var pvm = new PageViewModel(page, pkg);
                     pvm.IsLive = page == groupLive;
                     group.Pages.Add(pvm);
                 }
@@ -1162,7 +1162,7 @@ public class MainViewModel : ViewModelBase
         if (_editingPackage is null) return;
         foreach (var page in _editingPackage.Pages)
         {
-            var vm = new PageViewModel(page);
+            var vm = new PageViewModel(page, _editingPackage);
             EditorPages.Add(vm);
             if (page == current)
                 _editingPageVm = vm;
@@ -1346,7 +1346,7 @@ public class MainViewModel : ViewModelBase
             Color = new SKColor(20, 20, 20), Roles = LayerRole.All
         });
         package.AddPage(page);
-        var pvm = new PageViewModel(page);
+        var pvm = new PageViewModel(page, package);
         Pages.Add(pvm);
         RenameDefaultPages(package);
         SelectedPage = pvm;
@@ -1383,7 +1383,7 @@ public class MainViewModel : ViewModelBase
         int idx = package.Pages.IndexOf(src);
         package.Pages.Insert(idx + 1, copy);
 
-        var newVm = new PageViewModel(copy);
+        var newVm = new PageViewModel(copy, package);
         if (IsEditorOpen)
         {
             int editorIdx = EditorPages.IndexOf(pvm);
@@ -1482,7 +1482,7 @@ public class MainViewModel : ViewModelBase
             : package.Pages.Count - 1;
         package.Pages.Insert(idx + 1, copy);
 
-        var newVm = new PageViewModel(copy);
+        var newVm = new PageViewModel(copy, package);
         if (IsEditorOpen)
         {
             int editorIdx = SelectedEditorPage is { } selEd ? EditorPages.IndexOf(selEd) : EditorPages.Count - 1;
@@ -1559,7 +1559,7 @@ public class MainViewModel : ViewModelBase
             Color = new SKColor(20, 20, 20), Roles = LayerRole.All
         });
         package.AddPage(page);
-        var groupVm = new PageViewModel(page);
+        var groupVm = new PageViewModel(page, package);
         group.Pages.Add(groupVm);
         RenameDefaultPages(package);
     }
@@ -1672,7 +1672,7 @@ public class MainViewModel : ViewModelBase
         var livePage = SelectedOutput?.LivePage;
         foreach (var page in package.Pages)
         {
-            var pvm = new PageViewModel(page);
+            var pvm = new PageViewModel(page, package);
             pvm.IsLive = page == livePage;
             Pages.Add(pvm);
         }

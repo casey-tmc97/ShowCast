@@ -65,7 +65,7 @@ public class PageGroupViewModel : ViewModelBase
         _defaultTransitionDuration = defaultTransitionDuration;
         foreach (var page in package.Pages)
         {
-            var pvm = new PageViewModel(page);
+            var pvm = new PageViewModel(page, package);
             pvm.IsLive = page == livePage;
             Pages.Add(pvm);
         }
