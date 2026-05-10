@@ -42,13 +42,45 @@ public class MainViewModel : ViewModelBase
         await ShowFileSerializer.SaveAsync(_showFile, path);
     }
 
-    public async Task<bool> LoadSessionAsync(string path)
+    /// <param name="confirmMigration">
+    /// If provided, called when the file needs migration. Return true to proceed, false to cancel.
+    /// If null, migration is applied automatically (headless/test callers).
+    /// </param>
+    /// <param name="showError">
+    /// If provided, called when an error message should be displayed to the user.
+    /// If null, errors are swallowed (headless/test callers).
+    /// </param>
+    public async Task<bool> LoadSessionAsync(
+        string path,
+        Func<Task<bool>>? confirmMigration = null,
+        Func<string, Task>? showError = null)
     {
-        var loadResult = await ShowFileSerializer.LoadAsync(path);
+        LoadResult? loadResult;
+        try
+        {
+            loadResult = await ShowFileSerializer.LoadAsync(path);
+        }
+        catch (ShowFileVersionTooNewException ex)
+        {
+            if (showError is not null)
+                await showError(ex.Message);
+            return false;
+        }
+
         if (loadResult is null) return false;
-        var loaded = loadResult.File;
+
+        if (loadResult.NeedsMigration)
+        {
+            if (confirmMigration is not null)
+            {
+                bool proceed = await confirmMigration();
+                if (!proceed) return false;
+            }
+            ShowFileSerializer.ApplyMigration(loadResult.File);
+        }
+
         PageRenderer.ClearImageCache();
-        _showFile = loaded;
+        _showFile = loadResult.File;
         MigratePageNames(_showFile);
         RebuildFromShowFile();
         RestoreSettings();
