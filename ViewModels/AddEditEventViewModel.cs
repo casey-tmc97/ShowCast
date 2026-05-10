@@ -225,18 +225,10 @@ public class AddEditEventViewModel : ViewModelBase
         if (_selectedRundown is null) return;
         foreach (var entry in _selectedRundown.Entries)
         {
-            var pkg = FindPackage(entry.PackageId);
+            var pkg = _showFile.FindPackage(entry.PackageId);
             if (pkg is not null) RundownPackages.Add(pkg);
         }
         SelectedPackage = RundownPackages.FirstOrDefault();
-    }
-
-    Package? FindPackage(Guid id)
-    {
-        foreach (var show in _showFile.Shows)
-            foreach (var pkg in show.Packages)
-                if (pkg.Id == id) return pkg;
-        return null;
     }
 
     Package? _selectedPackage;

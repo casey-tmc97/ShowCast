@@ -225,17 +225,9 @@ public class SchedulerViewModel : ViewModelBase
             .OrderBy(e => e.ScheduledAt.TimeOfDay))
         {
             var rd  = _showFile.Rundowns.FirstOrDefault(r => r.Id == evt.RundownId)?.Name ?? "(deleted)";
-            var pkg = FindPackageName(evt.PackageId);
+            var pkg = _showFile.FindPackage(evt.PackageId)?.Name ?? "(deleted)";
             SelectedDayEvents.Add(new ScheduledEventDisplay(evt, rd, pkg));
         }
-    }
-
-    string FindPackageName(Guid packageId)
-    {
-        foreach (var show in _showFile.Shows)
-            foreach (var pkg in show.Packages)
-                if (pkg.Id == packageId) return pkg.Name;
-        return "(deleted)";
     }
 
     public void RemoveEvent(ScheduledEvent evt)
