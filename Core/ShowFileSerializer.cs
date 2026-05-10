@@ -51,7 +51,7 @@ public static class ShowFileSerializer
     public const string Extension   = ".scf";
     public const string FileFilter  = "ShowCast File (*.scf)|*.scf";
 
-    static readonly JsonSerializerOptions _opts = new()
+    public static JsonSerializerOptions CreateSerializerOptions() => new()
     {
         WriteIndented    = true,
         Converters       = { new SKColorJsonConverter(), new JsonStringEnumConverter() },
@@ -66,7 +66,7 @@ public static class ShowFileSerializer
         {
             await using var stream = new FileStream(tmp, FileMode.Create, FileAccess.Write,
                                                     FileShare.None, 65536, true);
-            await JsonSerializer.SerializeAsync(stream, file, _opts);
+            await JsonSerializer.SerializeAsync(stream, file, CreateSerializerOptions());
         }
         File.Move(tmp, path, overwrite: true);
     }
@@ -75,6 +75,6 @@ public static class ShowFileSerializer
     {
         await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read,
                                                 FileShare.Read, 65536, true);
-        return await JsonSerializer.DeserializeAsync<ShowFile>(stream, _opts);
+        return await JsonSerializer.DeserializeAsync<ShowFile>(stream, CreateSerializerOptions());
     }
 }

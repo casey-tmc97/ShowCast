@@ -1,3 +1,7 @@
+using System.Collections.Generic;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace ShowCast.Core;
 
 /// <summary>
@@ -6,6 +10,12 @@ namespace ShowCast.Core;
 /// </summary>
 public class ShowFile
 {
+    public const int CurrentVersion = 1;
+    public int Version { get; set; } = CurrentVersion;
+
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? UnknownFields { get; set; }
+
     public AppSettings          Settings        { get; } = new();
     public List<TimerDef>       Timers          { get; } = new();
     public List<Show>           Shows           { get; } = new();
