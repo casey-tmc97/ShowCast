@@ -90,4 +90,21 @@ public class ShowFileSerializerTests
         }
         finally { File.Delete(path); }
     }
+
+    [Fact]
+    public void ApplyMigration_AlreadyCurrentVersion_DoesNothing()
+    {
+        var file = new ShowFile { Version = ShowFile.CurrentVersion };
+        ShowFileSerializer.ApplyMigration(file);
+        Assert.Equal(ShowFile.CurrentVersion, file.Version);
+    }
+
+    [Fact]
+    public void ApplyMigration_OlderVersion_SetsCurrentVersion()
+    {
+        // Version 0 represents a legacy file with no version field (pre-versioning)
+        var file = new ShowFile { Version = 0 };
+        ShowFileSerializer.ApplyMigration(file);
+        Assert.Equal(ShowFile.CurrentVersion, file.Version);
+    }
 }

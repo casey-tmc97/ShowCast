@@ -68,6 +68,19 @@ public static class ShowFileSerializer
         PreferredObjectCreationHandling = JsonObjectCreationHandling.Populate
     };
 
+    static readonly List<Action<ShowFile>> Migrations = new()
+    {
+        // index 0: v1 → v2  (add here when the first breaking model change occurs)
+    };
+
+    public static void ApplyMigration(ShowFile file)
+    {
+        int startVersion = Math.Max(file.Version, 1);
+        for (int v = startVersion; v < ShowFile.CurrentVersion; v++)
+            Migrations[v - 1](file);
+        file.Version = ShowFile.CurrentVersion;
+    }
+
     public static async Task SaveAsync(ShowFile file, string path)
     {
         // Write to a temp file first, then atomic-rename so a crash during save
