@@ -19,6 +19,8 @@ public class MainViewModel : ViewModelBase
     ShowFile _showFile = new();
     public  ShowFile ShowFile => _showFile;
 
+    readonly Dictionary<Guid, Package> _packageById = new();
+
     // ── Session persistence ───────────────────────────────────────────────────
 
     public async Task SaveSessionAsync(string path)
@@ -149,6 +151,11 @@ public class MainViewModel : ViewModelBase
         SelectedLayer    = null;
         EditingLayers.Clear();
 
+        _packageById.Clear();
+        foreach (var show in _showFile.Shows)
+            foreach (var pkg in show.Packages)
+                _packageById[pkg.Id] = pkg;
+
         foreach (var def in _showFile.Timers)
             Timers.Add(new TimerViewModel(def));
 
@@ -156,7 +163,7 @@ public class MainViewModel : ViewModelBase
         {
             var state = new OutputState(cfg);
             if (cfg.ActivePackageId != Guid.Empty)
-                state.ActivePackage = _showFile.FindPackage(cfg.ActivePackageId);
+                state.ActivePackage = _packageById.TryGetValue(cfg.ActivePackageId, out var activePkg) ? activePkg : null;
             OutputStates.Add(state);
         }
 
@@ -558,7 +565,7 @@ public class MainViewModel : ViewModelBase
             .Where(e => e.IsEnabled && !e.HasRun && e.ScheduledAt <= now && e.ScheduledAt > window)
             .ToList())
         {
-            var pkg = _showFile.FindPackage(evt.PackageId);
+            _packageById.TryGetValue(evt.PackageId, out var pkg);
             if (pkg is not null && pkg.Pages.Count > 0)
             {
                 var rundown = _showFile.Rundowns.FirstOrDefault(r => r.Id == evt.RundownId);
@@ -726,6 +733,7 @@ public class MainViewModel : ViewModelBase
     public void AddPackageToShow(string name, Show targetShow, Rundown? targetRundown = null)
     {
         var package = targetShow.AddPackage(name);
+        _packageById[package.Id] = package;
 
         var page = new Page { Name = "1" };
         page.AddLayer(new SlideLayer
@@ -754,6 +762,7 @@ public class MainViewModel : ViewModelBase
         foreach (var rd in ShowFile.Rundowns)
             rd.Entries.RemoveAll(e => e.PackageId == package.Id);
         _selectedShow.RemovePackage(package.Id);
+        _packageById.Remove(package.Id);
         RefreshPackageItems();
         RefreshPageList();
     }
@@ -1734,7 +1743,7 @@ public class MainViewModel : ViewModelBase
         {
             foreach (var entry in _selectedRundown.Entries)
             {
-                var pkg = ShowFile.FindPackage(entry.PackageId);
+                _packageById.TryGetValue(entry.PackageId, out var pkg);
                 if (pkg is not null) PackageItems.Add(pkg);
             }
         }
@@ -1751,7 +1760,7 @@ public class MainViewModel : ViewModelBase
         if (_selectedRundown is null) return;
         foreach (var entry in _selectedRundown.Entries)
         {
-            var pkg = ShowFile.FindPackage(entry.PackageId);
+            _packageById.TryGetValue(entry.PackageId, out var pkg);
             if (pkg is null) continue;
             var defaultOutput = entry.SelectedOutputId != Guid.Empty
                 ? OutputStates.FirstOrDefault(o => o.Config.Id == entry.SelectedOutputId) ?? SelectedOutput
