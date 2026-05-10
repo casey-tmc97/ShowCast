@@ -107,4 +107,36 @@ public class ShowFileSerializerTests
         ShowFileSerializer.ApplyMigration(file);
         Assert.Equal(ShowFile.CurrentVersion, file.Version);
     }
+
+    [Fact]
+    public async Task SaveAsync_ClearsUnknownFieldsBeforeSerializing()
+    {
+        // Arrange – a file that has captured unknown fields (as if loaded from a future version)
+        var file = new ShowFile
+        {
+            UnknownFields = new Dictionary<string, System.Text.Json.JsonElement>
+            {
+                ["FutureField"] = System.Text.Json.JsonDocument.Parse("\"hello\"").RootElement
+            }
+        };
+
+        var path = Path.GetTempFileName();
+        try
+        {
+            // Act
+            await ShowFileSerializer.SaveAsync(file, path);
+
+            // Assert – the saved file must NOT contain the foreign field
+            var json = await File.ReadAllTextAsync(path);
+            Assert.DoesNotContain("FutureField", json);
+
+            // And UnknownFields must be null after saving (side-effect is acceptable)
+            Assert.Null(file.UnknownFields);
+        }
+        finally
+        {
+            File.Delete(path);
+            File.Delete(path + ".tmp"); // clean up .tmp if move failed
+        }
+    }
 }

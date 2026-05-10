@@ -83,6 +83,8 @@ public static class ShowFileSerializer
 
     public static async Task SaveAsync(ShowFile file, string path)
     {
+        file.UnknownFields = null;  // don't round-trip fields from other format versions
+
         // Write to a temp file first, then atomic-rename so a crash during save
         // doesn't corrupt the existing file.
         var tmp = path + ".tmp";
