@@ -41,6 +41,16 @@ public sealed class SKColorJsonConverter : JsonConverter<SKColor>
         writer.WriteStringValue($"#{v.Red:X2}{v.Green:X2}{v.Blue:X2}{v.Alpha:X2}");
 }
 
+public record LoadResult(ShowFile File, bool NeedsMigration);
+
+public sealed class ShowFileVersionTooNewException : Exception
+{
+    public int FileVersion { get; }
+    public ShowFileVersionTooNewException(int fileVersion)
+        : base($"This file requires a newer version of ShowCast (file version: {fileVersion}, current: {ShowFile.CurrentVersion}).")
+        => FileVersion = fileVersion;
+}
+
 /// <summary>
 /// Saves and loads ShowCast project files (.scf) as indented JSON.
 /// Relies on .NET 9 STJ's JsonObjectCreationHandling.Populate to populate
@@ -71,10 +81,16 @@ public static class ShowFileSerializer
         File.Move(tmp, path, overwrite: true);
     }
 
-    public static async Task<ShowFile?> LoadAsync(string path)
+    public static async Task<LoadResult?> LoadAsync(string path)
     {
         await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read,
                                                 FileShare.Read, 65536, true);
-        return await JsonSerializer.DeserializeAsync<ShowFile>(stream, CreateSerializerOptions());
+        var file = await JsonSerializer.DeserializeAsync<ShowFile>(stream, CreateSerializerOptions());
+        if (file is null) return null;
+
+        if (file.Version > ShowFile.CurrentVersion)
+            throw new ShowFileVersionTooNewException(file.Version);
+
+        return new LoadResult(file, file.Version < ShowFile.CurrentVersion);
     }
 }

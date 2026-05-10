@@ -33,4 +33,61 @@ public class ShowFileSerializerTests
         Assert.NotNull(file.UnknownFields);
         Assert.True(file.UnknownFields.ContainsKey("FutureField"));
     }
+
+    [Fact]
+    public async Task LoadAsync_CurrentVersion_ReturnsNeedsMigrationFalse()
+    {
+        // Arrange
+        var path = Path.GetTempFileName();
+        try
+        {
+            var json = $$"""{ "Version": {{ShowFile.CurrentVersion}} }""";
+            await File.WriteAllTextAsync(path, json);
+
+            // Act
+            var result = await ShowFileSerializer.LoadAsync(path);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.False(result.NeedsMigration);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public async Task LoadAsync_OlderVersion_ReturnsNeedsMigrationTrue()
+    {
+        // Arrange
+        var path = Path.GetTempFileName();
+        try
+        {
+            var json = """{ "Version": 0 }""";
+            await File.WriteAllTextAsync(path, json);
+
+            // Act
+            var result = await ShowFileSerializer.LoadAsync(path);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.True(result.NeedsMigration);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public async Task LoadAsync_NewerVersion_ThrowsShowFileVersionTooNewException()
+    {
+        // Arrange
+        var path = Path.GetTempFileName();
+        try
+        {
+            var json = $$$"""{ "Version": {{{ShowFile.CurrentVersion + 1}}} }""";
+            await File.WriteAllTextAsync(path, json);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ShowFileVersionTooNewException>(
+                () => ShowFileSerializer.LoadAsync(path));
+        }
+        finally { File.Delete(path); }
+    }
 }

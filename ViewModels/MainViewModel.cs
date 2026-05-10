@@ -44,8 +44,9 @@ public class MainViewModel : ViewModelBase
 
     public async Task<bool> LoadSessionAsync(string path)
     {
-        var loaded = await ShowFileSerializer.LoadAsync(path);
-        if (loaded is null) return false;
+        var loadResult = await ShowFileSerializer.LoadAsync(path);
+        if (loadResult is null) return false;
+        var loaded = loadResult.File;
         PageRenderer.ClearImageCache();
         _showFile = loaded;
         MigratePageNames(_showFile);
