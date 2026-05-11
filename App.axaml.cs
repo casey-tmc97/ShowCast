@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -23,29 +24,36 @@ public class App : Application
 
             splash.Opened += async (_, _) =>
             {
-                var progress = new Progress<(double value, string label)>(
-                    p => splash.Report(p.value, p.label));
-                var p = (IProgress<(double value, string label)>)progress;
+                try
+                {
+                    IProgress<(double value, string label)> progress = new Progress<(double value, string label)>(
+                        update => splash.Report(update.value, update.label));
 
-                p.Report((0.25, "Creating app folders"));
-                Core.AppFolders.EnsureCreated();
+                    progress.Report((0.25, "Creating app folders"));
+                    Core.AppFolders.EnsureCreated();
 
-                p.Report((0.50, "Initializing NDI"));
-                NdiAvailable = await Task.Run(() => NewTek.NDIlib.TryInitialize());
-                if (!NdiAvailable)
-                    System.Diagnostics.Debug.WriteLine(
-                        "[App] NDI library failed to initialize — NDI outputs will not function.");
+                    progress.Report((0.50, "Initializing NDI"));
+                    NdiAvailable = await Task.Run(() => NewTek.NDIlib.TryInitialize());
+                    if (!NdiAvailable)
+                        System.Diagnostics.Debug.WriteLine(
+                            "[App] NDI library failed to initialize — NDI outputs will not function.");
+                    desktop.Exit += (_, _) => { if (NdiAvailable) NewTek.NDIlib.destroy(); };
 
-                p.Report((0.75, "Preparing workspace"));
-                var vm = new MainViewModel();
+                    progress.Report((0.75, "Preparing workspace"));
+                    var vm = new MainViewModel();
 
-                p.Report((1.00, "Starting up"));
+                    progress.Report((1.00, "Starting up"));
 
-                var mainWindow = new MainWindow { DataContext = vm };
-                desktop.Exit += (_, _) => { if (NdiAvailable) NewTek.NDIlib.destroy(); };
-                desktop.MainWindow = mainWindow;
-                mainWindow.Show();
-                splash.Close();
+                    var mainWindow = new MainWindow { DataContext = vm };
+                    desktop.MainWindow = mainWindow;
+                    mainWindow.Show();
+                    splash.Close();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[App] Startup failed: {ex}");
+                    splash.Close();
+                }
             };
         }
 
