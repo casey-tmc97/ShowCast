@@ -21,6 +21,7 @@ public class App : Application
         {
             var splash = new SplashWindow();
             desktop.MainWindow = splash;
+            desktop.Exit += (_, _) => { if (NdiAvailable) NewTek.NDIlib.destroy(); };
 
             splash.Opened += async (_, _) =>
             {
@@ -37,7 +38,6 @@ public class App : Application
                     if (!NdiAvailable)
                         System.Diagnostics.Debug.WriteLine(
                             "[App] NDI library failed to initialize — NDI outputs will not function.");
-                    desktop.Exit += (_, _) => { if (NdiAvailable) NewTek.NDIlib.destroy(); };
 
                     progress.Report((0.75, "Preparing workspace"));
                     var vm = new MainViewModel();
@@ -52,7 +52,7 @@ public class App : Application
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[App] Startup failed: {ex}");
-                    splash.Close();
+                    splash.Close(); // no MainWindow opened — OnLastWindowClose shuts the process down cleanly
                 }
             };
         }
