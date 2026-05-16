@@ -10,14 +10,26 @@ namespace ShowCast.Views;
 
 public partial class ItemsPanel : UserControl
 {
+    const string PkgDragKey   = "ShowCast.PackageReorder";
+    const double DragThreshold = 4.0;
+
     ListBoxItem? _dragOverItem;
+
+    // Package reorder drag state
+    Package? _draggingPkg;
+    Point    _pkgDragStart;
 
     public ItemsPanel()
     {
         InitializeComponent();
-        ItemList.AddHandler(DragDrop.DragOverEvent,  OnPageDragOver);
-        ItemList.AddHandler(DragDrop.DragLeaveEvent, OnPageDragLeave);
-        ItemList.AddHandler(DragDrop.DropEvent,      OnPageDrop);
+
+        ItemList.AddHandler(PointerPressedEvent, OnPkgPointerPressed, RoutingStrategies.Tunnel);
+        ItemList.AddHandler(PointerMovedEvent,   OnPkgPointerMoved,   RoutingStrategies.Tunnel);
+        ItemList.AddHandler(PointerReleasedEvent, OnPkgPointerReleased, RoutingStrategies.Tunnel);
+
+        ItemList.AddHandler(DragDrop.DragOverEvent,  OnItemDragOver);
+        ItemList.AddHandler(DragDrop.DragLeaveEvent, OnItemDragLeave);
+        ItemList.AddHandler(DragDrop.DropEvent,      OnItemDrop);
     }
 
     MainViewModel? VM => DataContext as MainViewModel;
@@ -45,41 +57,97 @@ public partial class ItemsPanel : UserControl
         }
     }
 
-    // ── Page cross-package drag-drop ──────────────────────────────────────────
+    // ── Package reorder drag initiation ──────────────────────────────────────
 
-    void OnPageDragOver(object? sender, DragEventArgs e)
+    void OnPkgPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (!e.Data.Contains("ShowCast.Page")) { e.DragEffects = DragDropEffects.None; return; }
+        if (VM is null || !VM.ShowingRundown) return;
+        if (!e.GetCurrentPoint(ItemList).Properties.IsLeftButtonPressed) return;
+        _draggingPkg = FindItemDataContext<Package>(e.Source);
+        _pkgDragStart = e.GetPosition(ItemList);
+    }
+
+    async void OnPkgPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (_draggingPkg is null) return;
+        if (!e.GetCurrentPoint(ItemList).Properties.IsLeftButtonPressed)
+        {
+            _draggingPkg = null;
+            return;
+        }
+
+        var pos = e.GetPosition(ItemList);
+        if (System.Math.Abs(pos.X - _pkgDragStart.X) < DragThreshold &&
+            System.Math.Abs(pos.Y - _pkgDragStart.Y) < DragThreshold)
+            return;
+
+        var pkg = _draggingPkg;
+        _draggingPkg = null;
+
+        var data = new DataObject();
+        data.Set(PkgDragKey, pkg);
+        await DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
+
+        ClearDragOver();
+    }
+
+    void OnPkgPointerReleased(object? sender, PointerReleasedEventArgs e) => _draggingPkg = null;
+
+    // ── Drag-over / drop ──────────────────────────────────────────────────────
+
+    void OnItemDragOver(object? sender, DragEventArgs e)
+    {
+        bool isPkg  = e.Data.Contains(PkgDragKey);
+        bool isPage = e.Data.Contains("ShowCast.Page");
+
+        if (!isPkg && !isPage) { e.DragEffects = DragDropEffects.None; return; }
         e.DragEffects = DragDropEffects.Move;
 
         var item = FindListBoxItem(e.Source as Visual);
         if (item != _dragOverItem)
         {
-            if (_dragOverItem is not null) _dragOverItem.Classes.Remove("page-drop-target");
+            ClearDragOver();
             _dragOverItem = item;
             if (_dragOverItem is not null) _dragOverItem.Classes.Add("page-drop-target");
         }
         e.Handled = true;
     }
 
-    void OnPageDragLeave(object? sender, DragEventArgs e)
+    void OnItemDragLeave(object? sender, DragEventArgs e) => ClearDragOver();
+
+    void OnItemDrop(object? sender, DragEventArgs e)
     {
-        if (_dragOverItem is not null) _dragOverItem.Classes.Remove("page-drop-target");
-        _dragOverItem = null;
+        ClearDragOver();
+
+        if (e.Data.Contains(PkgDragKey))
+        {
+            var src = e.Data.Get(PkgDragKey) as Package;
+            var tgt = FindItemDataContext<Package>(e.Source);
+            if (src is null || tgt is null || src == tgt || VM is null) return;
+
+            int from = VM.PackageItems.IndexOf(src);
+            int to   = VM.PackageItems.IndexOf(tgt);
+            VM.MoveRundownEntry(from, to);
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Data.Contains("ShowCast.Page"))
+        {
+            var pvm     = e.Data.Get("ShowCast.Page") as PageViewModel;
+            var package = FindItemDataContext<Package>(e.Source);
+            if (pvm is null || package is null || VM is null) return;
+            VM.MovePageToPackage(pvm, package);
+            e.Handled = true;
+        }
     }
 
-    void OnPageDrop(object? sender, DragEventArgs e)
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    void ClearDragOver()
     {
         if (_dragOverItem is not null) _dragOverItem.Classes.Remove("page-drop-target");
         _dragOverItem = null;
-
-        if (!e.Data.Contains("ShowCast.Page")) return;
-        var pvm     = e.Data.Get("ShowCast.Page") as PageViewModel;
-        var package = FindItemDataContext<Package>(e.Source);
-        if (pvm is null || package is null || VM is null) return;
-
-        VM.MovePageToPackage(pvm, package);
-        e.Handled = true;
     }
 
     ListBoxItem? FindListBoxItem(Visual? v)

@@ -397,12 +397,15 @@ public class MainViewModel : ViewModelBase
     public void GoLive()
     {
         if (SelectedOutput is null || SelectedPage is null) return;
+        bool skip = _skipNextAnimations;
+        _skipNextAnimations = false;
         int index = SelectedOutput.ActivePackage?.Pages.IndexOf(SelectedPage.Model) ?? -1;
         SelectedOutput.GoLive(
             SelectedPage.Model, index,
             NextTransitionType,
             NextTransitionDuration,
-            SelectedPage.Model.Transition.Easing);
+            SelectedPage.Model.Transition.Easing,
+            skip);
         UpdateIsLiveFlags();
         StartPageTimer(SelectedPage.Model.DurationMs, SelectedPage.Model.LoopToStart);
         FirePageTriggerTimers(SelectedPage.Model);
@@ -484,6 +487,7 @@ public class MainViewModel : ViewModelBase
     // ── Page timer (auto-advance) ──────────────────────────────────────────────
 
     System.Timers.Timer? _pageTimer;
+    bool _skipNextAnimations;
 
     void StartPageTimer(int durationMs, bool loopToStart = false)
     {
@@ -493,11 +497,10 @@ public class MainViewModel : ViewModelBase
         _pageTimer.Elapsed += (_, _) =>
             Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
             {
+                _skipNextAnimations = true;
                 if (loopToStart && Pages.Count > 0)
                 {
                     SelectedPage = Pages[0];
-                    if (SelectedOutput is not null)
-                        SelectedOutput.PendingSkipEntryAnimations = true;
                     GoLive();
                 }
                 else
@@ -860,6 +863,17 @@ public class MainViewModel : ViewModelBase
         int to   = from + direction;
         if (from < 0 || from >= _selectedRundown.Entries.Count) return;
         if (to   < 0 || to   >= _selectedRundown.Entries.Count) return;
+        _selectedRundown.MoveEntry(from, to);
+        RefreshPackageItems();
+        SelectedPackageItemIndex = to;
+    }
+
+    public void MoveRundownEntry(int from, int to)
+    {
+        if (_selectedRundown is null) return;
+        if (from < 0 || from >= _selectedRundown.Entries.Count) return;
+        if (to   < 0 || to   >= _selectedRundown.Entries.Count) return;
+        if (from == to) return;
         _selectedRundown.MoveEntry(from, to);
         RefreshPackageItems();
         SelectedPackageItemIndex = to;

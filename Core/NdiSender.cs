@@ -115,12 +115,17 @@ public sealed class NdiSender : IDisposable
         var currentLive = _output.LivePage;
         if (currentLive == _prevLive) return;
 
-        bool hasTransition = _prevLive is not null && currentLive is not null
+        bool skipAnims = _output.PendingSkipEntryAnimations;
+
+        bool hasTransition = !skipAnims
+                          && _prevLive is not null && currentLive is not null
                           && _output.PendingTransitionType != TransitionType.Cut
                           && _output.PendingTransitionDuration > 0;
 
         _fromPage      = hasTransition ? _prevLive : null;
-        _pageStartTime = DateTime.UtcNow;
+        _pageStartTime = skipAnims
+            ? DateTime.UtcNow.AddSeconds(-10)
+            : DateTime.UtcNow;
         if (hasTransition) _transStartTime = DateTime.UtcNow;
         _prevLive = currentLive;
     }

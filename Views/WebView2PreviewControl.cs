@@ -106,7 +106,6 @@ public sealed class WebView2PreviewControl : UserControl, IDisposable
         _currentPage = to;
 
         bool skipAnims = output.PendingSkipEntryAnimations;
-        output.PendingSkipEntryAnimations = false;
 
         _pageStartTime = skipAnims
             ? DateTime.UtcNow.AddSeconds(-10)
@@ -126,7 +125,15 @@ public sealed class WebView2PreviewControl : UserControl, IDisposable
         else
         {
             _fromPage = null;
-            StartTimerIfNeeded(to);
+            if (skipAnims)
+            {
+                _timer.Stop();
+                RenderStatic(to);
+            }
+            else
+            {
+                StartTimerIfNeeded(to);
+            }
         }
     }
 

@@ -58,13 +58,17 @@ public class OutputState : ReactiveObject
     }
 
     public void GoLive(Page page, int index,
-                        TransitionType transType  = TransitionType.Cut,
-                        int  durationMs           = 500,
-                        float easing              = 0.5f)
+                        TransitionType transType   = TransitionType.Cut,
+                        int  durationMs            = 500,
+                        float easing               = 0.5f,
+                        bool skipAnimations        = false)
     {
-        PendingTransitionType     = transType;
-        PendingTransitionDuration = durationMs;
-        PendingTransitionEasing   = easing;
+        PendingTransitionType      = transType;
+        PendingTransitionDuration  = durationMs;
+        PendingTransitionEasing    = easing;
+        // Set flag before LivePage fires — UI subscribers (synchronous) and the NDI
+        // background thread both read it here. Next GoLive() always overwrites it fresh.
+        PendingSkipEntryAnimations = skipAnimations;
         LivePage      = page;
         LivePageIndex = index;
     }

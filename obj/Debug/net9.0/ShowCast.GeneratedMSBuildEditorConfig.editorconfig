@@ -78,6 +78,9 @@ build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 [C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/ShowPanel.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
+[C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/SplashWindow.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
 [C:/Users/Casey_Pittman/Documents/GitHub/ShowCast/Views/TimerEditDialog.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 

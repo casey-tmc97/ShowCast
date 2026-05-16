@@ -56,7 +56,6 @@ public partial class OutputWindow : Window
     void OnLivePageChanged(Page? from, Page? to)
     {
         bool skipAnims = _output.PendingSkipEntryAnimations;
-        _output.PendingSkipEntryAnimations = false;
 
         // Far-past start time makes all entry animations appear already complete.
         _pageStartTime = skipAnims
@@ -77,7 +76,19 @@ public partial class OutputWindow : Window
         else
         {
             _fromPage = null;
-            StartTimerIfNeeded();
+            if (skipAnims)
+            {
+                // Stop any running animation loop, render the final (fully-animated) state
+                // immediately, then restart only if timer-bound layers need live updates.
+                _timer.Stop();
+                Redraw();
+                if (HasTimerBoundLayers(_output.LivePage))
+                    _timer.Start();
+            }
+            else
+            {
+                StartTimerIfNeeded();
+            }
         }
     }
 
