@@ -31,6 +31,9 @@ desktop.ini
 # Auto-generated work summaries
 work-summary-*.md
 
+# Claude Code local settings (machine-specific permissions)
+.claude/settings.local.json
+
 # NDI SDK examples (installed inside repo tree — not project source)
 NDI 6 SDK/
 
