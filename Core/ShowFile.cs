@@ -23,6 +23,7 @@ public class ShowFile
     public List<Rundown>        Rundowns        { get; } = new();
     public List<OutputConfig>   Outputs         { get; } = new();
     public List<ScheduledEvent> ScheduledEvents { get; } = new();
+    public List<AudioPlaylist>  AudioPlaylists  { get; } = new();
 
     public Show AddShow(string name)
     {
