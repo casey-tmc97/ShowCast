@@ -19,6 +19,10 @@ public class MainViewModel : ViewModelBase
     ShowFile _showFile = new();
     public  ShowFile ShowFile => _showFile;
 
+    // ── Audio player ──────────────────────────────────────────────────────────
+
+    public AudioPlayerViewModel AudioPlayer { get; } = new();
+
     readonly Dictionary<Guid, Package> _packageById = new();
 
     // ── Session persistence ───────────────────────────────────────────────────
@@ -40,7 +44,15 @@ public class MainViewModel : ViewModelBase
         s.SelectedRundownId      = SelectedRundown?.Id       ?? Guid.Empty;
         var selectedPackage      = SelectedPackageItemIndex >= 0 && SelectedPackageItemIndex < PackageItems.Count
                                    ? PackageItems[SelectedPackageItemIndex] : null;
-        s.SelectedPackageItemId  = selectedPackage?.Id ?? Guid.Empty;
+        s.SelectedPackageItemId    = selectedPackage?.Id ?? Guid.Empty;
+        s.SelectedAudioPlaylistId  = AudioPlayer.SelectedPlaylist?.Id ?? Guid.Empty;
+        AudioPlayer.PersistPlaybackState();
+
+        // Sync AudioPlayer playlists back to the ShowFile model before saving
+        _showFile.AudioPlaylists.Clear();
+        foreach (var pl in AudioPlayer.Playlists)
+            _showFile.AudioPlaylists.Add(pl);
+
         await ShowFileSerializer.SaveAsync(_showFile, path);
     }
 
@@ -158,6 +170,10 @@ public class MainViewModel : ViewModelBase
 
         foreach (var def in _showFile.Timers)
             Timers.Add(new TimerViewModel(def));
+
+        AudioPlayer.LoadPlaylists(
+            _showFile.AudioPlaylists,
+            _showFile.Settings.SelectedAudioPlaylistId);
 
         foreach (var cfg in _showFile.Outputs)
         {
