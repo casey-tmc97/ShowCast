@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using Avalonia.Threading;
+using LibVLCSharp.Shared;
 using ReactiveUI;
 using ShowCast.Core;
+using AudioTrack = ShowCast.Core.AudioTrack;
 
 namespace ShowCast.ViewModels;
 
@@ -13,8 +16,9 @@ public enum PlaybackState { Stopped, Playing, Paused }
 public class AudioPlayerViewModel : ReactiveObject, IDisposable
 {
     // ── LibVLC fields (null when unavailable) ─────────────────────────────────
-    // LibVLC objects are added in Task 5. Declared here so the class compiles.
-    bool _libVlcReady;
+    LibVLC?      _libVlc;
+    MediaPlayer? _player;
+    System.Timers.Timer? _poller;
 
     // ── Observable state ──────────────────────────────────────────────────────
 
@@ -169,7 +173,35 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
 
     public AudioPlayerViewModel()
     {
-        // LibVLC initialization added in Task 5
+        try
+        {
+            LibVLCSharp.Shared.Core.Initialize();
+            _libVlc = new LibVLC();
+            _player  = new MediaPlayer(_libVlc);
+
+            _player.EndReached += (_, _) =>
+                Dispatcher.UIThread.Post(Next);
+
+            _poller = new System.Timers.Timer(250) { AutoReset = true };
+            _poller.Elapsed += (_, _) =>
+            {
+                if (_player is null) return;
+                long timeMs   = _player.Time;
+                long lengthMs = _player.Length;
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (timeMs >= 0)
+                        Position = TimeSpan.FromMilliseconds(timeMs);
+                    if (lengthMs > 0 && (long)_duration.TotalMilliseconds != lengthMs)
+                        Duration = TimeSpan.FromMilliseconds(lengthMs);
+                });
+            };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AudioPlayer] LibVLC init failed: {ex.Message}");
+            IsUnavailable = true;
+        }
     }
 
     // ── Playlist management ───────────────────────────────────────────────────
@@ -242,15 +274,107 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
         };
     }
 
-    // ── Playback stubs (implemented in Task 5) ────────────────────────────────
+    // ── Playback ──────────────────────────────────────────────────────────────
 
-    public void Play(AudioTrack? track = null) { }
-    public void Pause()                        { }
-    public void Stop()                         { State = PlaybackState.Stopped; Position = TimeSpan.Zero; }
-    public void Next()                         { }
-    public void Previous()                     { }
-    public void Seek(double seconds)           { }
-    public void SeekRelative(double deltaSeconds) { }
+    public void Play(AudioTrack? track = null)
+    {
+        if (_player is null || _selectedPlaylist is null) return;
+
+        if (track is not null)
+        {
+            CurrentTrack      = track;
+            CurrentTrackIndex = _selectedPlaylist.Tracks.IndexOf(track);
+        }
+
+        if (CurrentTrack is null)
+        {
+            if (_selectedPlaylist.Tracks.Count == 0) return;
+            CurrentTrack      = _selectedPlaylist.Tracks[0];
+            CurrentTrackIndex = 0;
+        }
+
+        var absPath = Path.Combine(AppFolders.Media, CurrentTrack.RelativePath);
+        if (!File.Exists(absPath))
+        {
+            StatusMessage = $"File not found: {CurrentTrack.RelativePath}";
+            if (_selectedPlaylist.AutoAdvance)
+            {
+                int ni = PickNextIndex(_selectedPlaylist, CurrentTrackIndex);
+                if (ni >= 0) Play(_selectedPlaylist.Tracks[ni]); else Stop();
+            }
+            return;
+        }
+
+        var oldMedia = _player.Media;
+        var newMedia = new Media(_libVlc!, new Uri(absPath));
+        _player.Media = newMedia;
+        _player.Play();
+        _player.SetRate(_selectedPlaylist.Speed);
+        _player.Volume = (int)Math.Round(_volume * 100);
+        oldMedia?.Dispose();
+
+        _poller?.Start();
+        State         = PlaybackState.Playing;
+        StatusMessage = "";
+    }
+
+    public void Pause()
+    {
+        if (_player is null) return;
+        _player.Pause();
+        _poller?.Stop();
+        State = PlaybackState.Paused;
+    }
+
+    public void Stop()
+    {
+        _player?.Stop();
+        _poller?.Stop();
+        State             = PlaybackState.Stopped;
+        Position          = TimeSpan.Zero;
+        Duration          = TimeSpan.Zero;
+        CurrentTrack      = null;
+        CurrentTrackIndex = -1;
+    }
+
+    public void Next()
+    {
+        var pl = _selectedPlaylist;
+        if (pl is null || pl.Tracks.Count == 0) { Stop(); return; }
+
+        int nextIdx = PickNextIndex(pl, CurrentTrackIndex);
+        if (nextIdx < 0 || !pl.AutoAdvance) { Stop(); return; }
+        Play(pl.Tracks[nextIdx]);
+    }
+
+    public void Previous()
+    {
+        var pl = _selectedPlaylist;
+        if (pl is null || pl.Tracks.Count == 0) return;
+
+        // Restart current track if more than 3 seconds in; otherwise go back one
+        if (_player is not null && _player.Time > 3000 && CurrentTrackIndex >= 0)
+        {
+            Seek(0);
+            return;
+        }
+
+        int prevIdx = Math.Max(0, CurrentTrackIndex - 1);
+        Play(pl.Tracks[prevIdx]);
+    }
+
+    public void Seek(double seconds)
+    {
+        if (_player is null) return;
+        _player.Time = (long)(seconds * 1000);
+    }
+
+    public void SeekRelative(double deltaSeconds)
+    {
+        if (_player is null) return;
+        double newPos = Math.Clamp(Position.TotalSeconds + deltaSeconds, 0, Duration.TotalSeconds);
+        Seek(newPos);
+    }
     public void CycleRepeat()
     {
         if (_selectedPlaylist is null) return;
@@ -288,13 +412,63 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
     {
         if (_selectedPlaylist is null || _currentTrack is null) return;
         _selectedPlaylist.LastTrackId    = _currentTrack.Id;
-        _selectedPlaylist.LastPositionMs = 0; // updated in Task 5 when _player is wired
+        _selectedPlaylist.LastPositionMs = _player is not null ? Math.Max(0, _player.Time) : 0;
     }
 
-    // ── Import stub (implemented in Task 5) ───────────────────────────────────
+    // ── Import ────────────────────────────────────────────────────────────────
 
-    public System.Threading.Tasks.Task ImportFilesAsync(IEnumerable<string> paths) =>
-        System.Threading.Tasks.Task.CompletedTask;
+    public async System.Threading.Tasks.Task ImportFilesAsync(IEnumerable<string> sourcePaths)
+    {
+        var pl = _selectedPlaylist;
+        if (pl is null) return;
+
+        var mediaDir = AppFolders.Media;
+        Directory.CreateDirectory(mediaDir);
+
+        foreach (var src in sourcePaths)
+        {
+            var destName = Path.GetFileName(src);
+            var dest     = Path.Combine(mediaDir, destName);
+
+            // Deduplicate filename
+            if (File.Exists(dest))
+            {
+                var baseName = Path.GetFileNameWithoutExtension(destName);
+                var ext      = Path.GetExtension(destName);
+                int n = 1;
+                do
+                {
+                    destName = $"{baseName}({n}){ext}";
+                    dest     = Path.Combine(mediaDir, destName);
+                    n++;
+                } while (File.Exists(dest));
+            }
+
+            File.Copy(src, dest);
+
+            long durationMs = 0;
+            if (_libVlc is not null)
+            {
+                try
+                {
+                    using var media = new Media(_libVlc, new Uri(dest));
+                    await media.Parse(MediaParseOptions.ParseLocal);
+                    durationMs = media.Duration;
+                }
+                catch { /* leave duration as 0 */ }
+            }
+
+            var track = new AudioTrack
+            {
+                Title        = Path.GetFileNameWithoutExtension(destName),
+                RelativePath = destName,
+                DurationMs   = durationMs
+            };
+
+            pl.Tracks.Add(track);
+            TrackList.Add(track);
+        }
+    }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -317,10 +491,29 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
         this.RaisePropertyChanged(nameof(SpeedLabel));
     }
 
-    void ApplyVolume() { /* wired to _player in Task 5 */ }
-    void ApplySpeed()  { /* wired to _player in Task 5 */ }
+    void ApplyVolume()
+    {
+        if (_player is null) return;
+        _player.Volume = (int)Math.Round(_volume * 100);
+    }
 
-    public void Dispose() { }
+    void ApplySpeed()
+    {
+        if (_player is null) return;
+        _player.SetRate(_selectedPlaylist?.Speed ?? 1.0f);
+    }
+
+    public void Dispose()
+    {
+        _poller?.Stop();
+        _poller?.Dispose();
+        if (_player is not null)
+        {
+            _player.Stop();
+            _player.Dispose();
+        }
+        _libVlc?.Dispose();
+    }
 }
 
 public class MsToTimeStringConverter : Avalonia.Data.Converters.IValueConverter
