@@ -23,17 +23,7 @@ public partial class TimerPanel : UserControl
     void UpdateEmptyHint() =>
         EmptyHint.IsVisible = VM is null || VM.Timers.Count == 0;
 
-    async void OnAddTimer(object? sender, RoutedEventArgs e)
-    {
-        if (TopLevel.GetTopLevel(this) is not Window owner) return;
-        var dlg = new TimerEditDialog();
-        await dlg.ShowDialog(owner);
-        if (dlg.Result is not null)
-        {
-            VM?.AddTimer(dlg.Result);
-            UpdateEmptyHint();
-        }
-    }
+    public void RefreshEmptyHint() => UpdateEmptyHint();
 
     void OnPlayPause(object? sender, RoutedEventArgs e)
     {

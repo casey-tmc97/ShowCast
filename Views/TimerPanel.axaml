@@ -5,27 +5,6 @@
 
     <DockPanel LastChildFill="True">
 
-        <!-- Header -->
-        <Border DockPanel.Dock="Top" Classes="panel-header">
-            <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="TIMERS" VerticalAlignment="Center"/>
-                <Button Grid.Column="1"
-                        Content="+" Width="24" Height="24" Padding="0"
-                        Background="#555555" Foreground="White"
-                        FontSize="16" FontWeight="Bold"
-                        CornerRadius="4" BorderThickness="0"
-                        HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center"
-                        Click="OnAddTimer">
-                    <Button.Styles>
-                        <Style Selector="Button:pointerover /template/ ContentPresenter">
-                            <Setter Property="Background" Value="#666666"/>
-                        </Style>
-                    </Button.Styles>
-                </Button>
-            </Grid>
-        </Border>
-
         <!-- Empty hint -->
         <Border DockPanel.Dock="Top" Padding="8,6,8,0" x:Name="EmptyHint">
             <TextBlock Text="No timers — click + to add one"
