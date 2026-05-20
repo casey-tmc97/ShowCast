@@ -1,5 +1,254 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="ShowCast.Views.AudioPlayerPanel">
-    <TextBlock Text="Audio Player (coming soon)" Foreground="#888888" Margin="8"/>
+             xmlns:vm="using:ShowCast.ViewModels"
+             xmlns:core="using:ShowCast.Core"
+             x:Class="ShowCast.Views.AudioPlayerPanel"
+             x:DataType="vm:AudioPlayerViewModel">
+
+    <DockPanel LastChildFill="True">
+
+        <!-- ── Unavailable notice ── -->
+        <Border DockPanel.Dock="Top"
+                IsVisible="{Binding IsUnavailable}"
+                Background="#2a2a2a" Padding="8,6">
+            <TextBlock Text="Audio unavailable — VLC libraries not found"
+                       Foreground="#888888" FontSize="10" TextWrapping="Wrap"/>
+        </Border>
+
+        <!-- ── Playlist bar ── -->
+        <Border DockPanel.Dock="Top" Background="#1a1a1a" Padding="6,4"
+                BorderBrush="#555555" BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <ComboBox Grid.Column="0"
+                          ItemsSource="{Binding Playlists}"
+                          SelectedItem="{Binding SelectedPlaylist}"
+                          Background="#2d2d2d"
+                          Foreground="White"
+                          BorderThickness="0"
+                          HorizontalAlignment="Stretch"
+                          MaxDropDownHeight="200">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="core:AudioPlaylist">
+                            <TextBlock Text="{Binding Name}" Foreground="White"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <Button Grid.Column="1" Content="+" Width="24" Height="24"
+                        Padding="0" Margin="4,0,0,0"
+                        Background="#555555" Foreground="White"
+                        FontSize="14" FontWeight="Bold"
+                        CornerRadius="4" BorderThickness="0"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Click="OnNewPlaylist">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#666666"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+                <Button Grid.Column="2" Content="✕" Width="24" Height="24"
+                        Padding="0" Margin="2,0,0,0"
+                        Background="#444444" Foreground="#bbbbbb"
+                        FontSize="11" CornerRadius="4" BorderThickness="0"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Click="OnDeletePlaylist">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#8b1a1a"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- ── Now Playing + Seek ── -->
+        <Border DockPanel.Dock="Bottom" Background="#222222"
+                Padding="8,6" BorderBrush="#555555" BorderThickness="0,1,0,0">
+            <StackPanel Spacing="4">
+                <TextBlock Text="{Binding CurrentTrack.Title, FallbackValue='—'}"
+                           FontWeight="Bold" Foreground="White" FontSize="11"
+                           TextTrimming="CharacterEllipsis"/>
+                <Grid ColumnDefinitions="*,Auto">
+                    <Slider x:Name="SeekSlider"
+                            Grid.Column="0"
+                            Minimum="0"
+                            Maximum="{Binding Duration.TotalSeconds}"
+                            Value="{Binding PositionSeconds, Mode=OneWay}"
+                            PointerReleased="OnSeekReleased"
+                            Foreground="#e07050"/>
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding PositionDisplay}"
+                               Foreground="#888888" FontSize="9"
+                               VerticalAlignment="Center"
+                               Margin="6,0,0,0"/>
+                </Grid>
+
+                <!-- Transport row -->
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Center" Spacing="4">
+                    <Button Content="⏮" Click="OnPrevious"
+                            Width="28" Height="28" Padding="0"
+                            Background="#444444" Foreground="White"
+                            CornerRadius="4" BorderThickness="0"
+                            FontSize="13" HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center">
+                        <Button.Styles><Style Selector="Button:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#555555"/></Style></Button.Styles>
+                    </Button>
+                    <Button Content="⏪" Click="OnSeekBack"
+                            Width="28" Height="28" Padding="0"
+                            Background="#444444" Foreground="White"
+                            CornerRadius="4" BorderThickness="0"
+                            FontSize="13" HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center">
+                        <Button.Styles><Style Selector="Button:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#555555"/></Style></Button.Styles>
+                    </Button>
+                    <Button Content="{Binding PlayPauseIcon}" Click="OnPlayPause"
+                            Width="34" Height="34" Padding="0"
+                            Background="#e07050" Foreground="White"
+                            CornerRadius="17" BorderThickness="0"
+                            FontSize="14" HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center">
+                        <Button.Styles><Style Selector="Button:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#e08060"/></Style></Button.Styles>
+                    </Button>
+                    <Button Content="⏩" Click="OnSeekForward"
+                            Width="28" Height="28" Padding="0"
+                            Background="#444444" Foreground="White"
+                            CornerRadius="4" BorderThickness="0"
+                            FontSize="13" HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center">
+                        <Button.Styles><Style Selector="Button:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#555555"/></Style></Button.Styles>
+                    </Button>
+                    <Button Content="⏭" Click="OnNext"
+                            Width="28" Height="28" Padding="0"
+                            Background="#444444" Foreground="White"
+                            CornerRadius="4" BorderThickness="0"
+                            FontSize="13" HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center">
+                        <Button.Styles><Style Selector="Button:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#555555"/></Style></Button.Styles>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- ── Options ── -->
+        <Border DockPanel.Dock="Bottom" Background="#1e1e1e"
+                Padding="8,6" BorderBrush="#555555" BorderThickness="0,1,0,0">
+            <StackPanel Spacing="6">
+
+                <!-- Shuffle + Repeat -->
+                <Grid ColumnDefinitions="*,*">
+                    <ToggleButton Grid.Column="0"
+                                  Content="🔀 Shuffle"
+                                  IsChecked="{Binding Shuffle}"
+                                  FontSize="10" Padding="6,3"/>
+                    <Button Grid.Column="1"
+                            Content="{Binding RepeatLabel}"
+                            Click="OnCycleRepeat"
+                            Margin="4,0,0,0"
+                            FontSize="10" Padding="6,3"/>
+                </Grid>
+
+                <!-- Speed -->
+                <StackPanel Orientation="Horizontal" Spacing="2">
+                    <TextBlock Text="Speed:" Foreground="#888888" FontSize="9"
+                               VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <Button x:Name="Spd05"  Content=".5x"   Click="OnSpd05"  FontSize="9" Padding="4,2"/>
+                    <Button x:Name="Spd075" Content=".75x"  Click="OnSpd075" FontSize="9" Padding="4,2"/>
+                    <Button x:Name="Spd1"   Content="1x"    Click="OnSpd1"   FontSize="9" Padding="4,2"/>
+                    <Button x:Name="Spd125" Content="1.25x" Click="OnSpd125" FontSize="9" Padding="4,2"/>
+                    <Button x:Name="Spd15"  Content="1.5x"  Click="OnSpd15"  FontSize="9" Padding="4,2"/>
+                    <Button x:Name="Spd2"   Content="2x"    Click="OnSpd2"   FontSize="9" Padding="4,2"/>
+                </StackPanel>
+
+                <!-- Auto-advance + Resume -->
+                <Grid ColumnDefinitions="Auto,*,Auto,*">
+                    <TextBlock Grid.Column="0" Text="Auto-adv:" Foreground="#888888"
+                               FontSize="9" VerticalAlignment="Center"/>
+                    <ToggleButton Grid.Column="1"
+                                  IsChecked="{Binding AutoAdvance}"
+                                  Margin="4,0" Padding="6,2" FontSize="9">
+                        <ToggleButton.Content>
+                            <TextBlock Text="{Binding AutoAdvance, StringFormat='{}{0:On;On;Off}'}" FontSize="9"/>
+                        </ToggleButton.Content>
+                    </ToggleButton>
+                    <TextBlock Grid.Column="2" Text="Resume:" Foreground="#888888"
+                               FontSize="9" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="2" Margin="4,0,0,0">
+                        <Button Content="Top"  Click="OnResumeTop"  FontSize="9" Padding="4,2"/>
+                        <Button Content="Last" Click="OnResumeLast" FontSize="9" Padding="4,2"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Volume -->
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <TextBlock Grid.Column="0" Text="🔊" Foreground="#888888"
+                               FontSize="12" VerticalAlignment="Center"/>
+                    <Slider Grid.Column="1"
+                            Minimum="0" Maximum="1"
+                            Value="{Binding Volume}"
+                            Margin="6,0"
+                            Foreground="#e07050"/>
+                    <TextBlock Grid.Column="2"
+                               Text="{Binding VolumeDisplay}"
+                               Foreground="#888888" FontSize="9"
+                               VerticalAlignment="Center" Width="32"/>
+                </Grid>
+
+            </StackPanel>
+        </Border>
+
+        <!-- ── Track list ── -->
+        <DockPanel LastChildFill="True">
+            <Button DockPanel.Dock="Bottom"
+                    Content="Import Files..."
+                    Click="OnImport"
+                    HorizontalAlignment="Stretch"
+                    Margin="6,4" FontSize="10"
+                    IsEnabled="{Binding SelectedPlaylist,
+                                Converter={x:Static ObjectConverters.IsNotNull}}"/>
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding TrackList}" Padding="6">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="core:AudioTrack">
+                            <Border Padding="6,4" Margin="0,0,0,3"
+                                    Background="#2a2a2a" CornerRadius="3">
+                                <Grid ColumnDefinitions="*,Auto,26">
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding Title}"
+                                               Foreground="White" FontSize="10"
+                                               TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding DurationMs,
+                                                      Converter={x:Static vm:AudioPlayerViewModel.MsToTimeConverter}}"
+                                               Foreground="#666666" FontSize="9"
+                                               VerticalAlignment="Center"
+                                               Margin="6,0"/>
+                                    <Button Grid.Column="2"
+                                            Content="✕"
+                                            Tag="{Binding}"
+                                            Click="OnDeleteTrack"
+                                            Width="22" Height="22" Padding="0"
+                                            Background="#444444" Foreground="#bbbbbb"
+                                            CornerRadius="3" BorderThickness="0"
+                                            FontSize="9"
+                                            HorizontalContentAlignment="Center"
+                                            VerticalContentAlignment="Center">
+                                        <Button.Styles>
+                                            <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                                <Setter Property="Background" Value="#8b1a1a"/>
+                                            </Style>
+                                        </Button.Styles>
+                                    </Button>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </DockPanel>
+
+    </DockPanel>
 </UserControl>
