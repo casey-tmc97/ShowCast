@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ShowCast.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c54b769b4156eb5a9664bf7531bc53519a39f996")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+722b86a482235c550637c0d31a0daeacbeb5ebf5")]
 [assembly: System.Reflection.AssemblyProductAttribute("ShowCast.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ShowCast.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

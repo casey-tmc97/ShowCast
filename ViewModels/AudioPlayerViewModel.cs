@@ -31,9 +31,11 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
         get => _selectedPlaylist;
         set
         {
+            Stop(); // stop any playing track from the previous playlist
             this.RaiseAndSetIfChanged(ref _selectedPlaylist, value);
             RefreshTrackList();
             RaisePlaylistPassthroughs();
+            ApplyResume(value);
         }
     }
 
@@ -41,7 +43,16 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
     public AudioTrack? CurrentTrack
     {
         get => _currentTrack;
-        private set => this.RaiseAndSetIfChanged(ref _currentTrack, value);
+        private set
+        {
+            // Persist last position on the outgoing track
+            if (_currentTrack is not null && _selectedPlaylist is not null)
+            {
+                _selectedPlaylist.LastTrackId    = _currentTrack.Id;
+                _selectedPlaylist.LastPositionMs = _player is not null ? Math.Max(0, _player.Time) : 0;
+            }
+            this.RaiseAndSetIfChanged(ref _currentTrack, value);
+        }
     }
 
     int _currentTrackIndex = -1;
@@ -471,6 +482,18 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    void ApplyResume(AudioPlaylist? playlist)
+    {
+        if (playlist is null || playlist.ResumeMode == ResumeMode.FromTop) return;
+
+        var track = playlist.Tracks.FirstOrDefault(t => t.Id == playlist.LastTrackId);
+        if (track is null) return; // saved track deleted — fall back to top
+
+        // Pre-cue the track without auto-playing; user still presses play
+        CurrentTrack      = track;
+        CurrentTrackIndex = playlist.Tracks.IndexOf(track);
+    }
 
     void RefreshTrackList()
     {
