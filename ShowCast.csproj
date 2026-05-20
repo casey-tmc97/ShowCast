@@ -49,6 +49,10 @@
 
     <!-- Serialization (show file save/load) -->
     <PackageReference Include="System.Text.Json"            Version="9.0.0" />
+
+    <!-- Audio playback -->
+    <PackageReference Include="LibVLCSharp"             Version="3.9.0" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.21" />
   </ItemGroup>
 
 </Project>
