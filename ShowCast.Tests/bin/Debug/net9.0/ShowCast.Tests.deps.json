@@ -300,6 +300,14 @@
           }
         }
       },
+      "LibVLCSharp/3.9.0": {
+        "runtime": {
+          "lib/net8.0/LibVLCSharp.dll": {
+            "assemblyVersion": "3.9.0.0",
+            "fileVersion": "3.9.0.0"
+          }
+        }
+      },
       "MicroCom.Runtime/0.11.0": {
         "runtime": {
           "lib/net5.0/MicroCom.Runtime.dll": {
@@ -688,6 +696,7 @@
           }
         }
       },
+      "VideoLAN.LibVLC.Windows/3.0.21": {},
       "xunit/2.9.2": {
         "dependencies": {
           "xunit.analyzers": "1.16.0",
@@ -748,9 +757,11 @@
           "Avalonia.Desktop": "11.2.2",
           "Avalonia.ReactiveUI": "11.2.2",
           "Avalonia.Themes.Fluent": "11.2.2",
+          "LibVLCSharp": "3.9.0",
           "ReactiveUI": "20.1.63",
           "SkiaSharp": "2.88.9",
-          "System.Text.Json": "9.0.0"
+          "System.Text.Json": "9.0.0",
+          "VideoLAN.LibVLC.Windows": "3.0.21"
         },
         "runtime": {
           "ShowCast.dll": {
@@ -900,6 +911,13 @@
       "path": "harfbuzzsharp.nativeassets.win32/7.3.0.3",
       "hashPath": "harfbuzzsharp.nativeassets.win32.7.3.0.3.nupkg.sha512"
     },
+    "LibVLCSharp/3.9.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-wydvN5kotK5y/ZRC04/F6YUqesJCzdixaItRkR8L0/nOLSs2/BJ7rKRbU7BxkxpKIBqlN8EpuXxH/fQEZEHtuw==",
+      "path": "libvlcsharp/3.9.0",
+      "hashPath": "libvlcsharp.3.9.0.nupkg.sha512"
+    },
     "MicroCom.Runtime/0.11.0": {
       "type": "package",
       "serviceable": true,
@@ -1032,6 +1050,13 @@
       "sha512": "sha512-2gkt2kuYPhDKd8gtl34jZSJOnn4nRJfFngCDcTZT/uySbK++ua0YQx2418l9Rn1Y4dE5XNq6zG9ZsE5ltLlNNw==",
       "path": "tmds.dbus.protocol/0.20.0",
       "hashPath": "tmds.dbus.protocol.0.20.0.nupkg.sha512"
+    },
+    "VideoLAN.LibVLC.Windows/3.0.21": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-1b1yjZPIzS2+s6YZv9Z5Co/q2srIvo03ZToPvZblWreeyeFGkLDwX7WZat8AxCB9uMQV6VUnms67SgQqko7Z0w==",
+      "path": "videolan.libvlc.windows/3.0.21",
+      "hashPath": "videolan.libvlc.windows.3.0.21.nupkg.sha512"
     },
     "xunit/2.9.2": {
       "type": "package",

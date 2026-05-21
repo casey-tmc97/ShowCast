@@ -139,4 +139,46 @@ public class ShowFileSerializerTests
             File.Delete(path + ".tmp"); // clean up .tmp if move failed
         }
     }
+
+    [Fact]
+    public async Task SaveAsync_LoadAsync_RoundTripsAudioPlaylists()
+    {
+        var file = new ShowFile();
+        var playlist = new AudioPlaylist { Name = "Sunday Set" };
+        playlist.Tracks.Add(new AudioTrack { Title = "Song 1", RelativePath = "song1.mp3", DurationMs = 180000 });
+        file.AudioPlaylists.Add(playlist);
+
+        var path = Path.GetTempFileName();
+        try
+        {
+            await ShowFileSerializer.SaveAsync(file, path);
+            var result = await ShowFileSerializer.LoadAsync(path);
+
+            Assert.NotNull(result);
+            Assert.Single(result.File.AudioPlaylists);
+            Assert.Equal("Sunday Set", result.File.AudioPlaylists[0].Name);
+            Assert.Single(result.File.AudioPlaylists[0].Tracks);
+            Assert.Equal("Song 1", result.File.AudioPlaylists[0].Tracks[0].Title);
+            Assert.Equal(180000L, result.File.AudioPlaylists[0].Tracks[0].DurationMs);
+        }
+        finally { File.Delete(path); File.Delete(path + ".tmp"); }
+    }
+
+    [Fact]
+    public async Task LoadAsync_OldFile_GetsEmptyAudioPlaylists()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            // Old file with no AudioPlaylists field
+            var json = """{ "Version": 1 }""";
+            await File.WriteAllTextAsync(path, json);
+
+            var result = await ShowFileSerializer.LoadAsync(path);
+
+            Assert.NotNull(result);
+            Assert.Empty(result.File.AudioPlaylists);
+        }
+        finally { File.Delete(path); }
+    }
 }

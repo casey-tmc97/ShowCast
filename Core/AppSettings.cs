@@ -37,5 +37,6 @@ public class AppSettings
     public Guid SelectedOutputId     { get; set; } = Guid.Empty;
     public Guid SelectedShowId       { get; set; } = Guid.Empty;
     public Guid SelectedRundownId    { get; set; } = Guid.Empty;
-    public Guid SelectedPackageItemId { get; set; } = Guid.Empty;
+    public Guid SelectedPackageItemId   { get; set; } = Guid.Empty;
+    public Guid SelectedAudioPlaylistId { get; set; } = Guid.Empty;
 }

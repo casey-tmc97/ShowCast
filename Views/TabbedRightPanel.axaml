@@ -1,0 +1,86 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ShowCast.ViewModels"
+             xmlns:views="using:ShowCast.Views"
+             x:Class="ShowCast.Views.TabbedRightPanel">
+
+    <DockPanel LastChildFill="True">
+
+        <!-- ── Tab strip (replaces TimerPanel's old header) ── -->
+        <Border DockPanel.Dock="Top" Classes="panel-header" Padding="0">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+
+                <!-- TIMERS tab -->
+                <Button x:Name="TimersTabBtn"
+                        Grid.Column="0"
+                        Content="TIMERS"
+                        Click="OnTimersTab"
+                        Padding="14,6"
+                        Background="#1e1e1e"
+                        Foreground="White"
+                        FontWeight="Bold"
+                        FontSize="12"
+                        BorderThickness="0,0,0,3"
+                        BorderBrush="#e07050"
+                        CornerRadius="0">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#2a2a2a"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+
+                <!-- AUDIO tab -->
+                <Button x:Name="AudioTabBtn"
+                        Grid.Column="1"
+                        Content="AUDIO"
+                        Click="OnAudioTab"
+                        Padding="14,6"
+                        Background="#2d2d2d"
+                        Foreground="#888888"
+                        FontWeight="Bold"
+                        FontSize="12"
+                        BorderThickness="0,0,0,3"
+                        BorderBrush="Transparent"
+                        CornerRadius="0">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#2a2a2a"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+
+                <!-- Add Timer button — only visible on TIMERS tab -->
+                <Button x:Name="AddTimerBtn"
+                        Grid.Column="3"
+                        Content="+"
+                        Width="24" Height="24"
+                        Padding="0"
+                        Margin="0,0,8,0"
+                        Background="#555555"
+                        Foreground="White"
+                        FontSize="16" FontWeight="Bold"
+                        CornerRadius="4" BorderThickness="0"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Click="OnAddTimer">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#666666"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+
+            </Grid>
+        </Border>
+
+        <!-- Timer panel content (no header of its own) -->
+        <views:TimerPanel x:Name="TimersContent" />
+
+        <!-- Audio player panel (hidden by default) -->
+        <views:AudioPlayerPanel x:Name="AudioContent"
+                                DataContext="{Binding AudioPlayer}"
+                                IsVisible="False" />
+
+    </DockPanel>
+</UserControl>
