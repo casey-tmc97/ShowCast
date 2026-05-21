@@ -1893,6 +1893,9 @@ public class MainViewModel : ViewModelBase
         var defaultShow = ShowFile.AddShow("Default");
         Shows.Add(defaultShow);
 
+        // ── Default audio playlist ────────────────────────────────────────────
+        AudioPlayer.CreatePlaylist("Default");
+
         // ── Default state ─────────────────────────────────────────────────────
         SelectedOutput = progState;
         SelectedShow   = defaultShow;
