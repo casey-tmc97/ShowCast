@@ -13,6 +13,8 @@ namespace ShowCast.ViewModels;
 
 public enum PlaybackState { Stopped, Playing, Paused }
 
+public enum FileConflictChoice { Reuse, Replace, Skip }
+
 public class AudioPlayerViewModel : ReactiveObject, IDisposable
 {
     // ── LibVLC fields (null when unavailable) ─────────────────────────────────
@@ -23,7 +25,9 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
     // ── Observable state ──────────────────────────────────────────────────────
 
     public ObservableCollection<AudioPlaylist>  Playlists { get; } = new();
-    public ObservableCollection<AudioTrack>     TrackList { get; } = new();
+
+    /// <summary>Row-level wrappers that carry IsPlaying / IsSelected state for the UI.</summary>
+    public ObservableCollection<AudioTrackRow>  TrackList { get; } = new();
 
     AudioPlaylist? _selectedPlaylist;
     public AudioPlaylist? SelectedPlaylist
@@ -31,7 +35,7 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
         get => _selectedPlaylist;
         set
         {
-            Stop(); // stop any playing track from the previous playlist
+            Stop();
             this.RaiseAndSetIfChanged(ref _selectedPlaylist, value);
             RefreshTrackList();
             RaisePlaylistPassthroughs();
@@ -51,7 +55,16 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
                 _selectedPlaylist.LastTrackId    = _currentTrack.Id;
                 _selectedPlaylist.LastPositionMs = _player is not null ? Math.Max(0, _player.Time) : 0;
             }
+
+            // Clear IsPlaying on the row that was playing
+            var oldRow = TrackList.FirstOrDefault(r => r.Track == _currentTrack);
+            if (oldRow is not null) oldRow.IsPlaying = false;
+
             this.RaiseAndSetIfChanged(ref _currentTrack, value);
+
+            // Set IsPlaying on the new row
+            var newRow = TrackList.FirstOrDefault(r => r.Track == _currentTrack);
+            if (newRow is not null) newRow.IsPlaying = true;
         }
     }
 
@@ -61,6 +74,23 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
         get => _currentTrackIndex;
         private set => this.RaiseAndSetIfChanged(ref _currentTrackIndex, value);
     }
+
+    // ── Selection (separate from currently-playing) ───────────────────────────
+
+    AudioTrackRow? _selectedTrackRow;
+    public AudioTrackRow? SelectedTrackRow
+    {
+        get => _selectedTrackRow;
+        private set
+        {
+            if (_selectedTrackRow is not null) _selectedTrackRow.IsSelected = false;
+            this.RaiseAndSetIfChanged(ref _selectedTrackRow, value);
+            if (_selectedTrackRow is not null) _selectedTrackRow.IsSelected = true;
+        }
+    }
+
+    /// <summary>Select a row (single click). Does not start playback.</summary>
+    public void SelectTrack(AudioTrackRow row) => SelectedTrackRow = row;
 
     PlaybackState _state = PlaybackState.Stopped;
     public PlaybackState State
@@ -219,6 +249,13 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
 
     public void LoadPlaylists(List<AudioPlaylist> playlists, Guid selectedId)
     {
+        // Migrate: strip legacy (n) suffixes produced by the old auto-rename import logic.
+        // RelativePath (the actual filename) is intentionally left unchanged.
+        var legacySuffix = new System.Text.RegularExpressions.Regex(@"\(\d+\)$");
+        foreach (var pl in playlists)
+            foreach (var t in pl.Tracks)
+                t.Title = legacySuffix.Replace(t.Title, "").TrimEnd();
+
         Playlists.Clear();
         foreach (var pl in playlists) Playlists.Add(pl);
         SelectedPlaylist = Playlists.FirstOrDefault(p => p.Id == selectedId)
@@ -244,7 +281,6 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
     public void RenamePlaylist(AudioPlaylist playlist, string name)
     {
         playlist.Name = name;
-        // Force ComboBox to refresh
         int idx = Playlists.IndexOf(playlist);
         if (idx >= 0) { Playlists.RemoveAt(idx); Playlists.Insert(idx, playlist); }
         SelectedPlaylist = playlist;
@@ -254,7 +290,14 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
     {
         if (CurrentTrack == track) Stop();
         _selectedPlaylist?.Tracks.Remove(track);
-        TrackList.Remove(track);
+
+        var row = TrackList.FirstOrDefault(r => r.Track == track);
+        if (row is not null)
+        {
+            if (_selectedTrackRow == row) SelectedTrackRow = null;
+            TrackList.Remove(row);
+        }
+
         if (CurrentTrack == track) { CurrentTrack = null; CurrentTrackIndex = -1; }
     }
 
@@ -297,11 +340,14 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
             CurrentTrackIndex = _selectedPlaylist.Tracks.IndexOf(track);
         }
 
+        // If no current track, prefer the selected row, then fall back to first track
         if (CurrentTrack is null)
         {
-            if (_selectedPlaylist.Tracks.Count == 0) return;
-            CurrentTrack      = _selectedPlaylist.Tracks[0];
-            CurrentTrackIndex = 0;
+            var start = _selectedTrackRow?.Track
+                        ?? (_selectedPlaylist.Tracks.Count > 0 ? _selectedPlaylist.Tracks[0] : null);
+            if (start is null) return;
+            CurrentTrack      = start;
+            CurrentTrackIndex = _selectedPlaylist.Tracks.IndexOf(start);
         }
 
         var absPath = Path.Combine(AppFolders.Media, CurrentTrack.RelativePath);
@@ -363,7 +409,6 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
         var pl = _selectedPlaylist;
         if (pl is null || pl.Tracks.Count == 0) return;
 
-        // Restart current track if more than 3 seconds in; otherwise go back one
         if (_player is not null && _player.Time > 3000 && CurrentTrackIndex >= 0)
         {
             Seek(0);
@@ -386,6 +431,7 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
         double newPos = Math.Clamp(Position.TotalSeconds + deltaSeconds, 0, Duration.TotalSeconds);
         Seek(newPos);
     }
+
     public void CycleRepeat()
     {
         if (_selectedPlaylist is null) return;
@@ -428,7 +474,15 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
 
     // ── Import ────────────────────────────────────────────────────────────────
 
-    public async System.Threading.Tasks.Task ImportFilesAsync(IEnumerable<string> sourcePaths)
+    /// <param name="sourcePaths">Full paths of files selected by the user.</param>
+    /// <param name="onConflict">
+    ///   Called when the destination filename already exists in the media folder.
+    ///   Should return Reuse (keep existing), Replace (overwrite), or Skip.
+    ///   When null, defaults to Reuse.
+    /// </param>
+    public async System.Threading.Tasks.Task ImportFilesAsync(
+        IEnumerable<string> sourcePaths,
+        Func<string, System.Threading.Tasks.Task<FileConflictChoice>>? onConflict = null)
     {
         var pl = _selectedPlaylist;
         if (pl is null) return;
@@ -441,21 +495,20 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
             var destName = Path.GetFileName(src);
             var dest     = Path.Combine(mediaDir, destName);
 
-            // Deduplicate filename
             if (File.Exists(dest))
             {
-                var baseName = Path.GetFileNameWithoutExtension(destName);
-                var ext      = Path.GetExtension(destName);
-                int n = 1;
-                do
-                {
-                    destName = $"{baseName}({n}){ext}";
-                    dest     = Path.Combine(mediaDir, destName);
-                    n++;
-                } while (File.Exists(dest));
-            }
+                var choice = onConflict is not null
+                    ? await onConflict(destName)
+                    : FileConflictChoice.Reuse;
 
-            File.Copy(src, dest);
+                if (choice == FileConflictChoice.Skip)    continue;
+                if (choice == FileConflictChoice.Replace) File.Copy(src, dest, overwrite: true);
+                // Reuse: existing file is already in place — fall through to parse + add track
+            }
+            else
+            {
+                File.Copy(src, dest);
+            }
 
             long durationMs = 0;
             if (_libVlc is not null)
@@ -477,7 +530,7 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
             };
 
             pl.Tracks.Add(track);
-            TrackList.Add(track);
+            TrackList.Add(new AudioTrackRow(track));
         }
     }
 
@@ -488,18 +541,26 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
         if (playlist is null || playlist.ResumeMode == ResumeMode.FromTop) return;
 
         var track = playlist.Tracks.FirstOrDefault(t => t.Id == playlist.LastTrackId);
-        if (track is null) return; // saved track deleted — fall back to top
+        if (track is null) return;
 
-        // Pre-cue the track without auto-playing; user still presses play
         CurrentTrack      = track;
         CurrentTrackIndex = playlist.Tracks.IndexOf(track);
     }
 
     void RefreshTrackList()
     {
+        // Clear selection when switching playlists
+        _selectedTrackRow = null;
+        this.RaisePropertyChanged(nameof(SelectedTrackRow));
+
         TrackList.Clear();
         if (_selectedPlaylist is null) return;
-        foreach (var t in _selectedPlaylist.Tracks) TrackList.Add(t);
+
+        foreach (var t in _selectedPlaylist.Tracks)
+        {
+            var row = new AudioTrackRow(t) { IsPlaying = t == _currentTrack };
+            TrackList.Add(row);
+        }
     }
 
     void RaisePlaylistPassthroughs()

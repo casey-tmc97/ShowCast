@@ -3,7 +3,8 @@
              xmlns:vm="using:ShowCast.ViewModels"
              xmlns:core="using:ShowCast.Core"
              x:Class="ShowCast.Views.AudioPlayerPanel"
-             x:DataType="vm:AudioPlayerViewModel">
+             x:DataType="vm:AudioPlayerViewModel"
+             x:Name="Root">
 
     <DockPanel LastChildFill="True">
 
@@ -18,6 +19,22 @@
         <!-- ── Playlist bar ── -->
         <Border DockPanel.Dock="Top" Background="#1a1a1a" Padding="6,4"
                 BorderBrush="#555555" BorderThickness="0,0,0,1">
+            <Border.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Playlist Properties" IsEnabled="False"
+                              FontWeight="Bold" Foreground="#888888"/>
+                    <Separator/>
+                    <MenuItem Header="Auto-advance"
+                              IsChecked="{Binding AutoAdvance}"/>
+                    <Separator/>
+                    <MenuItem Header="Resume from Top"
+                              IsChecked="{Binding IsResumeFromTop, Mode=OneWay}"
+                              Click="OnResumeTop"/>
+                    <MenuItem Header="Resume from Last Position"
+                              IsChecked="{Binding IsResumeFromLast, Mode=OneWay}"
+                              Click="OnResumeLast"/>
+                </ContextMenu>
+            </Border.ContextMenu>
             <Grid ColumnDefinitions="*,Auto,Auto">
                 <ComboBox Grid.Column="0"
                           ItemsSource="{Binding Playlists}"
@@ -132,77 +149,6 @@
             </StackPanel>
         </Border>
 
-        <!-- ── Options ── -->
-        <Border DockPanel.Dock="Bottom" Background="#1e1e1e"
-                Padding="8,6" BorderBrush="#555555" BorderThickness="0,1,0,0">
-            <StackPanel Spacing="6">
-
-                <!-- Shuffle + Repeat -->
-                <Grid ColumnDefinitions="*,*">
-                    <ToggleButton Grid.Column="0"
-                                  Content="🔀 Shuffle"
-                                  IsChecked="{Binding Shuffle}"
-                                  FontSize="10" Padding="6,3"/>
-                    <Button Grid.Column="1"
-                            Content="{Binding RepeatLabel}"
-                            Click="OnCycleRepeat"
-                            Margin="4,0,0,0"
-                            FontSize="10" Padding="6,3"/>
-                </Grid>
-
-                <!-- Speed -->
-                <StackPanel Orientation="Horizontal" Spacing="2">
-                    <TextBlock Text="Speed:" Foreground="#888888" FontSize="9"
-                               VerticalAlignment="Center" Margin="0,0,4,0"/>
-                    <Button x:Name="Spd05"  Content=".5x"   Click="OnSpd05"  FontSize="9" Padding="4,2"/>
-                    <Button x:Name="Spd075" Content=".75x"  Click="OnSpd075" FontSize="9" Padding="4,2"/>
-                    <Button x:Name="Spd1"   Content="1x"    Click="OnSpd1"   FontSize="9" Padding="4,2"/>
-                    <Button x:Name="Spd125" Content="1.25x" Click="OnSpd125" FontSize="9" Padding="4,2"/>
-                    <Button x:Name="Spd15"  Content="1.5x"  Click="OnSpd15"  FontSize="9" Padding="4,2"/>
-                    <Button x:Name="Spd2"   Content="2x"    Click="OnSpd2"   FontSize="9" Padding="4,2"/>
-                </StackPanel>
-
-                <!-- Auto-advance + Resume -->
-                <Grid ColumnDefinitions="Auto,*,Auto,*">
-                    <TextBlock Grid.Column="0" Text="Auto-adv:" Foreground="#888888"
-                               FontSize="9" VerticalAlignment="Center"/>
-                    <ToggleButton Grid.Column="1"
-                                  IsChecked="{Binding AutoAdvance}"
-                                  Margin="4,0" Padding="6,2" FontSize="9">
-                        <ToggleButton.Content>
-                            <TextBlock Text="{Binding AutoAdvance, StringFormat='{}{0:On;On;Off}'}" FontSize="9"/>
-                        </ToggleButton.Content>
-                    </ToggleButton>
-                    <TextBlock Grid.Column="2" Text="Resume:" Foreground="#888888"
-                               FontSize="9" VerticalAlignment="Center" Margin="4,0,0,0"/>
-                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="2" Margin="4,0,0,0">
-                        <ToggleButton Content="Top"  Click="OnResumeTop"
-                                      IsChecked="{Binding IsResumeFromTop, Mode=OneWay}"
-                                      FontSize="9" Padding="4,2"/>
-                        <ToggleButton Content="Last" Click="OnResumeLast"
-                                      IsChecked="{Binding IsResumeFromLast, Mode=OneWay}"
-                                      FontSize="9" Padding="4,2"/>
-                    </StackPanel>
-                </Grid>
-
-                <!-- Volume -->
-                <Grid ColumnDefinitions="Auto,*,Auto">
-                    <TextBlock Grid.Column="0" Text="🔊" Foreground="#888888"
-                               FontSize="12" VerticalAlignment="Center"/>
-                    <Slider Grid.Column="1"
-                            Minimum="0" Maximum="1"
-                            Value="{Binding Volume}"
-                            Margin="6,0"
-                            Foreground="#e07050"/>
-                    <TextBlock Grid.Column="2"
-                               Text="{Binding VolumeDisplay}"
-                               Foreground="#888888" FontSize="9"
-                               VerticalAlignment="Center" Width="32"/>
-                </Grid>
-
-            </StackPanel>
-        </Border>
-
         <!-- ── Track list ── -->
         <DockPanel LastChildFill="True">
             <Button DockPanel.Dock="Bottom"
@@ -215,9 +161,47 @@
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <ItemsControl ItemsSource="{Binding TrackList}" Padding="6">
                     <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="core:AudioTrack">
+                        <DataTemplate x:DataType="vm:AudioTrackRow">
                             <Border Padding="6,4" Margin="0,0,0,3"
-                                    Background="#2a2a2a" CornerRadius="3">
+                                    Background="{Binding RowBackground}"
+                                    CornerRadius="3"
+                                    PointerPressed="OnTrackPointerPressed">
+                                <Border.ContextMenu>
+                                    <!-- DataContext overridden to ViewModel so Volume/VolumeDisplay bind correctly -->
+                                    <ContextMenu DataContext="{Binding DataContext, ElementName=Root}">
+                                        <MenuItem Header="Clip Properties" IsEnabled="False"
+                                                  FontWeight="Bold" Foreground="#888888"/>
+                                        <Separator/>
+                                        <MenuItem Header="Speed">
+                                            <MenuItem Header=".5x"   Click="OnSpd05"/>
+                                            <MenuItem Header=".75x"  Click="OnSpd075"/>
+                                            <MenuItem Header="1x"    Click="OnSpd1"/>
+                                            <MenuItem Header="1.25x" Click="OnSpd125"/>
+                                            <MenuItem Header="1.5x"  Click="OnSpd15"/>
+                                            <MenuItem Header="2x"    Click="OnSpd2"/>
+                                        </MenuItem>
+                                        <Separator/>
+                                        <MenuItem>
+                                            <MenuItem.Header>
+                                                <StackPanel Orientation="Horizontal"
+                                                            Width="190" Margin="0,3">
+                                                    <TextBlock Text="🔊" Foreground="#888888"
+                                                               FontSize="12"
+                                                               VerticalAlignment="Center"
+                                                               Margin="0,0,6,0"/>
+                                                    <Slider Minimum="0" Maximum="1" Width="110"
+                                                            Value="{Binding Volume}"
+                                                            Foreground="#e07050"
+                                                            VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding VolumeDisplay}"
+                                                               Foreground="#888888" FontSize="9"
+                                                               VerticalAlignment="Center"
+                                                               Margin="6,0,0,0" Width="32"/>
+                                                </StackPanel>
+                                            </MenuItem.Header>
+                                        </MenuItem>
+                                    </ContextMenu>
+                                </Border.ContextMenu>
                                 <Grid ColumnDefinitions="*,Auto,26">
                                     <TextBlock Grid.Column="0"
                                                Text="{Binding Title}"
@@ -227,15 +211,15 @@
                                     <TextBlock Grid.Column="1"
                                                Text="{Binding DurationMs,
                                                       Converter={x:Static vm:AudioPlayerViewModel.MsToTimeConverter}}"
-                                               Foreground="#666666" FontSize="9"
+                                               Foreground="#888888" FontSize="9"
                                                VerticalAlignment="Center"
                                                Margin="6,0"/>
                                     <Button Grid.Column="2"
                                             Content="✕"
-                                            Tag="{Binding}"
+                                            Tag="{Binding Track}"
                                             Click="OnDeleteTrack"
                                             Width="22" Height="22" Padding="0"
-                                            Background="#444444" Foreground="#bbbbbb"
+                                            Background="Transparent" Foreground="#666666"
                                             CornerRadius="3" BorderThickness="0"
                                             FontSize="9"
                                             HorizontalContentAlignment="Center"
@@ -243,6 +227,9 @@
                                         <Button.Styles>
                                             <Style Selector="Button:pointerover /template/ ContentPresenter">
                                                 <Setter Property="Background" Value="#8b1a1a"/>
+                                            </Style>
+                                            <Style Selector="Button:pointerover">
+                                                <Setter Property="Foreground" Value="White"/>
                                             </Style>
                                         </Button.Styles>
                                     </Button>
