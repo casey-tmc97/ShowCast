@@ -20,16 +20,6 @@ public partial class AudioPlayerPanel : UserControl
     {
         base.OnDataContextChanged(e);
         RefreshSpeedButtons();
-        RefreshResumeButtons();
-
-        // Re-refresh when the selected playlist changes (resume mode may differ per playlist)
-        if (VM is { } vm)
-            vm.PropertyChanged += (_, args) =>
-            {
-                if (args.PropertyName is nameof(AudioPlayerViewModel.IsResumeFromTop)
-                                      or nameof(AudioPlayerViewModel.IsResumeFromLast))
-                    RefreshResumeButtons();
-            };
     }
 
     // ── Playlist management ───────────────────────────────────────────────────
@@ -139,24 +129,6 @@ public partial class AudioPlayerPanel : UserControl
         if (Spd2   is not null) Spd2.Background   = cur == 2.0f  ? active : inactive;
     }
 
-    void OnResumeTop(object? sender, RoutedEventArgs e)
-    {
-        VM?.SetResumeMode(ResumeMode.FromTop);
-        RefreshResumeButtons();
-    }
-
-    void OnResumeLast(object? sender, RoutedEventArgs e)
-    {
-        VM?.SetResumeMode(ResumeMode.FromLastPosition);
-        RefreshResumeButtons();
-    }
-
-    void RefreshResumeButtons()
-    {
-        var active   = new SolidColorBrush(Color.Parse("#3b82f6"));
-        var inactive = new SolidColorBrush(Color.Parse("#3a3a3a"));
-        bool fromTop = VM?.IsResumeFromTop ?? true;
-        if (ResumeTopBtn  is not null) ResumeTopBtn.Background  = fromTop  ? active : inactive;
-        if (ResumeLastBtn is not null) ResumeLastBtn.Background = !fromTop ? active : inactive;
-    }
+    void OnResumeTop(object? sender, RoutedEventArgs e)  => VM?.SetResumeMode(ResumeMode.FromTop);
+    void OnResumeLast(object? sender, RoutedEventArgs e) => VM?.SetResumeMode(ResumeMode.FromLastPosition);
 }
