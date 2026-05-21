@@ -176,8 +176,8 @@
                     <TextBlock Grid.Column="2" Text="Resume:" Foreground="#888888"
                                FontSize="9" VerticalAlignment="Center" Margin="4,0,0,0"/>
                     <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="2" Margin="4,0,0,0">
-                        <Button Content="Top"  Click="OnResumeTop"  FontSize="9" Padding="4,2"/>
-                        <Button Content="Last" Click="OnResumeLast" FontSize="9" Padding="4,2"/>
+                        <Button x:Name="ResumeTopBtn"  Content="Top"  Click="OnResumeTop"  FontSize="9" Padding="4,2"/>
+                        <Button x:Name="ResumeLastBtn" Content="Last" Click="OnResumeLast" FontSize="9" Padding="4,2"/>
                     </StackPanel>
                 </Grid>
 
