@@ -175,6 +175,10 @@ public class MainViewModel : ViewModelBase
             _showFile.AudioPlaylists,
             _showFile.Settings.SelectedAudioPlaylistId);
 
+        // Always ensure at least one playlist exists (migrating from older saves)
+        if (AudioPlayer.Playlists.Count == 0)
+            AudioPlayer.CreatePlaylist("Default");
+
         foreach (var cfg in _showFile.Outputs)
         {
             var state = new OutputState(cfg);
