@@ -181,4 +181,22 @@ public class ShowFileSerializerTests
         }
         finally { File.Delete(path); }
     }
+
+    [Fact]
+    public void Page_TriggerAudioPlaylistId_SurvivesRoundTrip()
+    {
+        var triggerId = Guid.NewGuid();
+        var file = new ShowFile();
+        var show = file.AddShow("Test");
+        var package = show.AddPackage("Pkg");
+        var page = new Page { TriggerAudioPlaylistId = triggerId };
+        package.AddPage(page);
+
+        var options = ShowFileSerializer.CreateSerializerOptions();
+        var json = JsonSerializer.Serialize(file, options);
+        var loaded = JsonSerializer.Deserialize<ShowFile>(json, options);
+
+        var loadedPage = loaded!.Shows[0].Packages[0].Pages[0];
+        Assert.Equal(triggerId, loadedPage.TriggerAudioPlaylistId);
+    }
 }
