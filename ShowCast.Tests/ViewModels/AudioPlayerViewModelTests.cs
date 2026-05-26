@@ -65,7 +65,7 @@ public class AudioPlayerViewModelTests
         vm.CreatePlaylist("P");
         var track = new AudioTrack { Title = "T1", RelativePath = "t1.mp3" };
         vm.SelectedPlaylist!.Tracks.Add(track);
-        vm.TrackList.Add(track);
+        vm.TrackList.Add(new AudioTrackRow(track));
 
         vm.DeleteTrack(track);
 
