@@ -448,8 +448,21 @@ public class MainViewModel : ViewModelBase
         var playlist = AudioPlayer.Playlists
             .FirstOrDefault(p => p.Id == page.TriggerAudioPlaylistId);
         if (playlist is null) return;
-        AudioPlayer.SelectedPlaylist = playlist;  // switches playlist; applies resume logic internally
-        AudioPlayer.Play();                       // starts playback
+
+        AudioPlayer.SelectedPlaylist = playlist;  // switches playlist; applies resume logic
+
+        if (page.TriggerAudioTrackId != Guid.Empty)
+        {
+            var track = playlist.Tracks.FirstOrDefault(t => t.Id == page.TriggerAudioTrackId);
+            if (track is not null)
+            {
+                AudioPlayer.Play(track);  // jumps directly to this track, ignores resume mode
+                return;
+            }
+            // track not found (deleted) — fall through to normal Play()
+        }
+
+        AudioPlayer.Play();  // no specific track: use playlist's resume mode
     }
 
     /// <summary>
