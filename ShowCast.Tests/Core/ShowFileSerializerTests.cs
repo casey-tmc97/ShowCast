@@ -217,4 +217,28 @@ public class ShowFileSerializerTests
         var loadedPage = loaded!.Shows[0].Packages[0].Pages[0];
         Assert.Equal(trackId, loadedPage.TriggerAudioTrackId);
     }
+
+    [Fact]
+    public void Page_TriggerAudioPlaylistAndTrackId_SurviveRoundTripTogether()
+    {
+        var playlistId = Guid.NewGuid();
+        var trackId    = Guid.NewGuid();
+        var file = new ShowFile();
+        var show = file.AddShow("Test");
+        var package = show.AddPackage("Pkg");
+        var page = new Page
+        {
+            TriggerAudioPlaylistId = playlistId,
+            TriggerAudioTrackId    = trackId
+        };
+        package.AddPage(page);
+
+        var options = ShowFileSerializer.CreateSerializerOptions();
+        var json    = JsonSerializer.Serialize(file, options);
+        var loaded  = JsonSerializer.Deserialize<ShowFile>(json, options);
+
+        var loadedPage = loaded!.Shows[0].Packages[0].Pages[0];
+        Assert.Equal(playlistId, loadedPage.TriggerAudioPlaylistId);
+        Assert.Equal(trackId,    loadedPage.TriggerAudioTrackId);
+    }
 }
