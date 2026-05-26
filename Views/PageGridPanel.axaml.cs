@@ -485,7 +485,9 @@ public partial class PageGridPanel : UserControl
         }
         // Trigger → Audio → Playlist submenu
         var triggerAudioPlaylistItem = new MenuItem { Header = "Playlist" };
-        var availablePlaylists = VM?.AudioPlayer.Playlists;
+        var availablePlaylists = VM?.AudioChannels
+            .SelectMany(c => c.Player.Playlists)
+            .ToList();
         if (availablePlaylists is null || availablePlaylists.Count == 0)
         {
             triggerAudioPlaylistItem.Items.Add(new MenuItem { Header = "(no playlists)", IsEnabled = false });

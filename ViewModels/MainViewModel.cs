@@ -19,9 +19,16 @@ public class MainViewModel : ViewModelBase
     ShowFile _showFile = new();
     public  ShowFile ShowFile => _showFile;
 
-    // ── Audio player ──────────────────────────────────────────────────────────
+    // ── Audio channels ────────────────────────────────────────────────────────
 
-    public AudioPlayerViewModel AudioPlayer { get; } = new();
+    public ObservableCollection<AudioChannelViewModel> AudioChannels { get; } = new();
+
+    AudioChannelViewModel? _selectedAudioChannel;
+    public AudioChannelViewModel? SelectedAudioChannel
+    {
+        get => _selectedAudioChannel;
+        set => this.RaiseAndSetIfChanged(ref _selectedAudioChannel, value);
+    }
 
     readonly Dictionary<Guid, Package> _packageById = new();
 
@@ -45,13 +52,18 @@ public class MainViewModel : ViewModelBase
         var selectedPackage      = SelectedPackageItemIndex >= 0 && SelectedPackageItemIndex < PackageItems.Count
                                    ? PackageItems[SelectedPackageItemIndex] : null;
         s.SelectedPackageItemId    = selectedPackage?.Id ?? Guid.Empty;
-        // TODO Task 3: playlist selection persistence intentionally broken until AudioChannels replaces AudioPlayer
-        AudioPlayer.PersistPlaybackState();
+        // Persist each channel's playback state and selected playlist
+        foreach (var ch in AudioChannels)
+        {
+            ch.Model.SelectedPlaylistId = ch.Player.SelectedPlaylist?.Id ?? Guid.Empty;
+            ch.Player.PersistPlaybackState();
+        }
 
-        // Sync AudioPlayer playlists back to the ShowFile model before saving
+        // Sync all channel playlists back to ShowFile before saving
         _showFile.AudioPlaylists.Clear();
-        foreach (var pl in AudioPlayer.Playlists)
-            _showFile.AudioPlaylists.Add(pl);
+        foreach (var ch in AudioChannels)
+            foreach (var pl in ch.Player.Playlists)
+                _showFile.AudioPlaylists.Add(pl);
 
         await ShowFileSerializer.SaveAsync(_showFile, path);
     }
@@ -171,13 +183,50 @@ public class MainViewModel : ViewModelBase
         foreach (var def in _showFile.Timers)
             Timers.Add(new TimerViewModel(def));
 
-        AudioPlayer.LoadPlaylists(
-            _showFile.AudioPlaylists,
-            Guid.Empty);
+        // Dispose existing channels before rebuilding
+        foreach (var ch in AudioChannels) ch.Dispose();
+        AudioChannels.Clear();
+        _selectedAudioChannel = null; this.RaisePropertyChanged(nameof(SelectedAudioChannel));
 
-        // Always ensure at least one playlist exists (migrating from older saves)
-        if (AudioPlayer.Playlists.Count == 0)
-            AudioPlayer.CreatePlaylist("Default");
+        // Legacy files: AudioChannels list is empty → seed a Default channel
+        if (_showFile.Settings.AudioChannels.Count == 0)
+        {
+            var defaultModel = new ShowCast.Core.AudioChannel { Name = "Default" };
+            _showFile.Settings.AudioChannels.Add(defaultModel);
+        }
+
+        foreach (var channelModel in _showFile.Settings.AudioChannels)
+        {
+            var channelVm = new AudioChannelViewModel(channelModel);
+            bool isFirst  = channelModel == _showFile.Settings.AudioChannels[0];
+
+            // Playlists with matching ChannelId, or Guid.Empty (legacy) into the first channel
+            var channelPlaylists = _showFile.AudioPlaylists
+                .Where(p => p.ChannelId == channelModel.Id ||
+                            (isFirst && p.ChannelId == Guid.Empty))
+                .ToList();
+
+            // Normalise ChannelId so future saves persist correctly
+            foreach (var pl in channelPlaylists)
+                pl.ChannelId = channelModel.Id;
+
+            if (channelPlaylists.Count == 0)
+                channelVm.Player.CreatePlaylist("Default");
+            else
+                channelVm.Player.LoadPlaylists(channelPlaylists, channelModel.SelectedPlaylistId);
+
+            // Restore routing
+            if (channelModel.ActiveDestinationId.HasValue)
+            {
+                var dest = _showFile.Settings.AudioDestinations
+                    .FirstOrDefault(d => d.Id == channelModel.ActiveDestinationId);
+                channelVm.ApplyRoute(dest);
+            }
+
+            AudioChannels.Add(channelVm);
+        }
+
+        SelectedAudioChannel = AudioChannels.Count > 0 ? AudioChannels[0] : null;
 
         foreach (var cfg in _showFile.Outputs)
         {
@@ -445,24 +494,59 @@ public class MainViewModel : ViewModelBase
     void FirePageAudioTrigger(Page page)
     {
         if (page.TriggerAudioPlaylistId == Guid.Empty) return;
-        var playlist = AudioPlayer.Playlists
+
+        // Find the playlist and its owning channel
+        var playlist = _showFile.AudioPlaylists
             .FirstOrDefault(p => p.Id == page.TriggerAudioPlaylistId);
         if (playlist is null) return;
 
-        AudioPlayer.SelectedPlaylist = playlist;  // switches playlist; applies resume logic
+        var channelVm = playlist.ChannelId == Guid.Empty
+            ? AudioChannels.FirstOrDefault()
+            : AudioChannels.FirstOrDefault(c => c.Model.Id == playlist.ChannelId);
+        if (channelVm is null) return;
+
+        var pl = channelVm.Player.Playlists
+            .FirstOrDefault(p => p.Id == page.TriggerAudioPlaylistId);
+        if (pl is null) return;
+
+        channelVm.Player.SelectedPlaylist = pl;
 
         if (page.TriggerAudioTrackId != Guid.Empty)
         {
-            var track = playlist.Tracks.FirstOrDefault(t => t.Id == page.TriggerAudioTrackId);
-            if (track is not null)
-            {
-                AudioPlayer.Play(track);  // jumps directly to this track, ignores resume mode
-                return;
-            }
-            // track not found (deleted) — fall through to normal Play()
+            var track = pl.Tracks.FirstOrDefault(t => t.Id == page.TriggerAudioTrackId);
+            if (track is not null) { channelVm.Player.Play(track); return; }
         }
 
-        AudioPlayer.Play();  // no specific track: use playlist's resume mode
+        channelVm.Player.Play();
+    }
+
+    public void AddAudioChannel(string name)
+    {
+        var model = new ShowCast.Core.AudioChannel { Name = name };
+        _showFile.Settings.AudioChannels.Add(model);
+        var channelVm = new AudioChannelViewModel(model);
+        channelVm.Player.CreatePlaylist("Default");
+        AudioChannels.Add(channelVm);
+        SelectedAudioChannel = channelVm;
+    }
+
+    public void RemoveAudioChannel(AudioChannelViewModel ch)
+    {
+        if (AudioChannels.Count <= 1) return; // Cannot remove last channel
+
+        // Move playlists to the first remaining channel
+        var target = AudioChannels.First(c => c != ch);
+        foreach (var pl in ch.Player.Playlists.ToList())
+        {
+            pl.ChannelId = target.Model.Id;
+            target.Player.Playlists.Add(pl);
+        }
+
+        _showFile.Settings.AudioChannels.Remove(ch.Model);
+        AudioChannels.Remove(ch);
+        if (SelectedAudioChannel == ch)
+            SelectedAudioChannel = target;
+        ch.Dispose();
     }
 
     /// <summary>
@@ -1922,8 +2006,13 @@ public class MainViewModel : ViewModelBase
         var defaultShow = ShowFile.AddShow("Default");
         Shows.Add(defaultShow);
 
-        // ── Default audio playlist ────────────────────────────────────────────
-        AudioPlayer.CreatePlaylist("Default");
+        // ── Default audio channel + playlist ─────────────────────────────────
+        var defaultChannelModel = new ShowCast.Core.AudioChannel { Name = "Default" };
+        _showFile.Settings.AudioChannels.Add(defaultChannelModel);
+        var defaultChannelVm = new AudioChannelViewModel(defaultChannelModel);
+        defaultChannelVm.Player.CreatePlaylist("Default");
+        AudioChannels.Add(defaultChannelVm);
+        SelectedAudioChannel = defaultChannelVm;
 
         // ── Default state ─────────────────────────────────────────────────────
         SelectedOutput = progState;

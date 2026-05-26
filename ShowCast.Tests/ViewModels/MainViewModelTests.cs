@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using ShowCast.Core;
 using ShowCast.ViewModels;
@@ -9,47 +10,95 @@ public class MainViewModelTests
 {
     static void InvokeFirePageAudioTrigger(MainViewModel vm, Page page)
     {
-        var method = typeof(MainViewModel).GetMethod(
-            "FirePageAudioTrigger",
+        var method = typeof(MainViewModel).GetMethod("FirePageAudioTrigger",
             BindingFlags.NonPublic | BindingFlags.Instance)
             ?? throw new MissingMethodException("FirePageAudioTrigger not found");
         method.Invoke(vm, new object[] { page });
     }
 
+    // ── Channel seeding ───────────────────────────────────────────────────────
+
     [Fact]
-    public void FirePageAudioTrigger_WhenPlaylistIdEmpty_DoesNotChangeSelectedPlaylist()
+    public void MainViewModel_Init_SeedsOneDefaultChannel()
     {
-        var vm      = new MainViewModel();
-        var initial = vm.AudioPlayer.SelectedPlaylist;
-        var page    = new Page { TriggerAudioPlaylistId = Guid.Empty };
-
-        InvokeFirePageAudioTrigger(vm, page);
-
-        Assert.Same(initial, vm.AudioPlayer.SelectedPlaylist);
+        var vm = new MainViewModel();
+        Assert.NotEmpty(vm.AudioChannels);
+        Assert.NotNull(vm.SelectedAudioChannel);
     }
 
     [Fact]
-    public void FirePageAudioTrigger_WhenPlaylistIdMatchesPlaylist_SetsSelectedPlaylist()
+    public void MainViewModel_Init_DefaultChannelHasAtLeastOnePlaylist()
     {
-        var vm       = new MainViewModel();
-        var playlist = new AudioPlaylist { Name = "Service Music" };
-        vm.AudioPlayer.Playlists.Add(playlist);
-        var page = new Page { TriggerAudioPlaylistId = playlist.Id };
+        var vm = new MainViewModel();
+        Assert.NotEmpty(vm.SelectedAudioChannel!.Player.Playlists);
+    }
 
-        InvokeFirePageAudioTrigger(vm, page);
+    // ── AddAudioChannel / RemoveAudioChannel ──────────────────────────────────
 
-        Assert.Same(playlist, vm.AudioPlayer.SelectedPlaylist);
+    [Fact]
+    public void AddAudioChannel_AddsChannelAndSelectsIt()
+    {
+        var vm = new MainViewModel();
+        var before = vm.AudioChannels.Count;
+        vm.AddAudioChannel("Stage Monitors");
+        Assert.Equal(before + 1, vm.AudioChannels.Count);
+        Assert.Equal("Stage Monitors", vm.SelectedAudioChannel!.Name);
+    }
+
+    [Fact]
+    public void RemoveAudioChannel_RemovesAndSelectsFirst()
+    {
+        var vm = new MainViewModel();
+        vm.AddAudioChannel("Stage Monitors");
+        var toRemove = vm.AudioChannels[1];
+        vm.RemoveAudioChannel(toRemove);
+        Assert.DoesNotContain(toRemove, vm.AudioChannels);
+        Assert.Equal(vm.AudioChannels[0], vm.SelectedAudioChannel);
+    }
+
+    [Fact]
+    public void RemoveAudioChannel_CannotRemoveLastChannel()
+    {
+        var vm = new MainViewModel();
+        Assert.Single(vm.AudioChannels);
+        vm.RemoveAudioChannel(vm.AudioChannels[0]);
+        Assert.Single(vm.AudioChannels); // still there
+    }
+
+    // ── FirePageAudioTrigger (multi-channel) ──────────────────────────────────
+
+    [Fact]
+    public void FirePageAudioTrigger_WhenPlaylistIdEmpty_DoesNotChangeSelectedPlaylist()
+    {
+        var vm             = new MainViewModel();
+        var player         = vm.SelectedAudioChannel!.Player;
+        var originalPlaylist = player.SelectedPlaylist;
+        InvokeFirePageAudioTrigger(vm, new Page { TriggerAudioPlaylistId = Guid.Empty });
+        Assert.Equal(originalPlaylist, player.SelectedPlaylist);
+    }
+
+    [Fact]
+    public void FirePageAudioTrigger_WhenPlaylistIdMatchesDefaultChannel_SetsSelectedPlaylist()
+    {
+        var vm     = new MainViewModel();
+        var player = vm.SelectedAudioChannel!.Player;
+        player.CreatePlaylist("Worship");
+        var target = player.Playlists[^1];
+
+        InvokeFirePageAudioTrigger(vm, new Page { TriggerAudioPlaylistId = target.Id });
+
+        Assert.Equal(target, player.SelectedPlaylist);
     }
 
     [Fact]
     public void FirePageAudioTrigger_WhenPlaylistNotFound_DoesNotChangeSelectedPlaylist()
     {
-        var vm      = new MainViewModel();
-        var initial = vm.AudioPlayer.SelectedPlaylist;
-        var page    = new Page { TriggerAudioPlaylistId = Guid.NewGuid() };
+        var vm             = new MainViewModel();
+        var player         = vm.SelectedAudioChannel!.Player;
+        var originalPlaylist = player.SelectedPlaylist;
 
-        InvokeFirePageAudioTrigger(vm, page);
+        InvokeFirePageAudioTrigger(vm, new Page { TriggerAudioPlaylistId = Guid.NewGuid() });
 
-        Assert.Same(initial, vm.AudioPlayer.SelectedPlaylist);
+        Assert.Equal(originalPlaylist, player.SelectedPlaylist);
     }
 }
