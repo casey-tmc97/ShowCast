@@ -19,6 +19,10 @@ public class MainViewModel : ViewModelBase
     ShowFile _showFile = new();
     public  ShowFile ShowFile => _showFile;
 
+    /// <summary>Shortcut to the stored audio destination list in AppSettings.</summary>
+    public List<ShowCast.Core.AudioDestination> ShowFileDestinations
+        => _showFile.Settings.AudioDestinations;
+
     // ── Audio channels ────────────────────────────────────────────────────────
 
     public ObservableCollection<AudioChannelViewModel> AudioChannels { get; } = new();

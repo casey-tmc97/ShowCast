@@ -24,6 +24,9 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
     string? _pendingOutputModule;
     string? _pendingDeviceId;
 
+    /// <summary>Exposes the LibVLC instance for device enumeration. Null if unavailable.</summary>
+    public LibVLC? LibVlc => _libVlc;
+
     // ── Observable state ──────────────────────────────────────────────────────
 
     public ObservableCollection<AudioPlaylist>  Playlists { get; } = new();
