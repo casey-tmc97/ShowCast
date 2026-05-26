@@ -429,6 +429,7 @@ public class MainViewModel : ViewModelBase
         UpdateIsLiveFlags();
         StartPageTimer(SelectedPage.Model.DurationMs, SelectedPage.Model.LoopToStart);
         FirePageTriggerTimers(SelectedPage.Model);
+        FirePageAudioTrigger(SelectedPage.Model);
     }
 
     void FirePageTriggerTimers(Page page)
@@ -439,6 +440,16 @@ public class MainViewModel : ViewModelBase
             if (tvm is null || tvm.IsRunning) continue;
             tvm.Play();
         }
+    }
+
+    void FirePageAudioTrigger(Page page)
+    {
+        if (page.TriggerAudioPlaylistId == Guid.Empty) return;
+        var playlist = AudioPlayer.Playlists
+            .FirstOrDefault(p => p.Id == page.TriggerAudioPlaylistId);
+        if (playlist is null) return;
+        AudioPlayer.SelectedPlaylist = playlist;  // switches playlist; applies resume logic internally
+        AudioPlayer.Play();                       // starts playback
     }
 
     /// <summary>
@@ -1861,6 +1872,7 @@ public class MainViewModel : ViewModelBase
         UpdateIsLiveFlags();
         StartPageTimer(pvm.Model.DurationMs, pvm.Model.LoopToStart);
         FirePageTriggerTimers(pvm.Model);
+        FirePageAudioTrigger(pvm.Model);
     }
 
     void SeedDemoContent()
