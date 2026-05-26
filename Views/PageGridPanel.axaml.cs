@@ -494,19 +494,63 @@ public partial class PageGridPanel : UserControl
         {
             foreach (var playlist in availablePlaylists)
             {
-                bool isChecked = pvm.Model.TriggerAudioPlaylistId == playlist.Id;
+                bool playlistChecked = pvm.Model.TriggerAudioPlaylistId == playlist.Id;
                 var pItem = new MenuItem
                 {
-                    Header = (isChecked ? "✓ " : "   ") + playlist.Name
+                    Header = (playlistChecked ? "✓ " : "   ") + playlist.Name
                 };
                 var playlistCopy = playlist;
-                pItem.Click += (_, _) =>
+
+                // "(any track)" — assigns playlist only, clears specific track
+                bool anyTrackChecked = playlistChecked && pvm.Model.TriggerAudioTrackId == Guid.Empty;
+                var anyTrackItem = new MenuItem
                 {
-                    pvm.Model.TriggerAudioPlaylistId =
-                        pvm.Model.TriggerAudioPlaylistId == playlistCopy.Id
-                            ? Guid.Empty          // clicking checked item clears it
-                            : playlistCopy.Id;
+                    Header = (anyTrackChecked ? "✓ " : "   ") + "(any track)"
                 };
+                anyTrackItem.Click += (_, _) =>
+                {
+                    if (pvm.Model.TriggerAudioPlaylistId == playlistCopy.Id &&
+                        pvm.Model.TriggerAudioTrackId == Guid.Empty)
+                    {
+                        // Clicking checked item clears all
+                        pvm.Model.TriggerAudioPlaylistId = Guid.Empty;
+                        pvm.Model.TriggerAudioTrackId    = Guid.Empty;
+                    }
+                    else
+                    {
+                        pvm.Model.TriggerAudioPlaylistId = playlistCopy.Id;
+                        pvm.Model.TriggerAudioTrackId    = Guid.Empty;
+                    }
+                };
+                pItem.Items.Add(anyTrackItem);
+
+                // Individual tracks
+                foreach (var track in playlistCopy.Tracks)
+                {
+                    bool trackChecked = playlistChecked && pvm.Model.TriggerAudioTrackId == track.Id;
+                    var trackCopy = track;
+                    var tItem = new MenuItem
+                    {
+                        Header = (trackChecked ? "✓ " : "   ") + trackCopy.Title
+                    };
+                    tItem.Click += (_, _) =>
+                    {
+                        if (pvm.Model.TriggerAudioPlaylistId == playlistCopy.Id &&
+                            pvm.Model.TriggerAudioTrackId == trackCopy.Id)
+                        {
+                            // Clicking checked item clears all
+                            pvm.Model.TriggerAudioPlaylistId = Guid.Empty;
+                            pvm.Model.TriggerAudioTrackId    = Guid.Empty;
+                        }
+                        else
+                        {
+                            pvm.Model.TriggerAudioPlaylistId = playlistCopy.Id;
+                            pvm.Model.TriggerAudioTrackId    = trackCopy.Id;
+                        }
+                    };
+                    pItem.Items.Add(tItem);
+                }
+
                 triggerAudioPlaylistItem.Items.Add(pItem);
             }
         }
