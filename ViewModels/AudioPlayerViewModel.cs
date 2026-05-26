@@ -403,7 +403,9 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
 
     public void Stop()
     {
-        _player?.Stop();
+        // Guard: LibVLC native Stop() crashes when called on a player with no media loaded.
+        if (_player is not null && _player.Media is not null)
+            _player.Stop();
         _poller?.Stop();
         State             = PlaybackState.Stopped;
         Position          = TimeSpan.Zero;
@@ -611,7 +613,8 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
         _poller?.Dispose();
         if (_player is not null)
         {
-            _player.Stop();
+            if (_player.Media is not null)
+                _player.Stop();
             _player.Dispose();
         }
         _libVlc?.Dispose();
