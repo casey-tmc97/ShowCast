@@ -11,9 +11,39 @@ namespace ShowCast.Views;
 
 public partial class AudioPlayerPanel : UserControl
 {
-    AudioPlayerViewModel? VM => DataContext as AudioPlayerViewModel;
+    MainViewModel?        VM     => DataContext as MainViewModel;
+    AudioPlayerViewModel? Player => VM?.SelectedAudioChannel?.Player;
 
     public AudioPlayerPanel() => InitializeComponent();
+
+    // ── Channel tab strip ─────────────────────────────────────────────────────
+
+    async void OnAddChannel(object? sender, RoutedEventArgs e)
+    {
+        if (VM is null) return;
+        if (TopLevel.GetTopLevel(this) is not Window owner) return;
+        var dlg = new TextInputDialog("New Audio Channel", "Channel name:", "New Channel");
+        var result = await dlg.ShowAsync(owner);
+        if (!string.IsNullOrWhiteSpace(result))
+            VM.AddAudioChannel(result.Trim());
+    }
+
+    async void OnRenameChannel(object? sender, RoutedEventArgs e)
+    {
+        if (ChannelTabList.SelectedItem is not AudioChannelViewModel ch) return;
+        if (TopLevel.GetTopLevel(this) is not Window owner) return;
+        var dlg = new TextInputDialog("Rename Channel", "Channel name:", ch.Name);
+        var result = await dlg.ShowAsync(owner);
+        if (!string.IsNullOrWhiteSpace(result))
+            ch.Name = result.Trim();
+    }
+
+    void OnRemoveChannel(object? sender, RoutedEventArgs e)
+    {
+        if (VM is null) return;
+        if (ChannelTabList.SelectedItem is not AudioChannelViewModel ch) return;
+        VM.RemoveAudioChannel(ch);
+    }
 
     // ── Playlist management ───────────────────────────────────────────────────
 
@@ -23,13 +53,13 @@ public partial class AudioPlayerPanel : UserControl
         var dlg = new TextInputDialog("New Playlist", "Playlist name:", "New Playlist");
         var result = await dlg.ShowAsync(owner);
         if (!string.IsNullOrWhiteSpace(result))
-            VM?.CreatePlaylist(result);
+            Player?.CreatePlaylist(result);
     }
 
     void OnDeletePlaylist(object? sender, RoutedEventArgs e)
     {
-        if (VM?.SelectedPlaylist is { } pl)
-            VM.DeletePlaylist(pl);
+        if (Player?.SelectedPlaylist is { } pl)
+            Player.DeletePlaylist(pl);
     }
 
     // ── Track management ──────────────────────────────────────────────────────
@@ -37,7 +67,7 @@ public partial class AudioPlayerPanel : UserControl
     void OnDeleteTrack(object? sender, RoutedEventArgs e)
     {
         if ((sender as Button)?.Tag is AudioTrack track)
-            VM?.DeleteTrack(track);
+            Player?.DeleteTrack(track);
     }
 
     void OnTrackPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -45,23 +75,20 @@ public partial class AudioPlayerPanel : UserControl
         if ((sender as Border)?.DataContext is not AudioTrackRow row) return;
 
         var props = e.GetCurrentPoint(null).Properties;
-
-        // Right-click only opens the context menu — don't change selection
         if (props.IsRightButtonPressed) return;
 
-        VM?.SelectTrack(row);
+        Player?.SelectTrack(row);
 
-        // Double-click starts playback of the clicked track
         if (e.ClickCount == 2)
         {
-            VM?.Play(row.Track);
+            Player?.Play(row.Track);
             e.Handled = true;
         }
     }
 
     async void OnImport(object? sender, RoutedEventArgs e)
     {
-        if (VM is null) return;
+        if (Player is null) return;
         if (TopLevel.GetTopLevel(this) is not Window owner) return;
 
         var picker = new Avalonia.Platform.Storage.FilePickerOpenOptions
@@ -89,7 +116,7 @@ public partial class AudioPlayerPanel : UserControl
         if (files.Count == 0) return;
 
         var paths = files.Select(f => f.Path.LocalPath).Where(p => !string.IsNullOrEmpty(p));
-        await VM.ImportFilesAsync(paths, async fileName =>
+        await Player.ImportFilesAsync(paths, async fileName =>
         {
             var dlg = new FileConflictDialog(fileName);
             return await dlg.ShowAsync(owner);
@@ -100,32 +127,32 @@ public partial class AudioPlayerPanel : UserControl
 
     void OnPlayPause(object? sender, RoutedEventArgs e)
     {
-        if (VM is null) return;
-        if (VM.State == PlaybackState.Playing) VM.Pause();
-        else VM.Play();
+        if (Player is null) return;
+        if (Player.State == PlaybackState.Playing) Player.Pause();
+        else Player.Play();
     }
 
-    void OnPrevious(object? sender, RoutedEventArgs e)    => VM?.Previous();
-    void OnNext(object? sender, RoutedEventArgs e)        => VM?.Next();
-    void OnSeekBack(object? sender, RoutedEventArgs e)    => VM?.SeekRelative(-10);
-    void OnSeekForward(object? sender, RoutedEventArgs e) => VM?.SeekRelative(10);
+    void OnPrevious(object? sender, RoutedEventArgs e)    => Player?.Previous();
+    void OnNext(object? sender, RoutedEventArgs e)        => Player?.Next();
+    void OnSeekBack(object? sender, RoutedEventArgs e)    => Player?.SeekRelative(-10);
+    void OnSeekForward(object? sender, RoutedEventArgs e) => Player?.SeekRelative(10);
 
     void OnSeekReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (sender is Slider s) VM?.Seek(s.Value);
+        if (sender is Slider s) Player?.Seek(s.Value);
     }
 
     // ── Clip Properties context menu ──────────────────────────────────────────
 
-    void OnSpd05(object? s, RoutedEventArgs e)  => VM?.SetSpeed(0.5f);
-    void OnSpd075(object? s, RoutedEventArgs e) => VM?.SetSpeed(0.75f);
-    void OnSpd1(object? s, RoutedEventArgs e)   => VM?.SetSpeed(1.0f);
-    void OnSpd125(object? s, RoutedEventArgs e) => VM?.SetSpeed(1.25f);
-    void OnSpd15(object? s, RoutedEventArgs e)  => VM?.SetSpeed(1.5f);
-    void OnSpd2(object? s, RoutedEventArgs e)   => VM?.SetSpeed(2.0f);
+    void OnSpd05(object? s, RoutedEventArgs e)  => Player?.SetSpeed(0.5f);
+    void OnSpd075(object? s, RoutedEventArgs e) => Player?.SetSpeed(0.75f);
+    void OnSpd1(object? s, RoutedEventArgs e)   => Player?.SetSpeed(1.0f);
+    void OnSpd125(object? s, RoutedEventArgs e) => Player?.SetSpeed(1.25f);
+    void OnSpd15(object? s, RoutedEventArgs e)  => Player?.SetSpeed(1.5f);
+    void OnSpd2(object? s, RoutedEventArgs e)   => Player?.SetSpeed(2.0f);
 
     // ── Playlist Properties context menu ─────────────────────────────────────
 
-    void OnResumeTop(object? sender, RoutedEventArgs e)  => VM?.SetResumeMode(ResumeMode.FromTop);
-    void OnResumeLast(object? sender, RoutedEventArgs e) => VM?.SetResumeMode(ResumeMode.FromLastPosition);
+    void OnResumeTop(object? sender, RoutedEventArgs e)  => Player?.SetResumeMode(ResumeMode.FromTop);
+    void OnResumeLast(object? sender, RoutedEventArgs e) => Player?.SetResumeMode(ResumeMode.FromLastPosition);
 }

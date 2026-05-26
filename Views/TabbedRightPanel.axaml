@@ -77,9 +77,8 @@
         <!-- Timer panel content (no header of its own) -->
         <views:TimerPanel x:Name="TimersContent" />
 
-        <!-- Audio player panel (hidden by default) -->
+        <!-- Audio player panel — DataContext inherits MainViewModel from parent -->
         <views:AudioPlayerPanel x:Name="AudioContent"
-                                DataContext="{Binding AudioPlayer}"
                                 IsVisible="False" />
 
     </DockPanel>

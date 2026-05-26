@@ -3,14 +3,88 @@
              xmlns:vm="using:ShowCast.ViewModels"
              xmlns:core="using:ShowCast.Core"
              x:Class="ShowCast.Views.AudioPlayerPanel"
-             x:DataType="vm:AudioPlayerViewModel"
+             x:DataType="vm:MainViewModel"
              x:Name="Root">
 
     <DockPanel LastChildFill="True">
 
+        <!-- ── Channel tab strip ── -->
+        <Border DockPanel.Dock="Top" Background="#1a1a1a"
+                BorderBrush="#444444" BorderThickness="0,0,0,1">
+            <DockPanel>
+                <!-- + (Add Channel) button -->
+                <Button DockPanel.Dock="Right"
+                        Content="+"
+                        Width="28" Height="28"
+                        Padding="0"
+                        Background="Transparent"
+                        Foreground="#555555"
+                        FontSize="16" FontWeight="Bold"
+                        BorderThickness="0"
+                        VerticalAlignment="Center"
+                        Margin="0,0,4,0"
+                        Click="OnAddChannel"
+                        ToolTip.Tip="Add Channel">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover">
+                            <Setter Property="Foreground" Value="White"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+                <!-- Channel tabs (ListBox for built-in selection binding) -->
+                <ListBox x:Name="ChannelTabList"
+                         ItemsSource="{Binding AudioChannels}"
+                         SelectedItem="{Binding SelectedAudioChannel}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         Padding="0">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="0"/>
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AudioChannelViewModel">
+                            <TextBlock Text="{Binding Name}"
+                                       Padding="12,6"
+                                       FontSize="10"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                    <ListBox.Styles>
+                        <Style Selector="ListBoxItem">
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Foreground" Value="#888888"/>
+                            <Setter Property="BorderThickness" Value="0,0,0,2"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="CornerRadius" Value="0"/>
+                            <Setter Property="Cursor" Value="Hand"/>
+                        </Style>
+                        <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#2d2d2d"/>
+                        </Style>
+                        <Style Selector="ListBoxItem:selected">
+                            <Setter Property="BorderBrush" Value="#e07050"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </Style>
+                        <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#252525"/>
+                        </Style>
+                    </ListBox.Styles>
+                    <ListBox.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Rename Channel..." Click="OnRenameChannel"/>
+                            <Separator/>
+                            <MenuItem Header="Remove Channel..." Click="OnRemoveChannel"/>
+                        </ContextMenu>
+                    </ListBox.ContextMenu>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
         <!-- ── Unavailable notice ── -->
         <Border DockPanel.Dock="Top"
-                IsVisible="{Binding IsUnavailable}"
+                IsVisible="{Binding SelectedAudioChannel.Player.IsUnavailable}"
                 Background="#2a2a2a" Padding="8,6">
             <TextBlock Text="Audio unavailable — VLC libraries not found"
                        Foreground="#888888" FontSize="10" TextWrapping="Wrap"/>
@@ -25,20 +99,20 @@
                               FontWeight="Bold" Foreground="#888888"/>
                     <Separator/>
                     <MenuItem Header="Auto-advance"
-                              IsChecked="{Binding AutoAdvance}"/>
+                              IsChecked="{Binding SelectedAudioChannel.Player.AutoAdvance}"/>
                     <Separator/>
                     <MenuItem Header="Resume from Top"
-                              IsChecked="{Binding IsResumeFromTop, Mode=OneWay}"
+                              IsChecked="{Binding SelectedAudioChannel.Player.IsResumeFromTop, Mode=OneWay}"
                               Click="OnResumeTop"/>
                     <MenuItem Header="Resume from Last Position"
-                              IsChecked="{Binding IsResumeFromLast, Mode=OneWay}"
+                              IsChecked="{Binding SelectedAudioChannel.Player.IsResumeFromLast, Mode=OneWay}"
                               Click="OnResumeLast"/>
                 </ContextMenu>
             </Border.ContextMenu>
             <Grid ColumnDefinitions="*,Auto,Auto">
                 <ComboBox Grid.Column="0"
-                          ItemsSource="{Binding Playlists}"
-                          SelectedItem="{Binding SelectedPlaylist}"
+                          ItemsSource="{Binding SelectedAudioChannel.Player.Playlists}"
+                          SelectedItem="{Binding SelectedAudioChannel.Player.SelectedPlaylist}"
                           Background="#2d2d2d"
                           Foreground="White"
                           BorderThickness="0"
@@ -84,19 +158,19 @@
         <Border DockPanel.Dock="Bottom" Background="#222222"
                 Padding="8,6" BorderBrush="#555555" BorderThickness="0,1,0,0">
             <StackPanel Spacing="4">
-                <TextBlock Text="{Binding CurrentTrack.Title, FallbackValue='—'}"
+                <TextBlock Text="{Binding SelectedAudioChannel.Player.CurrentTrack.Title, FallbackValue='—'}"
                            FontWeight="Bold" Foreground="White" FontSize="11"
                            TextTrimming="CharacterEllipsis"/>
                 <Grid ColumnDefinitions="*,Auto">
                     <Slider x:Name="SeekSlider"
                             Grid.Column="0"
                             Minimum="0"
-                            Maximum="{Binding Duration.TotalSeconds}"
-                            Value="{Binding PositionSeconds, Mode=OneWay}"
+                            Maximum="{Binding SelectedAudioChannel.Player.Duration.TotalSeconds}"
+                            Value="{Binding SelectedAudioChannel.Player.PositionSeconds, Mode=OneWay}"
                             PointerReleased="OnSeekReleased"
                             Foreground="#e07050"/>
                     <TextBlock Grid.Column="1"
-                               Text="{Binding PositionDisplay}"
+                               Text="{Binding SelectedAudioChannel.Player.PositionDisplay}"
                                Foreground="#888888" FontSize="9"
                                VerticalAlignment="Center"
                                Margin="6,0,0,0"/>
@@ -121,7 +195,7 @@
                             VerticalContentAlignment="Center">
                         <Button.Styles><Style Selector="Button:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="#555555"/></Style></Button.Styles>
                     </Button>
-                    <Button Content="{Binding PlayPauseIcon}" Click="OnPlayPause"
+                    <Button Content="{Binding SelectedAudioChannel.Player.PlayPauseIcon}" Click="OnPlayPause"
                             Width="34" Height="34" Padding="0"
                             Background="#e07050" Foreground="White"
                             CornerRadius="17" BorderThickness="0"
@@ -156,10 +230,10 @@
                     Click="OnImport"
                     HorizontalAlignment="Stretch"
                     Margin="6,4" FontSize="10"
-                    IsEnabled="{Binding SelectedPlaylist,
+                    IsEnabled="{Binding SelectedAudioChannel.Player.SelectedPlaylist,
                                 Converter={x:Static ObjectConverters.IsNotNull}}"/>
             <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <ItemsControl ItemsSource="{Binding TrackList}" Padding="6">
+                <ItemsControl ItemsSource="{Binding SelectedAudioChannel.Player.TrackList}" Padding="6">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:AudioTrackRow">
                             <Border Padding="6,4" Margin="0,0,0,3"
@@ -190,10 +264,10 @@
                                                                VerticalAlignment="Center"
                                                                Margin="0,0,6,0"/>
                                                     <Slider Minimum="0" Maximum="1" Width="110"
-                                                            Value="{Binding Volume}"
+                                                            Value="{Binding SelectedAudioChannel.Player.Volume}"
                                                             Foreground="#e07050"
                                                             VerticalAlignment="Center"/>
-                                                    <TextBlock Text="{Binding VolumeDisplay}"
+                                                    <TextBlock Text="{Binding SelectedAudioChannel.Player.VolumeDisplay}"
                                                                Foreground="#888888" FontSize="9"
                                                                VerticalAlignment="Center"
                                                                Margin="6,0,0,0" Width="32"/>
