@@ -45,7 +45,7 @@ public class MainViewModel : ViewModelBase
         var selectedPackage      = SelectedPackageItemIndex >= 0 && SelectedPackageItemIndex < PackageItems.Count
                                    ? PackageItems[SelectedPackageItemIndex] : null;
         s.SelectedPackageItemId    = selectedPackage?.Id ?? Guid.Empty;
-        // TODO Task 3: s.SelectedAudioPlaylistId removed
+        // TODO Task 3: playlist selection persistence intentionally broken until AudioChannels replaces AudioPlayer
         AudioPlayer.PersistPlaybackState();
 
         // Sync AudioPlayer playlists back to the ShowFile model before saving
