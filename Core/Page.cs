@@ -32,6 +32,9 @@ public class Page
     /// <summary>Timer IDs to Play() when this page goes live.</summary>
     public List<Guid> TriggerTimerIds { get; set; } = new();
 
+    /// <summary>Audio playlist to switch to and play when this page goes live. Guid.Empty = none.</summary>
+    public Guid TriggerAudioPlaylistId { get; set; } = Guid.Empty;
+
     public Page Clone()
     {
         var copy = new Page { Name = Name };
@@ -44,6 +47,7 @@ public class Page
             copy.AddLayer(l.Clone(newId: true));
         foreach (var id in TriggerTimerIds)
             copy.TriggerTimerIds.Add(id);
+        copy.TriggerAudioPlaylistId = TriggerAudioPlaylistId;
         return copy;
     }
 
