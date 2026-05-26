@@ -483,8 +483,40 @@ public partial class PageGridPanel : UserControl
                 triggerTimerItem.Items.Add(tItem);
             }
         }
+        // Trigger → Audio → Playlist submenu
+        var triggerAudioPlaylistItem = new MenuItem { Header = "Playlist" };
+        var availablePlaylists = VM?.AudioPlayer.Playlists;
+        if (availablePlaylists is null || availablePlaylists.Count == 0)
+        {
+            triggerAudioPlaylistItem.Items.Add(new MenuItem { Header = "(no playlists)", IsEnabled = false });
+        }
+        else
+        {
+            foreach (var playlist in availablePlaylists)
+            {
+                bool isChecked = pvm.Model.TriggerAudioPlaylistId == playlist.Id;
+                var pItem = new MenuItem
+                {
+                    Header = (isChecked ? "✓ " : "   ") + playlist.Name
+                };
+                var playlistCopy = playlist;
+                pItem.Click += (_, _) =>
+                {
+                    pvm.Model.TriggerAudioPlaylistId =
+                        pvm.Model.TriggerAudioPlaylistId == playlistCopy.Id
+                            ? Guid.Empty          // clicking checked item clears it
+                            : playlistCopy.Id;
+                };
+                triggerAudioPlaylistItem.Items.Add(pItem);
+            }
+        }
+
+        var triggerAudioItem = new MenuItem { Header = "Audio" };
+        triggerAudioItem.Items.Add(triggerAudioPlaylistItem);
+
         var triggerItem = new MenuItem { Header = "Trigger" };
         triggerItem.Items.Add(triggerTimerItem);
+        triggerItem.Items.Add(triggerAudioItem);
 
         var menu = new ContextMenu();
         menu.Items.Add(editItem);
