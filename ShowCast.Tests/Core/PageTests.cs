@@ -23,4 +23,23 @@ public class PageTests
 
         Assert.Equal(Guid.Empty, page.TriggerAudioPlaylistId);
     }
+
+    [Fact]
+    public void Clone_CopiesTriggerAudioTrackId()
+    {
+        var id = Guid.NewGuid();
+        var original = new Page { TriggerAudioTrackId = id };
+
+        var clone = original.Clone();
+
+        Assert.Equal(id, clone.TriggerAudioTrackId);
+    }
+
+    [Fact]
+    public void TriggerAudioTrackId_DefaultsToEmpty()
+    {
+        var page = new Page();
+
+        Assert.Equal(Guid.Empty, page.TriggerAudioTrackId);
+    }
 }

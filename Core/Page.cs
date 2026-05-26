@@ -35,6 +35,9 @@ public class Page
     /// <summary>Audio playlist to switch to and play when this page goes live. Guid.Empty = none.</summary>
     public Guid TriggerAudioPlaylistId { get; set; } = Guid.Empty;
 
+    /// <summary>Specific track to play when this page goes live. Guid.Empty = use playlist resume mode.</summary>
+    public Guid TriggerAudioTrackId { get; set; } = Guid.Empty;
+
     public Page Clone()
     {
         var copy = new Page { Name = Name };
@@ -48,6 +51,7 @@ public class Page
         foreach (var id in TriggerTimerIds)
             copy.TriggerTimerIds.Add(id);
         copy.TriggerAudioPlaylistId = TriggerAudioPlaylistId;
+        copy.TriggerAudioTrackId = TriggerAudioTrackId;
         return copy;
     }
 
