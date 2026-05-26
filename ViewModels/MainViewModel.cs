@@ -45,7 +45,7 @@ public class MainViewModel : ViewModelBase
         var selectedPackage      = SelectedPackageItemIndex >= 0 && SelectedPackageItemIndex < PackageItems.Count
                                    ? PackageItems[SelectedPackageItemIndex] : null;
         s.SelectedPackageItemId    = selectedPackage?.Id ?? Guid.Empty;
-        s.SelectedAudioPlaylistId  = AudioPlayer.SelectedPlaylist?.Id ?? Guid.Empty;
+        // TODO Task 3: s.SelectedAudioPlaylistId removed
         AudioPlayer.PersistPlaybackState();
 
         // Sync AudioPlayer playlists back to the ShowFile model before saving
@@ -173,7 +173,7 @@ public class MainViewModel : ViewModelBase
 
         AudioPlayer.LoadPlaylists(
             _showFile.AudioPlaylists,
-            _showFile.Settings.SelectedAudioPlaylistId);
+            Guid.Empty);
 
         // Always ensure at least one playlist exists (migrating from older saves)
         if (AudioPlayer.Playlists.Count == 0)

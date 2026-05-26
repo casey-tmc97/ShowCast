@@ -15,4 +15,6 @@ public class AudioPlaylist
     public ResumeMode       ResumeMode     { get; set; } = ResumeMode.FromTop;
     public Guid             LastTrackId    { get; set; }
     public long             LastPositionMs { get; set; }
+    /// <summary>Channel this playlist belongs to. Guid.Empty = legacy/Default channel.</summary>
+    public Guid             ChannelId      { get; set; } = Guid.Empty;
 }

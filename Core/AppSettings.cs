@@ -34,9 +34,13 @@ public class AppSettings
     public int    NextTransitionDuration { get; set; } = 0;
 
     // Last-selected items (restored by ID)
-    public Guid SelectedOutputId     { get; set; } = Guid.Empty;
-    public Guid SelectedShowId       { get; set; } = Guid.Empty;
-    public Guid SelectedRundownId    { get; set; } = Guid.Empty;
-    public Guid SelectedPackageItemId   { get; set; } = Guid.Empty;
-    public Guid SelectedAudioPlaylistId { get; set; } = Guid.Empty;
+    public Guid SelectedOutputId      { get; set; } = Guid.Empty;
+    public Guid SelectedShowId        { get; set; } = Guid.Empty;
+    public Guid SelectedRundownId     { get; set; } = Guid.Empty;
+    public Guid SelectedPackageItemId { get; set; } = Guid.Empty;
+    // NOTE: SelectedAudioPlaylistId removed — now stored per-channel in AudioChannel.SelectedPlaylistId
+
+    // Audio routing
+    public List<AudioChannel>     AudioChannels     { get; set; } = new();
+    public List<AudioDestination> AudioDestinations { get; set; } = new();
 }
