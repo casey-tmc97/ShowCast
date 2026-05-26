@@ -21,6 +21,8 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
     LibVLC?      _libVlc;
     MediaPlayer? _player;
     System.Timers.Timer? _poller;
+    string? _pendingOutputModule;
+    string? _pendingDeviceId;
 
     // ── Observable state ──────────────────────────────────────────────────────
 
@@ -365,6 +367,12 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
         var oldMedia = _player.Media;
         var newMedia = new Media(_libVlc!, new Uri(absPath));
         _player.Media = newMedia;
+        if (_pendingDeviceId is not null)
+        {
+            _player.SetOutputDevice(_pendingOutputModule!, _pendingDeviceId);
+            _pendingDeviceId     = null;
+            _pendingOutputModule = null;
+        }
         _player.Play();
         _player.SetRate(_selectedPlaylist.Speed);
         _player.Volume = (int)Math.Round(_volume * 100);
@@ -373,6 +381,13 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
         _poller?.Start();
         State         = PlaybackState.Playing;
         StatusMessage = "";
+    }
+
+    /// <summary>Sets the audio output device for the next Play() call.</summary>
+    public void SetAudioDevice(string outputModule, string deviceId)
+    {
+        _pendingOutputModule = outputModule;
+        _pendingDeviceId     = deviceId;
     }
 
     public void Pause()
