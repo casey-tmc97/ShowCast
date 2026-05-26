@@ -200,6 +200,13 @@ public partial class MainWindow : Window
 
     // ── Settings menu ─────────────────────────────────────────────────────────
 
+    async void OnAudioSettings(object? sender, RoutedEventArgs e)
+    {
+        if (VM is null) return;
+        var dialog = new AudioSettingsDialog(VM);
+        await dialog.ShowDialog(this);
+    }
+
     async void OnScheduler(object? sender, RoutedEventArgs e)
     {
         if (VM is null) return;

@@ -1,0 +1,62 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ShowCast.Views.AudioSettingsDialog"
+        Title="Audio Routing"
+        Width="800" Height="520"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="#1a1a1a"
+        Foreground="White"
+        FontFamily="Segoe UI, sans-serif">
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="16">
+
+        <!-- ── Header ── -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+            <TextBlock Text="AUDIO ROUTING"
+                       FontSize="14" FontWeight="Bold"
+                       Foreground="#e07050"
+                       VerticalAlignment="Center"/>
+            <Button Grid.Column="1"
+                    Content="↺  Refresh Devices"
+                    Click="OnRefresh"
+                    Background="#333333" Foreground="#aaaaaa"
+                    BorderThickness="0" CornerRadius="4"
+                    Padding="10,5" FontSize="11">
+                <Button.Styles>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#444444"/>
+                    </Style>
+                </Button.Styles>
+            </Button>
+        </Grid>
+
+        <!-- ── Matrix (built in code-behind) ── -->
+        <Border Grid.Row="1"
+                Background="#111111"
+                BorderBrush="#333333" BorderThickness="1"
+                CornerRadius="4">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Auto">
+                <Grid x:Name="MatrixGrid" Margin="0"/>
+            </ScrollViewer>
+        </Border>
+
+        <!-- ── Footer ── -->
+        <Grid Grid.Row="2" Margin="0,12,0,0">
+            <Button Content="Close"
+                    Click="OnClose"
+                    HorizontalAlignment="Right"
+                    Background="#333333" Foreground="White"
+                    BorderThickness="0" CornerRadius="4"
+                    Padding="16,6" FontSize="11">
+                <Button.Styles>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#444444"/>
+                    </Style>
+                </Button.Styles>
+            </Button>
+        </Grid>
+
+    </Grid>
+</Window>
