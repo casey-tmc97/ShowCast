@@ -97,5 +97,42 @@ public partial class PageEditorOverlay : UserControl
             VM?.CloseEditor();
             e.Handled = true;
         }
+
+        if (VM?.SelectedLayer is { } moveLayer && !ctrl)
+        {
+            float stepX = VM.SnapToGrid && VM.GridSpacing > 0
+                ? (float)(VM.GridSpacing / 1920.0)
+                : 1f / 1920f;
+            float stepY = VM.SnapToGrid && VM.GridSpacing > 0
+                ? (float)(VM.GridSpacing / 1080.0)
+                : 1f / 1080f;
+            switch (e.Key)
+            {
+                case Key.Left:
+                    VM.BeginLayerEdit();
+                    moveLayer.X = Math.Clamp(moveLayer.X - stepX, 0f, 1f - moveLayer.Width);
+                    VM.NotifySlideChanged();
+                    e.Handled = true;
+                    return;
+                case Key.Right:
+                    VM.BeginLayerEdit();
+                    moveLayer.X = Math.Clamp(moveLayer.X + stepX, 0f, 1f - moveLayer.Width);
+                    VM.NotifySlideChanged();
+                    e.Handled = true;
+                    return;
+                case Key.Up:
+                    VM.BeginLayerEdit();
+                    moveLayer.Y = Math.Clamp(moveLayer.Y - stepY, 0f, 1f - moveLayer.Height);
+                    VM.NotifySlideChanged();
+                    e.Handled = true;
+                    return;
+                case Key.Down:
+                    VM.BeginLayerEdit();
+                    moveLayer.Y = Math.Clamp(moveLayer.Y + stepY, 0f, 1f - moveLayer.Height);
+                    VM.NotifySlideChanged();
+                    e.Handled = true;
+                    return;
+            }
+        }
     }
 }
