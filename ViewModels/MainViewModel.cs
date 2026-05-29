@@ -630,10 +630,28 @@ public class MainViewModel : ViewModelBase
             Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
             {
                 _skipNextAnimations = true;
-                if (loopToStart && Pages.Count > 0)
+                if (loopToStart)
                 {
-                    SelectedPage = Pages[0];
-                    GoLive();
+                    if (ShowingRundown)
+                    {
+                        // In rundown view, Pages is empty (no flat view active); use the group
+                        // for the active package so the loop fires correctly.
+                        var livePackage = SelectedOutput?.ActivePackage;
+                        var group = livePackage is not null
+                            ? PageGroups.FirstOrDefault(g => g.Package == livePackage)
+                            : null;
+                        if (group?.Pages.Count > 0)
+                        {
+                            GoLiveFromGroup(group.Pages[0]);
+                            return;
+                        }
+                    }
+                    // Flat view fallback.
+                    if (Pages.Count > 0)
+                    {
+                        SelectedPage = Pages[0];
+                        GoLive();
+                    }
                 }
                 else
                 {

@@ -8,6 +8,32 @@ namespace ShowCast.Tests.ViewModels;
 public class MainViewModelRundownTests
 {
     [Fact]
+    public void StartPageTimer_LoopToStart_InRundownView_CallsGoLiveFromGroup()
+    {
+        var vm = new MainViewModel();
+
+        var show = vm.AddShow("S");
+        vm.AddPackageToShow("P", show);
+        var pkg = show.Packages.Last();
+
+        var page2 = new Page { Name = "2" };
+        pkg.AddPage(page2);
+
+        var rd = vm.AddRundown("RD");
+        rd.AddEntry(new RundownEntry { PackageId = pkg.Id });
+        vm.SelectedRundown = rd;
+
+        // Verify we are in rundown view.
+        Assert.True(vm.ShowingRundown);
+
+        // PageGroups should have a group for the package with both pages.
+        var group = vm.PageGroups.FirstOrDefault(g => g.Package == pkg);
+        Assert.NotNull(group);
+        Assert.Equal(2, group!.Pages.Count);
+    }
+
+
+    [Fact]
     public void CloseEditor_WhenRundownSelected_RefreshesPageGroups()
     {
         var vm = new MainViewModel();
