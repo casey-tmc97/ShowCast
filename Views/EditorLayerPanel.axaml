@@ -79,6 +79,8 @@
                         <!-- Visibility eye -->
                         <Button Grid.Column="0" Classes="layer-icon"
                                 Content="●"
+                                Foreground="{Binding Visible,
+                                    Converter={x:Static local:EditorLayerPanel.VisibilityBrush}}"
                                 Click="OnEyeClick"
                                 Tag="{Binding .}"
                                 ToolTip.Tip="Toggle visibility"/>

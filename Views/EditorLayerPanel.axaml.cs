@@ -25,6 +25,11 @@ public partial class EditorLayerPanel : UserControl
     public static readonly FuncValueConverter<bool, string> LockIcon =
         new(locked => locked ? "🔒" : "○");
 
+    public static readonly FuncValueConverter<bool, Avalonia.Media.IBrush> VisibilityBrush =
+        new(visible => visible
+            ? new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#22cc66"))
+            : new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#cc3333")));
+
     readonly List<IDisposable> _subs = new();
     bool _syncingSelection;
 
