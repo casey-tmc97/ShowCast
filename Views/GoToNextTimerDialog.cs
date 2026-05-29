@@ -67,15 +67,6 @@ public class GoToNextTimerDialog : Window
 
         ok.Click     += (_, _) => { _result = (_input.Text, _loopCheckBox.IsChecked == true); Close(); };
         cancel.Click += (_, _) => Close();
-        _input.KeyDown += (_, e) =>
-        {
-            if (e.Key == Avalonia.Input.Key.Enter)
-            {
-                _result = (_input.Text, _loopCheckBox.IsChecked == true);
-                Close();
-                e.Handled = true;
-            }
-        };
         KeyDown += (_, e) =>
         {
             if (e.Key == Avalonia.Input.Key.Enter)
