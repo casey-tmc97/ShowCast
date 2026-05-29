@@ -1105,8 +1105,8 @@ public class MainViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _showRulers, value);
     }
 
-    private int _gridSpacing = 100;
-    public int GridSpacing
+    private double _gridSpacing = 100;
+    public double GridSpacing
     {
         get => _gridSpacing;
         set => this.RaiseAndSetIfChanged(ref _gridSpacing, value);

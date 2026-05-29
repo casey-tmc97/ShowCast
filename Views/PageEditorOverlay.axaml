@@ -76,6 +76,7 @@
                           ToolTip.Tip="Grid overlay size (None = off)"
                           SelectionChanged="OnGridSizeChanged">
                     <ComboBoxItem Content="Grid: None"/>
+                    <ComboBoxItem Content="Grid: 12.5px"/>
                     <ComboBoxItem Content="Grid: 25px"/>
                     <ComboBoxItem Content="Grid: 50px"/>
                     <ComboBoxItem Content="Grid: 75px"/>

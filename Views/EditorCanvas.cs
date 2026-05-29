@@ -314,12 +314,12 @@ public class EditorCanvas : UserControl, IDisposable
         using var tick = new SKPaint { Color = new SKColor(160, 160, 160), StrokeWidth = 1 };
         using var txt  = new SKPaint { Color = new SKColor(160, 160, 160), TextSize = 9, IsAntialias = true };
         canvas.DrawLine(0, ph - 1, pw, ph - 1, tick);
-        int spacing = _vm?.GridSpacing ?? 100;
+        double spacing = _vm?.GridSpacing ?? 100;
         double scale = ir.Width / 1920.0;
-        for (int vx = 0; vx <= 1920; vx += spacing / 2)
+        for (double vx = 0; vx <= 1920; vx += spacing / 2)
         {
             double rx = ir.X + vx * scale;
-            bool major = vx % spacing == 0;
+            bool major = Math.Abs(vx % spacing) < 0.001;
             float th = major ? 10f : 5f;
             canvas.DrawLine((float)rx, ph - 1 - th, (float)rx, ph - 1, tick);
             if (major && vx > 0) canvas.DrawText(vx.ToString(), (float)rx + 2, ph - 1 - th - 1, txt);
@@ -341,12 +341,12 @@ public class EditorCanvas : UserControl, IDisposable
         using var tick = new SKPaint { Color = new SKColor(160, 160, 160), StrokeWidth = 1 };
         using var txt  = new SKPaint { Color = new SKColor(160, 160, 160), TextSize = 9, IsAntialias = true };
         canvas.DrawLine(pw - 1, 0, pw - 1, ph, tick);
-        int spacing = _vm?.GridSpacing ?? 100;
+        double spacing = _vm?.GridSpacing ?? 100;
         double scale = ir.Height / 1080.0;
-        for (int vy = 0; vy <= 1080; vy += spacing / 2)
+        for (double vy = 0; vy <= 1080; vy += spacing / 2)
         {
             double ry = ir.Y + vy * scale;
-            bool major = vy % spacing == 0;
+            bool major = Math.Abs(vy % spacing) < 0.001;
             float tw = major ? 10f : 5f;
             canvas.DrawLine(pw - 1 - tw, (float)ry, pw - 1, (float)ry, tick);
             if (major && vy > 0)
@@ -372,14 +372,14 @@ public class EditorCanvas : UserControl, IDisposable
         if (_vm?.ShowGrid != true) return;
         var ir = GetImageRect();
         if (ir.Width <= 0) return;
-        int spacing = _vm?.GridSpacing ?? 100;
+        double spacing = _vm?.GridSpacing ?? 100;
         var brush   = new SolidColorBrush(Color.FromArgb(60, 120, 120, 200));
-        for (int vx = spacing; vx < 1920; vx += spacing)
+        for (double vx = spacing; vx < 1920; vx += spacing)
         {
             double rx = ir.X + vx * (ir.Width / 1920.0);
             _gridCanvas.Children.Add(new Line { StartPoint = new Point(rx, ir.Y), EndPoint = new Point(rx, ir.Y + ir.Height), Stroke = brush, StrokeThickness = 0.5 });
         }
-        for (int vy = spacing; vy < 1080; vy += spacing)
+        for (double vy = spacing; vy < 1080; vy += spacing)
         {
             double ry = ir.Y + vy * (ir.Height / 1080.0);
             _gridCanvas.Children.Add(new Line { StartPoint = new Point(ir.X, ry), EndPoint = new Point(ir.X + ir.Width, ry), Stroke = brush, StrokeThickness = 0.5 });
@@ -543,14 +543,14 @@ public class EditorCanvas : UserControl, IDisposable
     float SnapX(float v)
     {
         if (_vm?.SnapToGrid != true || _vm.GridSpacing <= 0) return v;
-        float step = _vm.GridSpacing / 1920f;
+        float step = (float)(_vm.GridSpacing / 1920.0);
         return (float)Math.Round(v / step) * step;
     }
 
     float SnapY(float v)
     {
         if (_vm?.SnapToGrid != true || _vm.GridSpacing <= 0) return v;
-        float step = _vm.GridSpacing / 1080f;
+        float step = (float)(_vm.GridSpacing / 1080.0);
         return (float)Math.Round(v / step) * step;
     }
 

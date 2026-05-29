@@ -5,7 +5,7 @@ public class AppSettings
     // Editor display toggles
     public bool   ShowGrid           { get; set; } = true;
     public bool   ShowRulers         { get; set; } = true;
-    public int    GridSpacing        { get; set; } = 100;
+    public double GridSpacing        { get; set; } = 100;
     public bool   SnapToGrid         { get; set; } = false;
     public bool   ShowSafeBoundaries { get; set; } = false;
 

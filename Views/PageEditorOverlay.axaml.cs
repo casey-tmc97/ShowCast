@@ -21,11 +21,12 @@ public partial class PageEditorOverlay : UserControl
         // Sync ComboBox to current ShowGrid / GridSpacing state
         GridSizeBox.SelectedIndex = !VM.ShowGrid ? 0 : VM.GridSpacing switch
         {
-            25  => 1,
-            50  => 2,
-            75  => 3,
-            100 => 4,
-            _   => 0
+            12.5 => 1,
+            25   => 2,
+            50   => 3,
+            75   => 4,
+            100  => 5,
+            _    => 0
         };
     }
 
@@ -34,11 +35,12 @@ public partial class PageEditorOverlay : UserControl
         if (VM is null) return;
         switch (GridSizeBox.SelectedIndex)
         {
-            case 0:  VM.ShowGrid = false;                       break;
-            case 1:  VM.ShowGrid = true; VM.GridSpacing =  25; break;
-            case 2:  VM.ShowGrid = true; VM.GridSpacing =  50; break;
-            case 3:  VM.ShowGrid = true; VM.GridSpacing =  75; break;
-            default: VM.ShowGrid = true; VM.GridSpacing = 100; break;
+            case 0:  VM.ShowGrid = false; VM.SnapToGrid = false;           break;  // None — also disable snap
+            case 1:  VM.ShowGrid = true;  VM.GridSpacing = 12.5;           break;
+            case 2:  VM.ShowGrid = true;  VM.GridSpacing =  25;            break;
+            case 3:  VM.ShowGrid = true;  VM.GridSpacing =  50;            break;
+            case 4:  VM.ShowGrid = true;  VM.GridSpacing =  75;            break;
+            default: VM.ShowGrid = true;  VM.GridSpacing = 100;            break;
         }
     }
 
