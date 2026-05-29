@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Avalonia.Controls;
 using Avalonia.Data.Converters;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using ReactiveUI;
 using ShowCast.Core;
 using ShowCast.ViewModels;
@@ -25,10 +26,11 @@ public partial class EditorLayerPanel : UserControl
     public static readonly FuncValueConverter<bool, string> LockIcon =
         new(locked => locked ? "🔒" : "○");
 
-    public static readonly FuncValueConverter<bool, Avalonia.Media.IBrush> VisibilityBrush =
-        new(visible => visible
-            ? new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#22cc66"))
-            : new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#cc3333")));
+    static readonly IBrush BrushVisible = new SolidColorBrush(Color.Parse("#22cc66"));
+    static readonly IBrush BrushHidden  = new SolidColorBrush(Color.Parse("#cc3333"));
+
+    public static readonly FuncValueConverter<bool, IBrush> VisibilityBrush =
+        new(visible => visible ? BrushVisible : BrushHidden);
 
     readonly List<IDisposable> _subs = new();
     bool _syncingSelection;

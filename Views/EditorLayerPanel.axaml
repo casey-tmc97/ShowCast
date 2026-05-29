@@ -19,7 +19,8 @@
         <Style Selector="Button.layer-icon:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="#3a3a3a"/>
         </Style>
-        <Style Selector="Button.layer-icon:pointerover">
+        <!-- Apply white foreground on hover only to non-colored icons (not the eye button) -->
+        <Style Selector="Button.layer-icon:not(.layer-icon-colored):pointerover">
             <Setter Property="Foreground" Value="White"/>
         </Style>
 
@@ -77,7 +78,7 @@
                           Background="Transparent">
 
                         <!-- Visibility eye -->
-                        <Button Grid.Column="0" Classes="layer-icon"
+                        <Button Grid.Column="0" Classes="layer-icon layer-icon-colored"
                                 Content="●"
                                 Foreground="{Binding Visible,
                                     Converter={x:Static local:EditorLayerPanel.VisibilityBrush}}"
