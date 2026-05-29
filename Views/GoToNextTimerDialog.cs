@@ -76,6 +76,15 @@ public class GoToNextTimerDialog : Window
                 e.Handled = true;
             }
         };
+        KeyDown += (_, e) =>
+        {
+            if (e.Key == Avalonia.Input.Key.Enter)
+            {
+                _result = (_input.Text, _loopCheckBox.IsChecked == true);
+                Close();
+                e.Handled = true;
+            }
+        };
 
         var btnRow = new StackPanel
         {
