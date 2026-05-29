@@ -10,7 +10,7 @@ namespace ShowCast.Core;
 /// </summary>
 public class ShowFile
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
     public int Version { get; set; } = CurrentVersion;
 
     [JsonExtensionData]

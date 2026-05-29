@@ -70,7 +70,10 @@ public static class ShowFileSerializer
 
     static readonly List<Action<ShowFile>> Migrations = new()
     {
-        // index 0: v1 → v2  (add here when the first breaking model change occurs)
+        // index 0: v1 → v2 — GridSpacing changed from int to double.
+        // Values 25/50/75/100 are lossless; we bump the version so old builds
+        // reject v2 files rather than silently truncating 12.5 → 12.
+        _ => { },
     };
 
     public static void ApplyMigration(ShowFile file)

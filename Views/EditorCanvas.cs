@@ -322,7 +322,7 @@ public class EditorCanvas : UserControl, IDisposable
             bool major = Math.Abs(vx % spacing) < 0.001;
             float th = major ? 10f : 5f;
             canvas.DrawLine((float)rx, ph - 1 - th, (float)rx, ph - 1, tick);
-            if (major && vx > 0) canvas.DrawText(vx.ToString(), (float)rx + 2, ph - 1 - th - 1, txt);
+            if (major && vx > 0) canvas.DrawText(vx % 1 == 0 ? ((int)vx).ToString() : vx.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture), (float)rx + 2, ph - 1 - th - 1, txt);
         }
         using var img  = SKImage.FromBitmap(bmp);
         using var data = img.Encode(SKEncodedImageFormat.Png, 90);
@@ -353,7 +353,7 @@ public class EditorCanvas : UserControl, IDisposable
             {
                 canvas.Save();
                 canvas.RotateDegrees(-90, pw - 1 - tw - 1, (float)ry);
-                canvas.DrawText(vy.ToString(), pw - 1 - tw - 1, (float)ry - 1, txt);
+                canvas.DrawText(vy % 1 == 0 ? ((int)vy).ToString() : vy.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture), pw - 1 - tw - 1, (float)ry - 1, txt);
                 canvas.Restore();
             }
         }
