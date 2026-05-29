@@ -14,6 +14,8 @@ public partial class PageEditorOverlay : UserControl
 
     MainViewModel? VM => DataContext as MainViewModel;
 
+    Key? _nudgeKey;
+
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
@@ -98,7 +100,7 @@ public partial class PageEditorOverlay : UserControl
             e.Handled = true;
         }
 
-        if (VM?.SelectedLayer is { } moveLayer && !ctrl)
+        if (VM?.SelectedLayer is { } moveLayer && e.KeyModifiers == KeyModifiers.None)
         {
             float stepX = VM.SnapToGrid && VM.GridSpacing > 0
                 ? (float)(VM.GridSpacing / 1920.0)
@@ -109,30 +111,36 @@ public partial class PageEditorOverlay : UserControl
             switch (e.Key)
             {
                 case Key.Left:
-                    VM.BeginLayerEdit();
+                    if (_nudgeKey != e.Key) { VM.BeginLayerEdit(); _nudgeKey = e.Key; }
                     moveLayer.X = Math.Clamp(moveLayer.X - stepX, 0f, 1f - moveLayer.Width);
                     VM.NotifySlideChanged();
                     e.Handled = true;
                     return;
                 case Key.Right:
-                    VM.BeginLayerEdit();
+                    if (_nudgeKey != e.Key) { VM.BeginLayerEdit(); _nudgeKey = e.Key; }
                     moveLayer.X = Math.Clamp(moveLayer.X + stepX, 0f, 1f - moveLayer.Width);
                     VM.NotifySlideChanged();
                     e.Handled = true;
                     return;
                 case Key.Up:
-                    VM.BeginLayerEdit();
+                    if (_nudgeKey != e.Key) { VM.BeginLayerEdit(); _nudgeKey = e.Key; }
                     moveLayer.Y = Math.Clamp(moveLayer.Y - stepY, 0f, 1f - moveLayer.Height);
                     VM.NotifySlideChanged();
                     e.Handled = true;
                     return;
                 case Key.Down:
-                    VM.BeginLayerEdit();
+                    if (_nudgeKey != e.Key) { VM.BeginLayerEdit(); _nudgeKey = e.Key; }
                     moveLayer.Y = Math.Clamp(moveLayer.Y + stepY, 0f, 1f - moveLayer.Height);
                     VM.NotifySlideChanged();
                     e.Handled = true;
                     return;
             }
         }
+    }
+
+    protected override void OnKeyUp(KeyEventArgs e)
+    {
+        base.OnKeyUp(e);
+        if (_nudgeKey == e.Key) _nudgeKey = null;
     }
 }
