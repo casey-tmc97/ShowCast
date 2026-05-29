@@ -49,6 +49,12 @@ public class EditorCanvas : UserControl, IDisposable
     readonly Rectangle[] _handles = new Rectangle[8];
     readonly List<Rectangle> _layerBounds = new();
 
+    // Shared drawing objects for non-selected layer bounding boxes (avoids per-call allocation)
+    static readonly Avalonia.Media.SolidColorBrush s_boundsBrush =
+        new(Avalonia.Media.Color.FromArgb(100, 120, 120, 160));
+    static readonly Avalonia.Collections.AvaloniaList<double> s_boundsDash =
+        new() { 4, 3 };
+
     // Rotation handle (red circle above selection)
     readonly Ellipse _rotHandle = new()
     {
@@ -485,9 +491,10 @@ public class EditorCanvas : UserControl, IDisposable
         var slide = _vm?.EditingPage;
         var sel   = _vm?.SelectedLayer;
 
-        if (slide is not null && _overlay.Bounds.Width > 0)
+        var ir = _overlay.Bounds.Width > 0 ? GetImageRect() : default;
+
+        if (slide is not null && ir.Width > 0)
         {
-            var ir = GetImageRect();
             foreach (var layer in slide.Layers)
             {
                 if (layer == sel) continue;
@@ -497,9 +504,9 @@ public class EditorCanvas : UserControl, IDisposable
                 double h = layer.Height * ir.Height;
                 var box = new Rectangle
                 {
-                    Stroke           = new SolidColorBrush(Color.FromArgb(100, 120, 120, 160)),
+                    Stroke           = s_boundsBrush,
                     StrokeThickness  = 0.75,
-                    StrokeDashArray  = new Avalonia.Collections.AvaloniaList<double> { 4, 3 },
+                    StrokeDashArray  = s_boundsDash,
                     Fill             = Brushes.Transparent,
                     IsHitTestVisible = false
                 };
@@ -510,7 +517,7 @@ public class EditorCanvas : UserControl, IDisposable
             }
         }
 
-        if (sel is null || _overlay.Bounds.Width <= 0)
+        if (sel is null || ir.Width <= 0)
         {
             _selBorder.IsVisible = false;
             _rotHandle.IsVisible = false; _rotHandleLine.IsVisible = false;
@@ -518,11 +525,10 @@ public class EditorCanvas : UserControl, IDisposable
             return;
         }
 
-        var    irSel = GetImageRect();
-        double sx  = irSel.X + sel.X * irSel.Width;
-        double sy  = irSel.Y + sel.Y * irSel.Height;
-        double sw  = sel.Width  * irSel.Width;
-        double sh  = sel.Height * irSel.Height;
+        double sx  = ir.X + sel.X * ir.Width;
+        double sy  = ir.Y + sel.Y * ir.Height;
+        double sw  = sel.Width  * ir.Width;
+        double sh  = sel.Height * ir.Height;
 
         Canvas.SetLeft(_selBorder, sx); Canvas.SetTop(_selBorder, sy);
         _selBorder.Width = sw; _selBorder.Height = sh; _selBorder.IsVisible = true;
