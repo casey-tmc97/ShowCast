@@ -634,14 +634,15 @@ public class MainViewModel : ViewModelBase
                 {
                     if (ShowingRundown)
                     {
-                        // In rundown view, Pages is empty (no flat view active); use the group
-                        // for the active package so the loop fires correctly.
+                        // In rundown view, use the group for the active package so the loop
+                        // fires correctly (Pages is empty when no flat-view package is loaded).
                         var livePackage = SelectedOutput?.ActivePackage;
                         var group = livePackage is not null
                             ? PageGroups.FirstOrDefault(g => g.Package == livePackage)
                             : null;
                         if (group?.Pages.Count > 0)
                         {
+                            _skipNextAnimations = false;
                             GoLiveFromGroup(group.Pages[0]);
                             return;
                         }
