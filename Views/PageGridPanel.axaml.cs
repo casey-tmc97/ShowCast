@@ -427,8 +427,25 @@ public partial class PageGridPanel : UserControl
             var prefill = pvm.Model.DurationMs > 0
                 ? (pvm.Model.DurationMs / 1000.0).ToString("F1")
                 : "";
+
+            // Snapshot scroll positions before the modal dialog steals focus.
+            var flatSv    = PageList.FindDescendantOfType<ScrollViewer>();
+            var groupedSv = GroupedView.FindDescendantOfType<ScrollViewer>();
+            double flatOffset    = flatSv?.Offset.Y    ?? 0;
+            double groupedOffset = groupedSv?.Offset.Y ?? 0;
+
             var dialog = new GoToNextTimerDialog(prefill, pvm.Model.LoopToStart);
             var result = await dialog.ShowAsync(TopLevel.GetTopLevel(this) as Window);
+
+            // Restore scroll positions after the dialog closes.
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                flatSv?.SetCurrentValue(ScrollViewer.OffsetProperty,
+                    new Avalonia.Vector(0, flatOffset));
+                groupedSv?.SetCurrentValue(ScrollViewer.OffsetProperty,
+                    new Avalonia.Vector(0, groupedOffset));
+            }, Avalonia.Threading.DispatcherPriority.Background);
+
             if (result is { } r && r.Duration is not null &&
                 double.TryParse(r.Duration,
                     System.Globalization.NumberStyles.Any,
