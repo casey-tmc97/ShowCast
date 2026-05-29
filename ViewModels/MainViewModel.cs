@@ -1299,6 +1299,7 @@ public class MainViewModel : ViewModelBase
         SelectedLayer   = null;
         EditingLayers.Clear();
         RefreshPageList();
+        if (ShowingRundown) RefreshPageGroups();
     }
 
     void RebuildEditorPages(Page? current)
