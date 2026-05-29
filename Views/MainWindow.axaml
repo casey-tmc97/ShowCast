@@ -43,7 +43,11 @@
                 <Menu Grid.Column="2" Background="Transparent" VerticalAlignment="Center"
                       Margin="4,0">
                     <MenuItem Header="_File" Foreground="White">
-                        <MenuItem Header="_New Show" InputGesture="Ctrl+N" Click="OnNew"/>
+                        <MenuItem Header="_New Show"  InputGesture="Ctrl+N"  Click="OnNew"/>
+                        <Separator />
+                        <MenuItem Header="_Open Show…" InputGesture="Ctrl+O" Click="OnOpenShow"/>
+                        <MenuItem Header="_Save Show"  InputGesture="Ctrl+S" Click="OnSaveShow"/>
+                        <MenuItem Header="Save Show _As…"                    Click="OnSaveShowAs"/>
                         <Separator />
                         <MenuItem Header="_Quit" Click="OnQuit"/>
                     </MenuItem>

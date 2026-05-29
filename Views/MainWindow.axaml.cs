@@ -7,6 +7,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using ReactiveUI;
 using ShowCast.Core;
 using ShowCast.ViewModels;
@@ -101,6 +102,7 @@ public partial class MainWindow : Window
     }
 
     bool _saving;
+    string? _currentShowPath;
 
     protected override async void OnClosing(WindowClosingEventArgs e)
     {
@@ -284,6 +286,47 @@ public partial class MainWindow : Window
     // ── File menu ─────────────────────────────────────────────────────────────
 
     void OnNew(object? sender, RoutedEventArgs e) => VM?.NewFile();
+
+    async void OnOpenShow(object? sender, RoutedEventArgs e)
+    {
+        // TODO: implemented in Task 2
+    }
+
+    async void OnSaveShow(object? sender, RoutedEventArgs e)
+    {
+        if (VM is null) return;
+        if (_currentShowPath is not null)
+            await VM.SaveSessionAsync(_currentShowPath);
+        else
+            await SaveShowAsAsync();
+    }
+
+    async void OnSaveShowAs(object? sender, RoutedEventArgs e)
+    {
+        await SaveShowAsAsync();
+    }
+
+    async Task SaveShowAsAsync()
+    {
+        if (VM is null) return;
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title             = "Save Show",
+            DefaultExtension  = ShowCast.Core.ShowFileSerializer.Extension,
+            SuggestedFileName = "show",
+            FileTypeChoices   = new[]
+            {
+                new FilePickerFileType("ShowCast File")
+                {
+                    Patterns = new[] { $"*{ShowCast.Core.ShowFileSerializer.Extension}" }
+                }
+            }
+        });
+        if (file is null) return;
+
+        _currentShowPath = file.Path.LocalPath;
+        await VM.SaveSessionAsync(_currentShowPath);
+    }
 
     // ── Window chrome ─────────────────────────────────────────────────────────
 
