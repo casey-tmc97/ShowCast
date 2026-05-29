@@ -642,7 +642,6 @@ public class MainViewModel : ViewModelBase
                             : null;
                         if (group?.Pages.Count > 0)
                         {
-                            _skipNextAnimations = false;
                             GoLiveFromGroup(group.Pages[0]);
                             return;
                         }
