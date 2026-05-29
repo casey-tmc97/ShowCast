@@ -47,6 +47,7 @@ public class EditorCanvas : UserControl, IDisposable
         IsVisible        = false
     };
     readonly Rectangle[] _handles = new Rectangle[8];
+    readonly List<Rectangle> _layerBounds = new();
 
     // Rotation handle (red circle above selection)
     readonly Ellipse _rotHandle = new()
@@ -477,8 +478,39 @@ public class EditorCanvas : UserControl, IDisposable
 
     void UpdateHandles()
     {
-        var layer = _vm?.SelectedLayer;
-        if (layer is null || _overlay.Bounds.Width <= 0)
+        // Remove previous per-layer bounding boxes
+        foreach (var r in _layerBounds) _overlay.Children.Remove(r);
+        _layerBounds.Clear();
+
+        var slide = _vm?.EditingPage;
+        var sel   = _vm?.SelectedLayer;
+
+        if (slide is not null && _overlay.Bounds.Width > 0)
+        {
+            var ir = GetImageRect();
+            foreach (var layer in slide.Layers)
+            {
+                if (layer == sel) continue;
+                double x = ir.X + layer.X * ir.Width;
+                double y = ir.Y + layer.Y * ir.Height;
+                double w = layer.Width  * ir.Width;
+                double h = layer.Height * ir.Height;
+                var box = new Rectangle
+                {
+                    Stroke           = new SolidColorBrush(Color.FromArgb(100, 120, 120, 160)),
+                    StrokeThickness  = 0.75,
+                    StrokeDashArray  = new Avalonia.Collections.AvaloniaList<double> { 4, 3 },
+                    Fill             = Brushes.Transparent,
+                    IsHitTestVisible = false
+                };
+                Canvas.SetLeft(box, x); Canvas.SetTop(box, y);
+                box.Width = w; box.Height = h;
+                _overlay.Children.Insert(0, box);
+                _layerBounds.Add(box);
+            }
+        }
+
+        if (sel is null || _overlay.Bounds.Width <= 0)
         {
             _selBorder.IsVisible = false;
             _rotHandle.IsVisible = false; _rotHandleLine.IsVisible = false;
@@ -486,22 +518,22 @@ public class EditorCanvas : UserControl, IDisposable
             return;
         }
 
-        var    ir = GetImageRect();
-        double x  = ir.X + layer.X * ir.Width;
-        double y  = ir.Y + layer.Y * ir.Height;
-        double w  = layer.Width  * ir.Width;
-        double h  = layer.Height * ir.Height;
+        var    irSel = GetImageRect();
+        double sx  = irSel.X + sel.X * irSel.Width;
+        double sy  = irSel.Y + sel.Y * irSel.Height;
+        double sw  = sel.Width  * irSel.Width;
+        double sh  = sel.Height * irSel.Height;
 
-        Canvas.SetLeft(_selBorder, x); Canvas.SetTop(_selBorder, y);
-        _selBorder.Width = w; _selBorder.Height = h; _selBorder.IsVisible = true;
+        Canvas.SetLeft(_selBorder, sx); Canvas.SetTop(_selBorder, sy);
+        _selBorder.Width = sw; _selBorder.Height = sh; _selBorder.IsVisible = true;
 
         // Resize handles: NW N NE W E SW S SE
-        double[] hx = { x - HandleHalf, x + w/2 - HandleHalf, x + w - HandleHalf,
-                         x - HandleHalf,                         x + w - HandleHalf,
-                         x - HandleHalf, x + w/2 - HandleHalf,  x + w - HandleHalf };
-        double[] hy = { y - HandleHalf, y - HandleHalf,          y - HandleHalf,
-                         y + h/2 - HandleHalf,                   y + h/2 - HandleHalf,
-                         y + h - HandleHalf, y + h - HandleHalf, y + h - HandleHalf };
+        double[] hx = { sx - HandleHalf, sx + sw/2 - HandleHalf, sx + sw - HandleHalf,
+                         sx - HandleHalf,                          sx + sw - HandleHalf,
+                         sx - HandleHalf, sx + sw/2 - HandleHalf,  sx + sw - HandleHalf };
+        double[] hy = { sy - HandleHalf, sy - HandleHalf,           sy - HandleHalf,
+                         sy + sh/2 - HandleHalf,                   sy + sh/2 - HandleHalf,
+                         sy + sh - HandleHalf, sy + sh - HandleHalf, sy + sh - HandleHalf };
         for (int i = 0; i < 8; i++)
         {
             Canvas.SetLeft(_handles[i], hx[i]);
@@ -510,12 +542,12 @@ public class EditorCanvas : UserControl, IDisposable
         }
 
         // Rotation handle (red circle above N)
-        double rhx = x + w/2 - RotHandHalf;
-        double rhy = y - RotHandDist - RotHandHalf;
+        double rhx = sx + sw/2 - RotHandHalf;
+        double rhy = sy - RotHandDist - RotHandHalf;
         Canvas.SetLeft(_rotHandle, rhx); Canvas.SetTop(_rotHandle, rhy);
         _rotHandle.IsVisible = true;
-        _rotHandleLine.StartPoint = new Point(x + w/2, y);
-        _rotHandleLine.EndPoint   = new Point(x + w/2, rhy + RotHandHalf);
+        _rotHandleLine.StartPoint = new Point(sx + sw/2, sy);
+        _rotHandleLine.EndPoint   = new Point(sx + sw/2, rhy + RotHandHalf);
         _rotHandleLine.IsVisible  = true;
     }
 
