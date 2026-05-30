@@ -891,6 +891,7 @@ public class EditorCanvas : UserControl, IDisposable
             if (selStart == selEnd) { e.Handled = true; return; }
 
             var (curBold, curItalic, _, _) = SpanEditor.GetFormatAt(_inlineLayer, selStart);
+            _vm?.BeginLayerEdit();
             if (e.Key == Key.B)
                 SpanEditor.ApplyFormat(_inlineLayer, selStart, selEnd, bold: curBold == true ? false : true);
             else

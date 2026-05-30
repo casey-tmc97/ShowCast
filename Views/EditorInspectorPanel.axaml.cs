@@ -49,15 +49,23 @@ public partial class EditorInspectorPanel : UserControl
 
     void OnInlineSpanFormatChanged(bool? bold, bool? italic, float? fontSize, string? fontFamily)
     {
-        // Update text formatting controls to reflect span format at cursor.
-        // IsChecked assignment does NOT fire the Click event, so no loop.
-        BoldBtn.IsChecked   = bold;
-        ItalicBtn.IsChecked = italic;
-        FontSizeBox.Text = fontSize.HasValue
-            ? ((int)(fontSize.Value * VH)).ToString()
-            : VM?.SelectedLayer is { } l ? (l.FontSize * VH).ToString("F0") : "";
-        if (fontFamily is not null)
-            FontFamilyBox.SelectedItem = fontFamily;
+        // Guard with _loading so SelectionChanged/LostFocus handlers don't fire
+        // and mutate the layer while we're updating UI from a selection event.
+        _loading = true;
+        try
+        {
+            BoldBtn.IsChecked   = bold;
+            ItalicBtn.IsChecked = italic;
+            FontSizeBox.Text = fontSize.HasValue
+                ? ((int)(fontSize.Value * VH)).ToString()
+                : VM?.SelectedLayer is { } l ? (l.FontSize * VH).ToString("F0") : "";
+            if (fontFamily is not null)
+                FontFamilyBox.SelectedItem = fontFamily;
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 
     protected override void OnDataContextChanged(EventArgs e)
