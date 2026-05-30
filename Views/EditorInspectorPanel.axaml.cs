@@ -49,13 +49,15 @@ public partial class EditorInspectorPanel : UserControl
 
     void OnInlineSpanFormatChanged(bool? bold, bool? italic, float? fontSize, string? fontFamily)
     {
-        // Update Bold/Italic buttons to reflect span format at cursor.
+        // Update text formatting controls to reflect span format at cursor.
         // IsChecked assignment does NOT fire the Click event, so no loop.
         BoldBtn.IsChecked   = bold;
         ItalicBtn.IsChecked = italic;
-        // Update font size if span has an override; blank means "inherit from layer"
-        if (fontSize.HasValue)
-            FontSizeBox.Text = ((int)(fontSize.Value * VH)).ToString();
+        FontSizeBox.Text = fontSize.HasValue
+            ? ((int)(fontSize.Value * VH)).ToString()
+            : VM?.SelectedLayer is { } l ? (l.FontSize * VH).ToString("F0") : "";
+        if (fontFamily is not null)
+            FontFamilyBox.SelectedItem = fontFamily;
     }
 
     protected override void OnDataContextChanged(EventArgs e)
