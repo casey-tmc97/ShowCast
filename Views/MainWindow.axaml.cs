@@ -233,8 +233,6 @@ public partial class MainWindow : Window
 
         if (ctrl && e.Key == Key.Z) { VM?.Undo(); e.Handled = true; return; }
         if (ctrl && e.Key == Key.Y) { VM?.Redo(); e.Handled = true; return; }
-        if (ctrl && e.Key == Key.S) { OnSaveShow(null, null!); e.Handled = true; return; }
-        if (ctrl && e.Key == Key.O) { OnOpenShow(null, null!); e.Handled = true; return; }
         if (e.Key == Key.F1)        { OpenManual(); e.Handled = true; return; }
 
         if (ctrl && !textFocused && VM?.IsEditorOpen == false)

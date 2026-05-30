@@ -243,12 +243,16 @@ public class ShowFileSerializerTests
             Assert.Single(result.File.Shows[0].Packages);
             Assert.Single(result.File.Rundowns);
             Assert.Equal("RD1", result.File.Rundowns[0].Name);
+            Assert.Single(result.File.Rundowns[0].Entries);
+            Assert.Equal(pkg.Id, result.File.Rundowns[0].Entries[0].PackageId);
             Assert.Single(result.File.Timers);
             Assert.Equal("MyTimer", result.File.Timers[0].Name);
+            Assert.Equal(60, result.File.Timers[0].StartSeconds);
         }
         finally
         {
             File.Delete(path);
+            if (File.Exists(path + ".tmp")) File.Delete(path + ".tmp");
         }
     }
 
