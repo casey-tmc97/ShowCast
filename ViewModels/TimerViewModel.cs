@@ -21,14 +21,6 @@ public class TimerViewModel : ReactiveObject, IDisposable
         Def = def;
         _currentSeconds = def.Type == TimerType.Counter ? def.StartSeconds : 0;
         TimerTextCache.Update(def.Id, DisplayText);
-
-        // Clock timers always display a live countdown — start the refresh loop immediately
-        if (def.Type == TimerType.Clock)
-        {
-            _ticker = new DispatcherTimer(TimeSpan.FromSeconds(1), DispatcherPriority.Normal, OnTick);
-            _ticker.Start();
-            _running = true;
-        }
     }
 
     public string Name => Def.Name;
