@@ -103,7 +103,7 @@ public class PageViewModel : ViewModelBase
             using var surface = SKSurface.Create(
                 new SKImageInfo(ThumbW, ThumbH, SKColorType.Rgba8888));
 
-            PageRenderer.Render(surface.Canvas, Model, LayerRole.All, ThumbW, ThumbH);
+            PageRenderer.Render(surface.Canvas, Model, LayerRole.All, ThumbW, ThumbH, useLiveTimers: false);
 
             using var image = surface.Snapshot();
             using var data  = image.Encode(SKEncodedImageFormat.Png, 80);

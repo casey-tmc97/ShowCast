@@ -17,7 +17,8 @@ public static class PageRenderer
     public static void Render(SKCanvas canvas, Page page, LayerRole roleFilter,
                               int canvasWidth, int canvasHeight,
                               double elapsedMs     = -1.0,
-                              double exitElapsedMs = -1.0)
+                              double exitElapsedMs = -1.0,
+                              bool useLiveTimers   = true)
     {
         canvas.Clear(SKColors.Black);
 
@@ -79,7 +80,7 @@ public static class PageRenderer
                     break;
 
                 case LayerType.Text:
-                    DrawText(canvas, layer, canvasWidth, canvasHeight);
+                    DrawText(canvas, layer, canvasWidth, canvasHeight, useLiveTimers);
                     break;
 
                 case LayerType.Image:
@@ -324,9 +325,10 @@ public static class PageRenderer
 
     // ── Text drawing ──────────────────────────────────────────────────────────
 
-    static void DrawText(SKCanvas canvas, SlideLayer layer, int w, int h)
+    static void DrawText(SKCanvas canvas, SlideLayer layer, int w, int h, bool useLiveTimers = true)
     {
-        string text = layer.TimerBinding is { } tid && TimerTextCache.Values.TryGetValue(tid, out var tv)
+        string text = useLiveTimers && layer.TimerBinding is { } tid
+                      && TimerTextCache.Values.TryGetValue(tid, out var tv)
             ? tv : layer.Text;
         if (string.IsNullOrEmpty(text)) return;
 

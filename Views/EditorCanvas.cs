@@ -267,7 +267,7 @@ public class EditorCanvas : UserControl, IDisposable
         if (slide is null) return;
 
         using var surface = SKSurface.Create(new SKImageInfo(RenderW, RenderH, SKColorType.Rgba8888));
-        PageRenderer.Render(surface.Canvas, slide, LayerRole.All, RenderW, RenderH, elapsedMs);
+        PageRenderer.Render(surface.Canvas, slide, LayerRole.All, RenderW, RenderH, elapsedMs, useLiveTimers: false);
         UpdateSlideImage(surface);
     }
 
@@ -277,7 +277,7 @@ public class EditorCanvas : UserControl, IDisposable
         if (slide is null) { _slideImg.Source = null; return; }
 
         using var surface = SKSurface.Create(new SKImageInfo(RenderW, RenderH, SKColorType.Rgba8888));
-        PageRenderer.Render(surface.Canvas, slide, LayerRole.All, RenderW, RenderH);
+        PageRenderer.Render(surface.Canvas, slide, LayerRole.All, RenderW, RenderH, useLiveTimers: false);
         UpdateSlideImage(surface);
 
         UpdateHandles();
