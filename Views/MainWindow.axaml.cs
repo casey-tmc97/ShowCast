@@ -287,7 +287,7 @@ public partial class MainWindow : Window
 
     void OnNew(object? sender, RoutedEventArgs e) => VM?.NewFile();
 
-    async void OnOpenShow(object? sender, RoutedEventArgs e)
+    void OnOpenShow(object? sender, RoutedEventArgs e)
     {
         // TODO: implemented in Task 2
     }
@@ -325,7 +325,15 @@ public partial class MainWindow : Window
         if (file is null) return;
 
         _currentShowPath = file.Path.LocalPath;
-        await VM.SaveSessionAsync(_currentShowPath);
+        try
+        {
+            await VM.SaveSessionAsync(_currentShowPath);
+        }
+        catch (Exception ex)
+        {
+            _currentShowPath = null;
+            await AlertDialog.ShowError(this, "Save Failed", ex.Message);
+        }
     }
 
     // ── Window chrome ─────────────────────────────────────────────────────────
