@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -497,6 +498,7 @@ public partial class EditorInspectorPanel : UserControl
         };
         textBox.LostFocus += (_, _) =>
         {
+            VM?.BeginLayerEdit();
             span.Text = textBox.Text ?? string.Empty;
             VM?.NotifySlideChanged();
         };
@@ -511,9 +513,10 @@ public partial class EditorInspectorPanel : UserControl
         };
         fontSizeBox.LostFocus += (_, _) =>
         {
+            VM?.BeginLayerEdit();
             if (string.IsNullOrWhiteSpace(fontSizeBox.Text))
                 span.FontSize = null;
-            else if (float.TryParse(fontSizeBox.Text, out float px))
+            else if (float.TryParse(fontSizeBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out float px) && px > 0)
                 span.FontSize = px / VH;
             VM?.NotifySlideChanged();
         };
@@ -529,7 +532,8 @@ public partial class EditorInspectorPanel : UserControl
         boldBtn.Classes.Add("option-toggle");
         boldBtn.IsCheckedChanged += (_, _) =>
         {
-            span.Bold = boldBtn.IsChecked switch { true => true, false => false, _ => null };
+            VM?.BeginLayerEdit();
+            span.Bold = boldBtn.IsChecked;
             VM?.NotifySlideChanged();
         };
 
@@ -544,7 +548,8 @@ public partial class EditorInspectorPanel : UserControl
         italicBtn.Classes.Add("option-toggle");
         italicBtn.IsCheckedChanged += (_, _) =>
         {
-            span.Italic = italicBtn.IsChecked switch { true => true, false => false, _ => null };
+            VM?.BeginLayerEdit();
+            span.Italic = italicBtn.IsChecked;
             VM?.NotifySlideChanged();
         };
 
@@ -562,9 +567,10 @@ public partial class EditorInspectorPanel : UserControl
         ToolTip.SetTip(deleteBtn, "Remove span");
         deleteBtn.Click += (_, _) =>
         {
+            VM?.BeginLayerEdit();
             layer.Spans.Remove(span);
-            VM?.NotifySlideChanged();
             RefreshSpans(layer);
+            VM?.NotifySlideChanged();
         };
 
         // Span header row: index label + bold + italic + font size + delete
@@ -619,8 +625,9 @@ public partial class EditorInspectorPanel : UserControl
     void OnAddSpan(object? sender, RoutedEventArgs e)
     {
         if (_currentLayer is null || _currentLayer.Type != LayerType.Text) return;
+        VM?.BeginLayerEdit();
         _currentLayer.Spans.Add(new TextSpan { Text = "" });
-        VM?.NotifySlideChanged();
         RefreshSpans(_currentLayer);
+        VM?.NotifySlideChanged();
     }
 }
