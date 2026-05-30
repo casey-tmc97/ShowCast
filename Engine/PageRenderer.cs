@@ -327,9 +327,25 @@ public static class PageRenderer
 
     static void DrawText(SKCanvas canvas, SlideLayer layer, int w, int h, bool useLiveTimers = true)
     {
-        string text = useLiveTimers && layer.TimerBinding is { } tid
-                      && TimerTextCache.Values.TryGetValue(tid, out var tv)
-            ? tv : layer.Text;
+        // Timer binding takes priority — renders as plain text regardless of spans
+        if (useLiveTimers && layer.TimerBinding is { } tid
+            && TimerTextCache.Values.TryGetValue(tid, out var tv))
+        {
+            DrawPlainText(canvas, layer, tv, w, h);
+            return;
+        }
+
+        if (layer.Spans.Count > 0)
+        {
+            DrawSpans(canvas, layer, w, h);
+            return;
+        }
+
+        DrawPlainText(canvas, layer, layer.Text, w, h);
+    }
+
+    static void DrawPlainText(SKCanvas canvas, SlideLayer layer, string text, int w, int h)
+    {
         if (string.IsNullOrEmpty(text)) return;
 
         var   rect     = LayerRect(layer, w, h);
@@ -398,6 +414,136 @@ public static class PageRenderer
 
         for (int i = 0; i < lines.Count; i++)
             canvas.DrawText(lines[i], textX, startY + i * lh, paint);
+    }
+
+    static void DrawSpans(SKCanvas canvas, SlideLayer layer, int w, int h)
+    {
+        if (layer.Spans.Count == 0) return;
+
+        float bx = layer.X * w, by = layer.Y * h;
+        float bw = layer.Width * w, bh = layer.Height * h;
+        if (bw <= 0 || bh <= 0) return;
+
+        // Build per-span render info: (text, typeface, paint, lineH)
+        var spanInfos = new List<(string text, SKTypeface tf, SKPaint paint, float lineH)>();
+        foreach (var span in layer.Spans)
+        {
+            if (string.IsNullOrEmpty(span.Text)) continue;
+
+            float  fs     = (span.FontSize   ?? layer.FontSize) * h;
+            string ff     = span.FontFamily  ?? layer.FontFamily;
+            bool   bold   = span.Bold        ?? layer.Bold;
+            bool   italic = span.Italic      ?? layer.Italic;
+            var    color  = span.Color       ?? layer.Color;
+
+            var style = (bold, italic) switch
+            {
+                (true,  true)  => SKFontStyle.BoldItalic,
+                (true,  false) => SKFontStyle.Bold,
+                (false, true)  => SKFontStyle.Italic,
+                _              => SKFontStyle.Normal,
+            };
+            var tf    = SKTypeface.FromFamilyName(ff, style) ?? SKTypeface.Default;
+            var paint = new SKPaint
+            {
+                Color       = color,
+                TextSize    = fs,
+                IsAntialias = true,
+                Typeface    = tf,
+            };
+            spanInfos.Add((span.Text, tf, paint, fs * 1.25f));
+        }
+
+        if (spanInfos.Count == 0) return;
+
+        // Tokenise: split each span's text into word-units, keeping newlines as explicit break tokens
+        // Each token: (text, paint, measured_width, lineH)
+        var tokens = new List<(string txt, SKPaint p, float tw, float lh)>();
+        foreach (var (spanText, _, paint, lh) in spanInfos)
+        {
+            var parts = spanText.Split('\n');
+            for (int pi = 0; pi < parts.Length; pi++)
+            {
+                var words = parts[pi].Split(' ');
+                for (int wi = 0; wi < words.Length; wi++)
+                {
+                    bool   addSpace = wi < words.Length - 1;
+                    string tok      = addSpace ? words[wi] + " " : words[wi];
+                    if (tok.Length == 0) continue;
+                    float tw = paint.MeasureText(tok);
+                    tokens.Add((tok, paint, tw, lh));
+                }
+                // Explicit newline token between parts
+                if (pi < parts.Length - 1)
+                    tokens.Add(("\n", paint, bw + 1, lh)); // width > bw forces a wrap
+            }
+        }
+
+        // Word-wrap into lines
+        var lines = new List<List<(string txt, SKPaint p, float tw, float lh)>>();
+        var cur   = new List<(string txt, SKPaint p, float tw, float lh)>();
+        float curW = 0;
+        foreach (var tok in tokens)
+        {
+            bool isNewline = tok.txt == "\n";
+            if (isNewline || (cur.Count > 0 && curW + tok.tw > bw))
+            {
+                lines.Add(cur);
+                cur  = new();
+                curW = 0;
+                if (isNewline) continue;
+            }
+            cur.Add(tok);
+            curW += tok.tw;
+        }
+        if (cur.Count > 0) lines.Add(cur);
+
+        if (lines.Count == 0) { DisposeSpanInfos(spanInfos); return; }
+
+        float lineH  = spanInfos.Max(s => s.lineH);
+        float totalH = lines.Count * lineH;
+        float startY = layer.TextVAlign switch
+        {
+            TextVAlign.Bottom => by + bh - totalH,
+            TextVAlign.Middle => by + (bh - totalH) / 2f,
+            _                 => by,
+        };
+
+        canvas.Save();
+        try
+        {
+            canvas.ClipRect(new SKRect(bx, by, bx + bw, by + bh));
+
+            float y = startY;
+            foreach (var line in lines)
+            {
+                float lineW   = line.Sum(t => t.tw);
+                float x       = layer.TextHAlign switch
+                {
+                    TextHAlign.Right  => bx + bw - lineW,
+                    TextHAlign.Center => bx + (bw - lineW) / 2f,
+                    _                 => bx,
+                };
+                float baseline = y + lineH * 0.8f;
+                foreach (var (txt, paint, tw, _) in line)
+                {
+                    canvas.DrawText(txt, x, baseline, paint);
+                    x += tw;
+                }
+                y += lineH;
+            }
+        }
+        finally
+        {
+            canvas.Restore();
+        }
+
+        DisposeSpanInfos(spanInfos);
+    }
+
+    static void DisposeSpanInfos(List<(string text, SKTypeface tf, SKPaint paint, float lineH)> infos)
+    {
+        foreach (var (_, tf, p, _) in infos) { tf.Dispose(); p.Dispose(); }
     }
 
     // ── Placeholders ──────────────────────────────────────────────────────────
