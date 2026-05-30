@@ -129,6 +129,19 @@ public class EditorCanvas : UserControl, IDisposable
     SlideLayer? _inlineLayer;
     bool        _inlineCommitting;
 
+    // Last text selection made in the inline editor (persists after editor closes
+    // for ~1 second so the inspector can apply formatting to the selected range).
+    SlideLayer? _lastFormatLayer;
+    int         _lastFormatSelStart;
+    int         _lastFormatSelEnd;
+    DateTime    _lastFormatTime;
+
+    /// <summary>
+    /// Fires when the inline editor's text selection changes.
+    /// Arguments: (bold?, italic?, fontSize?, fontFamily?) of the span at the cursor.
+    /// </summary>
+    public event Action<bool?, bool?, float?, string?>? InlineSpanFormatChanged;
+
     public EditorCanvas()
     {
         for (int i = 0; i < 8; i++)
@@ -807,7 +820,7 @@ public class EditorCanvas : UserControl, IDisposable
 
         var box = new TextBox
         {
-            Text             = layer.Text,
+            Text             = layer.EffectiveText,
             AcceptsReturn    = true,
             TextWrapping     = TextWrapping.Wrap,
             Width            = w,
@@ -844,6 +857,17 @@ public class EditorCanvas : UserControl, IDisposable
         box.KeyDown   += OnInlineKeyDown;
         box.LostFocus += OnInlineLostFocus;
 
+        box.PropertyChanged += (_, pe) =>
+        {
+            if (_inlineLayer is null || _inlineBox is null) return;
+            if (pe.Property != TextBox.SelectionStartProperty && pe.Property != TextBox.SelectionEndProperty) return;
+            _lastFormatSelStart = Math.Min(_inlineBox.SelectionStart, _inlineBox.SelectionEnd);
+            _lastFormatSelEnd   = Math.Max(_inlineBox.SelectionStart, _inlineBox.SelectionEnd);
+            _lastFormatLayer    = _inlineLayer;
+            var (b, i, fs, ff) = SpanEditor.GetFormatAt(_inlineLayer, _lastFormatSelStart);
+            InlineSpanFormatChanged?.Invoke(b, i, fs, ff);
+        };
+
         _overlay.Children.Add(box);
         _inlineBox = box;
 
@@ -852,9 +876,23 @@ public class EditorCanvas : UserControl, IDisposable
 
     void OnInlineKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape)
+        if (e.Key == Key.Escape) { CancelInlineEdit(); e.Handled = true; return; }
+
+        bool ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
+        if (ctrl && (e.Key == Key.B || e.Key == Key.I) && _inlineLayer is not null && _inlineBox is not null)
         {
-            CancelInlineEdit();
+            int selStart = Math.Min(_inlineBox.SelectionStart, _inlineBox.SelectionEnd);
+            int selEnd   = Math.Max(_inlineBox.SelectionStart, _inlineBox.SelectionEnd);
+            if (selStart == selEnd) { e.Handled = true; return; }
+
+            var (curBold, curItalic, _, _) = SpanEditor.GetFormatAt(_inlineLayer, selStart);
+            if (e.Key == Key.B)
+                SpanEditor.ApplyFormat(_inlineLayer, selStart, selEnd, bold: curBold == true ? false : true);
+            else
+                SpanEditor.ApplyFormat(_inlineLayer, selStart, selEnd, italic: curItalic == true ? false : true);
+
+            _vm?.NotifySlideChanged();
+            RebuildSlide();
             e.Handled = true;
         }
     }
@@ -868,9 +906,14 @@ public class EditorCanvas : UserControl, IDisposable
     {
         if (_inlineCommitting || _inlineBox is null || _inlineLayer is null) return;
         _inlineCommitting = true;
-        string text = _inlineBox.Text ?? string.Empty;
+        string newText = _inlineBox.Text ?? string.Empty;
+        string oldText = _inlineLayer.EffectiveText;
+        _lastFormatTime = DateTime.UtcNow;
         RemoveInlineBox();
-        _inlineLayer.Text = text;
+        if (_inlineLayer.Spans.Count > 0)
+            SpanEditor.ReconcileSpans(_inlineLayer, oldText, newText);
+        else
+            _inlineLayer.Text = newText;
         _vm?.NotifySlideChanged();
         RebuildSlide();
         _inlineLayer      = null;
@@ -884,6 +927,31 @@ public class EditorCanvas : UserControl, IDisposable
         RemoveInlineBox();
         _inlineLayer      = null;
         _inlineCommitting = false;
+        RebuildSlide();
+    }
+
+    /// <summary>
+    /// True if the user made a non-empty text selection in the inline editor within the
+    /// last second for the given layer. Used by the inspector to apply formatting to the
+    /// selected range rather than the whole layer.
+    /// </summary>
+    public bool HasRecentSpanSelection(SlideLayer? layer) =>
+        layer is not null
+        && layer == _lastFormatLayer
+        && _lastFormatSelEnd > _lastFormatSelStart
+        && (DateTime.UtcNow - _lastFormatTime).TotalMilliseconds < 1000;
+
+    /// <summary>
+    /// Apply formatting to the last saved span selection.
+    /// Call only when HasRecentSpanSelection returns true.
+    /// </summary>
+    public void ApplySpanSelectionFormat(bool? bold = null, bool? italic = null,
+                                         float? fontSize = null, string? fontFamily = null)
+    {
+        if (_lastFormatLayer is null || _lastFormatSelEnd <= _lastFormatSelStart) return;
+        SpanEditor.ApplyFormat(_lastFormatLayer, _lastFormatSelStart, _lastFormatSelEnd,
+                               bold, italic, fontSize, fontFamily);
+        _vm?.NotifySlideChanged();
         RebuildSlide();
     }
 
