@@ -74,6 +74,19 @@ public static class ShowFileSerializer
         // Values 25/50/75/100 are lossless; we bump the version so old builds
         // reject v2 files rather than silently truncating 12.5 → 12.
         _ => { },
+
+        // index 1: v2 → v3 — plain Text promoted to first TextSpan for rich-text support.
+        file =>
+        {
+            foreach (var show in file.Shows)
+                foreach (var pkg in show.Packages)
+                    foreach (var page in pkg.Pages)
+                        foreach (var layer in page.Layers)
+                            if (layer.Type == LayerType.Text
+                                && layer.Spans.Count == 0
+                                && !string.IsNullOrEmpty(layer.Text))
+                                layer.Spans.Add(new TextSpan { Text = layer.Text });
+        },
     };
 
     public static void ApplyMigration(ShowFile file)

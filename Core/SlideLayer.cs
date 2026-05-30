@@ -51,6 +51,13 @@ public class SlideLayer
     /// <summary>When set, this text layer displays the live output of the named timer instead of Text.</summary>
     public Guid?      TimerBinding { get; set; } = null;
     public string     Text       { get; set; } = string.Empty;
+    public List<TextSpan> Spans  { get; init; } = new();
+
+    // Concatenated text from all spans, or the plain Text field for legacy layers.
+    public string EffectiveText => Spans.Count > 0
+        ? string.Concat(Spans.Select(s => s.Text))
+        : Text;
+
     public SKColor    Color      { get; set; } = SKColors.White;
     /// <summary>Font size normalized to canvas height (0.07 ≈ 75px at 1080p).</summary>
     public float      FontSize   { get; set; } = 0.07f;
@@ -102,6 +109,15 @@ public class SlideLayer
         Bold            = Bold,           Italic        = Italic,
         TextHAlign      = TextHAlign,     TextVAlign    = TextVAlign,
         AssetPath       = AssetPath,      ImageFit      = ImageFit,
+        Spans           = Spans.Select(s => new TextSpan
+        {
+            Text       = s.Text,
+            FontSize   = s.FontSize,
+            FontFamily = s.FontFamily,
+            Bold       = s.Bold,
+            Italic     = s.Italic,
+            Color      = s.Color,
+        }).ToList(),
         EntryAnim       = EntryAnim,
         EntryDurationMs = EntryDurationMs,
         EntryDelayMs    = EntryDelayMs,
