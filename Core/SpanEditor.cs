@@ -131,6 +131,13 @@ public static class SpanEditor
         foreach (var sp in Merged(result).Where(sp => sp.Text.Length > 0))
             layer.Spans.Add(sp);
 
+        // Handle empty result (all text deleted)
+        if (layer.Spans.Count == 0)
+        {
+            layer.Text = newText;
+            return;
+        }
+
         // Single unformatted span → collapse to layer.Text
         if (layer.Spans.Count == 1 && !HasOverride(layer.Spans[0]))
         {
@@ -164,7 +171,7 @@ public static class SpanEditor
 
     static void Merge(List<TextSpan> spans)
     {
-        var merged = Merged(spans).ToList();
+        var merged = Merged(spans).Where(s => s.Text.Length > 0).ToList();
         spans.Clear();
         spans.AddRange(merged);
     }

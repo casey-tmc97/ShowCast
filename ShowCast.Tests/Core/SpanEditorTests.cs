@@ -121,4 +121,37 @@ public class SpanEditorTests
 
         Assert.Equal(2, layer.Spans.Count);
     }
+
+    [Fact]
+    public void ReconcileSpans_ClearsSpansAndSetsEmptyText_WhenAllTextDeleted()
+    {
+        var layer = LayerWithSpans(("Hello", true, null), (" World", null, null));
+        SpanEditor.ReconcileSpans(layer, "Hello World", "");
+
+        Assert.Empty(layer.Spans);
+        Assert.Equal("", layer.Text);
+    }
+
+    [Fact]
+    public void GetFormatAt_ReturnsDefault_WhenSpansEmpty()
+    {
+        var layer = new SlideLayer { Type = LayerType.Text, Text = "Hello" };
+        var (bold, italic, fontSize, fontFamily) = SpanEditor.GetFormatAt(layer, 0);
+
+        Assert.Null(bold);
+        Assert.Null(italic);
+        Assert.Null(fontSize);
+        Assert.Null(fontFamily);
+    }
+
+    [Fact]
+    public void ApplyFormat_ClampsSelEnd_WhenOutOfBounds()
+    {
+        var layer = LayerWithText("Hi");
+        SpanEditor.ApplyFormat(layer, 0, 999, bold: true); // selEnd way past end
+
+        Assert.Single(layer.Spans);
+        Assert.Equal("Hi", layer.Spans[0].Text);
+        Assert.True(layer.Spans[0].Bold);
+    }
 }
