@@ -128,9 +128,13 @@ public class EditorCanvas : UserControl, IDisposable
     TextBox?    _inlineBox;
     SlideLayer? _inlineLayer;
     bool        _inlineCommitting;
+    // Named handler stored so RemoveInlineBox can unsubscribe it cleanly.
+    EventHandler<Avalonia.AvaloniaPropertyChangedEventArgs>? _inlineBoxPropHandler;
 
     // Last text selection made in the inline editor (persists after editor closes
     // for ~1 second so the inspector can apply formatting to the selected range).
+    // _lastFormatTime starts at DateTime.MinValue (safe: HasRecentSpanSelection's
+    // _lastFormatSelEnd > _lastFormatSelStart guard fires first on startup).
     SlideLayer? _lastFormatLayer;
     int         _lastFormatSelStart;
     int         _lastFormatSelEnd;
@@ -857,7 +861,7 @@ public class EditorCanvas : UserControl, IDisposable
         box.KeyDown   += OnInlineKeyDown;
         box.LostFocus += OnInlineLostFocus;
 
-        box.PropertyChanged += (_, pe) =>
+        _inlineBoxPropHandler = (_, pe) =>
         {
             if (_inlineLayer is null || _inlineBox is null) return;
             if (pe.Property != TextBox.SelectionStartProperty && pe.Property != TextBox.SelectionEndProperty) return;
@@ -867,6 +871,7 @@ public class EditorCanvas : UserControl, IDisposable
             var (b, i, fs, ff) = SpanEditor.GetFormatAt(_inlineLayer, _lastFormatSelStart);
             InlineSpanFormatChanged?.Invoke(b, i, fs, ff);
         };
+        box.PropertyChanged += _inlineBoxPropHandler;
 
         _overlay.Children.Add(box);
         _inlineBox = box;
@@ -958,8 +963,11 @@ public class EditorCanvas : UserControl, IDisposable
     void RemoveInlineBox()
     {
         if (_inlineBox is null) return;
-        _inlineBox.KeyDown   -= OnInlineKeyDown;
-        _inlineBox.LostFocus -= OnInlineLostFocus;
+        _inlineBox.KeyDown      -= OnInlineKeyDown;
+        _inlineBox.LostFocus    -= OnInlineLostFocus;
+        if (_inlineBoxPropHandler is not null)
+            _inlineBox.PropertyChanged -= _inlineBoxPropHandler;
+        _inlineBoxPropHandler = null;
         _overlay.Children.Remove(_inlineBox);
         _inlineBox = null;
     }
