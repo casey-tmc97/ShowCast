@@ -186,6 +186,8 @@ public class EditorCanvas : UserControl, IDisposable
 
     // ── Animation preview ─────────────────────────────────────────────────────
 
+    public bool IsInlineEditing => _inlineBox is not null;
+
     public void PreviewAnimation()
     {
         _animTimer.Stop();
@@ -245,7 +247,7 @@ public class EditorCanvas : UserControl, IDisposable
             _rootGrid.RowDefinitions[0].Height   = v ? new GridLength(RulerSize) : new GridLength(0);
             _rootGrid.ColumnDefinitions[0].Width = v ? new GridLength(RulerSize) : new GridLength(0);
         }));
-        _subs.Add(_vm.WhenAnyValue(x => x.GridSpacing).Subscribe(_ => RebuildGrid()));
+        _subs.Add(_vm.WhenAnyValue(x => x.GridSpacing).Subscribe(_ => { RebuildGrid(); RebuildRulers(); }));
     }
 
     protected override void OnSizeChanged(SizeChangedEventArgs e)

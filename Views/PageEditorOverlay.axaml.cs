@@ -83,6 +83,9 @@ public partial class PageEditorOverlay : UserControl
     {
         base.OnKeyDown(e);
 
+        // While the inline canvas text editor is active, let it handle all keys.
+        if (TheCanvas.IsInlineEditing) return;
+
         bool ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
 
         if (ctrl && e.Key == Key.Z)         { VM?.Undo();  e.Handled = true; return; }
