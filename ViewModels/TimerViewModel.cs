@@ -21,6 +21,14 @@ public class TimerViewModel : ReactiveObject, IDisposable
         Def = def;
         _currentSeconds = def.Type == TimerType.Counter ? def.StartSeconds : 0;
         TimerTextCache.Update(def.Id, DisplayText);
+
+        // Clock timers always show a live countdown — start the display ticker immediately
+        // without setting _running, so the user hasn't "started" the timer yet.
+        if (def.Type == TimerType.Clock)
+        {
+            _ticker = new DispatcherTimer(TimeSpan.FromSeconds(1), DispatcherPriority.Normal, OnTick);
+            _ticker.Start();
+        }
     }
 
     public string Name => Def.Name;
@@ -109,11 +117,14 @@ public class TimerViewModel : ReactiveObject, IDisposable
     public void Play()
     {
         if (IsRunning) return;
-        IsRunning      = true;
-        _startedAt     = DateTime.Now;
+        IsRunning       = true;
+        _startedAt      = DateTime.Now;
         _secondsAtStart = _currentSeconds;
-        _ticker = new DispatcherTimer(TimeSpan.FromSeconds(1), DispatcherPriority.Normal, OnTick);
-        _ticker.Start();
+        if (_ticker is null)
+        {
+            _ticker = new DispatcherTimer(TimeSpan.FromSeconds(1), DispatcherPriority.Normal, OnTick);
+            _ticker.Start();
+        }
     }
 
     public void Pause()
