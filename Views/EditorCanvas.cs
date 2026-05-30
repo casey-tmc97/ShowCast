@@ -865,10 +865,18 @@ public class EditorCanvas : UserControl, IDisposable
         {
             if (_inlineLayer is null || _inlineBox is null) return;
             if (pe.Property != TextBox.SelectionStartProperty && pe.Property != TextBox.SelectionEndProperty) return;
-            _lastFormatSelStart = Math.Min(_inlineBox.SelectionStart, _inlineBox.SelectionEnd);
-            _lastFormatSelEnd   = Math.Max(_inlineBox.SelectionStart, _inlineBox.SelectionEnd);
-            _lastFormatLayer    = _inlineLayer;
-            var (b, i, fs, ff) = SpanEditor.GetFormatAt(_inlineLayer, _lastFormatSelStart);
+            int start = Math.Min(_inlineBox.SelectionStart, _inlineBox.SelectionEnd);
+            int end   = Math.Max(_inlineBox.SelectionStart, _inlineBox.SelectionEnd);
+            // Only save non-empty selections: Avalonia clears SelectionStart/End to zero
+            // on focus-loss BEFORE LostFocus fires, which would erase the range we need
+            // for the inspector button click that caused the focus change.
+            if (end > start)
+            {
+                _lastFormatSelStart = start;
+                _lastFormatSelEnd   = end;
+                _lastFormatLayer    = _inlineLayer;
+            }
+            var (b, i, fs, ff) = SpanEditor.GetFormatAt(_inlineLayer, start);
             InlineSpanFormatChanged?.Invoke(b, i, fs, ff);
         };
         box.PropertyChanged += _inlineBoxPropHandler;
