@@ -233,6 +233,8 @@ public partial class MainWindow : Window
 
         if (ctrl && e.Key == Key.Z) { VM?.Undo(); e.Handled = true; return; }
         if (ctrl && e.Key == Key.Y) { VM?.Redo(); e.Handled = true; return; }
+        if (ctrl && e.Key == Key.S) { OnSaveShow(null, null!); e.Handled = true; return; }
+        if (ctrl && e.Key == Key.O) { OnOpenShow(null, null!); e.Handled = true; return; }
         if (e.Key == Key.F1)        { OpenManual(); e.Handled = true; return; }
 
         if (ctrl && !textFocused && VM?.IsEditorOpen == false)
@@ -287,9 +289,44 @@ public partial class MainWindow : Window
 
     void OnNew(object? sender, RoutedEventArgs e) => VM?.NewFile();
 
-    void OnOpenShow(object? sender, RoutedEventArgs e)
+    async void OnOpenShow(object? sender, RoutedEventArgs e)
     {
-        // TODO: implemented in Task 2
+        if (VM is null) return;
+
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title          = "Open Show",
+            AllowMultiple  = false,
+            FileTypeFilter = new[]
+            {
+                new FilePickerFileType("ShowCast File")
+                {
+                    Patterns = new[] { $"*{ShowCast.Core.ShowFileSerializer.Extension}" }
+                },
+                new FilePickerFileType("All Files") { Patterns = new[] { "*.*" } }
+            }
+        });
+
+        var file = files.FirstOrDefault();
+        if (file is null) return;
+
+        var path = file.Path.LocalPath;
+        bool loaded = await VM.LoadSessionAsync(
+            path,
+            confirmMigration: () => AlertDialog.ShowConfirm(
+                this,
+                "Upgrade File Format",
+                "This file was saved with an older version of ShowCast. Upgrade it to the current format?"),
+            showError: msg => AlertDialog.ShowError(
+                this,
+                "Cannot Open File",
+                msg));
+
+        if (loaded)
+        {
+            _currentShowPath = path;
+            RestoreWindowState(VM.ShowFile.Settings);
+        }
     }
 
     async void OnSaveShow(object? sender, RoutedEventArgs e)

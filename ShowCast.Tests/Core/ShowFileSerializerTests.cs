@@ -219,6 +219,40 @@ public class ShowFileSerializerTests
     }
 
     [Fact]
+    public async Task SaveAsync_ThenLoadAsync_PreservesShowsRundownsAndTimers()
+    {
+        var file = new ShowFile();
+        var show = file.AddShow("TestShow");
+        var pkg  = show.AddPackage("PkgA");
+        pkg.AddPage(new Page { Name = "P1" });
+
+        var rd = file.AddRundown("RD1");
+        rd.AddEntry(new RundownEntry { PackageId = pkg.Id });
+
+        file.Timers.Add(new TimerDef { Name = "MyTimer", StartSeconds = 60 });
+
+        var path = Path.Combine(Path.GetTempPath(), $"showcast_test_{Guid.NewGuid()}.scf");
+        try
+        {
+            await ShowFileSerializer.SaveAsync(file, path);
+            var result = await ShowFileSerializer.LoadAsync(path);
+
+            Assert.NotNull(result);
+            Assert.Single(result!.File.Shows);
+            Assert.Equal("TestShow", result.File.Shows[0].Name);
+            Assert.Single(result.File.Shows[0].Packages);
+            Assert.Single(result.File.Rundowns);
+            Assert.Equal("RD1", result.File.Rundowns[0].Name);
+            Assert.Single(result.File.Timers);
+            Assert.Equal("MyTimer", result.File.Timers[0].Name);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void Page_TriggerAudioPlaylistAndTrackId_SurviveRoundTripTogether()
     {
         var playlistId = Guid.NewGuid();
