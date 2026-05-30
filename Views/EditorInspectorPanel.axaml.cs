@@ -26,6 +26,7 @@ public partial class EditorInspectorPanel : UserControl
 
     readonly List<IDisposable> _subs = new();
     bool _loading;
+    SlideLayer? _currentLayer;
 
     static readonly string[] _systemFonts =
         SKFontManager.Default.GetFontFamilies().OrderBy(f => f).ToArray();
@@ -74,10 +75,15 @@ public partial class EditorInspectorPanel : UserControl
             AlignSection.IsVisible     = hasSel;
             AnimSection.IsVisible      = hasSel;
             TextSection.IsVisible      = false;
+            SpansSection.IsVisible     = false;
             ImageSection.IsVisible     = false;
             FillSection.IsVisible      = false;
 
-            if (layer is null) return;
+            if (layer is null)
+            {
+                _currentLayer = null;
+                return;
+            }
 
             // ── Common ──
             LayerNameBox.Text          = layer.Name;
@@ -97,6 +103,8 @@ public partial class EditorInspectorPanel : UserControl
             {
                 case LayerType.Text:
                     TextSection.IsVisible    = true;
+                    SpansSection.IsVisible   = true;
+                    _currentLayer            = layer;
                     var timerItems = new System.Collections.Generic.List<TimerBindingOption>
                         { new(null, "(None)") };
                     if (VM is not null)
@@ -117,6 +125,7 @@ public partial class EditorInspectorPanel : UserControl
                     VAlignBotBtn.IsChecked   = layer.TextVAlign == TextVAlign.Bottom;
                     TextStrokePicker.Value   = layer.StrokeColor;
                     TextStrokeWidthBox.Text  = layer.StrokeWidth.ToString("F1");
+                    RefreshSpans(layer);
                     break;
 
                 case LayerType.Image:
@@ -470,5 +479,148 @@ public partial class EditorInspectorPanel : UserControl
         else if (tb == CornerRadiusBox)     OnCornerRadiusLostFocus(tb, null!);
         else if (tb == FillStrokeWidthBox)  OnFillStrokeWidthLostFocus(tb, null!);
         e.Handled = true;
+    }
+
+    // ── Rich Text Spans ───────────────────────────────────────────────────────
+
+    Control BuildSpanRow(TextSpan span, int index, SlideLayer layer)
+    {
+        // Text content box
+        var textBox = new TextBox
+        {
+            Text          = span.Text,
+            AcceptsReturn = true,
+            TextWrapping  = Avalonia.Media.TextWrapping.Wrap,
+            MinHeight     = 48,
+            MaxHeight     = 120,
+            Margin        = new Avalonia.Thickness(0, 0, 0, 4),
+        };
+        textBox.LostFocus += (_, _) =>
+        {
+            span.Text = textBox.Text ?? string.Empty;
+            VM?.NotifySlideChanged();
+        };
+
+        // Font size override
+        var fontSizeBox = new TextBox
+        {
+            Text      = span.FontSize.HasValue ? ((int)(span.FontSize.Value * VH)).ToString() : "",
+            Watermark = "inherit",
+            Width     = 70,
+            Height    = 28,
+        };
+        fontSizeBox.LostFocus += (_, _) =>
+        {
+            if (string.IsNullOrWhiteSpace(fontSizeBox.Text))
+                span.FontSize = null;
+            else if (float.TryParse(fontSizeBox.Text, out float px))
+                span.FontSize = px / VH;
+            VM?.NotifySlideChanged();
+        };
+
+        // Bold toggle
+        var boldBtn = new ToggleButton
+        {
+            Content    = "B",
+            FontWeight = Avalonia.Media.FontWeight.Bold,
+            IsChecked  = span.Bold,
+            Width = 28, Height = 28,
+        };
+        boldBtn.Classes.Add("option-toggle");
+        boldBtn.IsCheckedChanged += (_, _) =>
+        {
+            span.Bold = boldBtn.IsChecked switch { true => true, false => false, _ => null };
+            VM?.NotifySlideChanged();
+        };
+
+        // Italic toggle
+        var italicBtn = new ToggleButton
+        {
+            Content   = "I",
+            FontStyle = Avalonia.Media.FontStyle.Italic,
+            IsChecked = span.Italic,
+            Width = 28, Height = 28,
+        };
+        italicBtn.Classes.Add("option-toggle");
+        italicBtn.IsCheckedChanged += (_, _) =>
+        {
+            span.Italic = italicBtn.IsChecked switch { true => true, false => false, _ => null };
+            VM?.NotifySlideChanged();
+        };
+
+        // Delete button
+        var deleteBtn = new Button
+        {
+            Content         = "×",
+            FontSize        = 15,
+            Width           = 28,
+            Height          = 28,
+            Background      = Avalonia.Media.Brushes.Transparent,
+            Foreground      = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#cc4444")),
+            BorderThickness = new Avalonia.Thickness(0),
+        };
+        ToolTip.SetTip(deleteBtn, "Remove span");
+        deleteBtn.Click += (_, _) =>
+        {
+            layer.Spans.Remove(span);
+            VM?.NotifySlideChanged();
+            RefreshSpans(layer);
+        };
+
+        // Span header row: index label + bold + italic + font size + delete
+        var headerRow = new StackPanel
+        {
+            Orientation = Avalonia.Layout.Orientation.Horizontal,
+            Spacing     = 4,
+            Margin      = new Avalonia.Thickness(0, 0, 0, 4),
+        };
+        headerRow.Children.Add(new TextBlock
+        {
+            Text              = $"Span {index + 1}",
+            Foreground        = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#aaaaaa")),
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            FontSize          = 11,
+            MinWidth          = 50,
+        });
+        headerRow.Children.Add(boldBtn);
+        headerRow.Children.Add(italicBtn);
+        headerRow.Children.Add(new TextBlock
+        {
+            Text              = "px:",
+            Foreground        = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#888888")),
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            FontSize          = 11,
+        });
+        headerRow.Children.Add(fontSizeBox);
+        headerRow.Children.Add(deleteBtn);
+
+        var innerPanel = new StackPanel();
+        innerPanel.Children.Add(headerRow);
+        innerPanel.Children.Add(textBox);
+
+        return new Border
+        {
+            BorderBrush     = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#3a3a3a")),
+            BorderThickness = new Avalonia.Thickness(0, 0, 0, 1),
+            Margin          = new Avalonia.Thickness(0, 0, 0, 8),
+            Child           = innerPanel,
+        };
+    }
+
+    void RefreshSpans(SlideLayer layer)
+    {
+        SpanList.ItemsSource = null;
+        var rows = new List<Control>();
+        for (int i = 0; i < layer.Spans.Count; i++)
+            rows.Add(BuildSpanRow(layer.Spans[i], i, layer));
+        SpanList.ItemsSource = rows;
+    }
+
+    void OnAddSpan(object? sender, RoutedEventArgs e)
+    {
+        if (_currentLayer is null || _currentLayer.Type != LayerType.Text) return;
+        _currentLayer.Spans.Add(new TextSpan { Text = "" });
+        VM?.NotifySlideChanged();
+        RefreshSpans(_currentLayer);
     }
 }

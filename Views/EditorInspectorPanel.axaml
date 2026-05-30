@@ -287,6 +287,31 @@
                 </StackPanel>
             </Expander>
 
+            <!-- ══ RICH TEXT SPANS ══ -->
+            <Expander x:Name="SpansSection" IsVisible="False"
+                      Theme="{StaticResource SectionExpander}"
+                      Header="RICH TEXT SPANS">
+                <StackPanel Margin="0,2,0,0">
+
+                    <TextBlock Classes="field-label"
+                               Text="Add spans below to use different fonts, sizes, or colors within this text layer."
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,6"/>
+
+                    <!-- Span list -->
+                    <ItemsControl x:Name="SpanList" Margin="0,0,0,6"/>
+
+                    <!-- Add span button -->
+                    <Button Content="+ Add Span"
+                            Background="#2a3a2a" Foreground="#88cc88"
+                            BorderBrush="#446644" BorderThickness="1"
+                            HorizontalAlignment="Stretch"
+                            Padding="0,4" FontSize="12" CornerRadius="4"
+                            Click="OnAddSpan"/>
+
+                </StackPanel>
+            </Expander>
+
             <!-- ══ IMAGE ══ -->
             <Expander x:Name="ImageSection" IsVisible="False"
                       Theme="{StaticResource SectionExpander}"
