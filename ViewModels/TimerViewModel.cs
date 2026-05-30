@@ -155,6 +155,13 @@ public class TimerViewModel : ReactiveObject, IDisposable
     {
         if (Def.Type == TimerType.Clock)
         {
+            int remaining = ClockSecondsRemaining();
+            if (remaining <= 0)
+            {
+                CurrentSeconds = 0;
+                Pause();
+                return;
+            }
             TimerTextCache.Update(Def.Id, DisplayText);
             this.RaisePropertyChanged(nameof(DisplayText));
             this.RaisePropertyChanged(nameof(DisplayBrush));
@@ -182,7 +189,6 @@ public class TimerViewModel : ReactiveObject, IDisposable
             return 0;
         var now    = DateTime.Now;
         var target = new DateTime(now.Year, now.Month, now.Day, h, m, 0);
-        if (target <= now) target = target.AddDays(1);
         return (int)(target - now).TotalSeconds;
     }
 
