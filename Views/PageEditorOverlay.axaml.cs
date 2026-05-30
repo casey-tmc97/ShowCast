@@ -10,7 +10,11 @@ namespace ShowCast.Views;
 
 public partial class PageEditorOverlay : UserControl
 {
-    public PageEditorOverlay() => InitializeComponent();
+    public PageEditorOverlay()
+    {
+        InitializeComponent();
+        TheInspector.SetCanvas(TheCanvas);
+    }
 
     MainViewModel? VM => DataContext as MainViewModel;
 

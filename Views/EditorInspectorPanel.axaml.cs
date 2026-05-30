@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -27,7 +26,7 @@ public partial class EditorInspectorPanel : UserControl
 
     readonly List<IDisposable> _subs = new();
     bool _loading;
-    SlideLayer? _currentLayer;
+    EditorCanvas? _canvas;
 
     static readonly string[] _systemFonts =
         SKFontManager.Default.GetFontFamilies().OrderBy(f => f).ToArray();
@@ -39,6 +38,25 @@ public partial class EditorInspectorPanel : UserControl
     }
 
     MainViewModel? VM => DataContext as MainViewModel;
+
+    public void SetCanvas(EditorCanvas canvas)
+    {
+        if (_canvas is not null)
+            _canvas.InlineSpanFormatChanged -= OnInlineSpanFormatChanged;
+        _canvas = canvas;
+        _canvas.InlineSpanFormatChanged += OnInlineSpanFormatChanged;
+    }
+
+    void OnInlineSpanFormatChanged(bool? bold, bool? italic, float? fontSize, string? fontFamily)
+    {
+        // Update Bold/Italic buttons to reflect span format at cursor.
+        // IsChecked assignment does NOT fire the Click event, so no loop.
+        BoldBtn.IsChecked   = bold;
+        ItalicBtn.IsChecked = italic;
+        // Update font size if span has an override; blank means "inherit from layer"
+        if (fontSize.HasValue)
+            FontSizeBox.Text = ((int)(fontSize.Value * VH)).ToString();
+    }
 
     protected override void OnDataContextChanged(EventArgs e)
     {
@@ -76,13 +94,11 @@ public partial class EditorInspectorPanel : UserControl
             AlignSection.IsVisible     = hasSel;
             AnimSection.IsVisible      = hasSel;
             TextSection.IsVisible      = false;
-            SpansSection.IsVisible     = false;
             ImageSection.IsVisible     = false;
             FillSection.IsVisible      = false;
 
             if (layer is null)
             {
-                _currentLayer = null;
                 return;
             }
 
@@ -104,8 +120,6 @@ public partial class EditorInspectorPanel : UserControl
             {
                 case LayerType.Text:
                     TextSection.IsVisible    = true;
-                    SpansSection.IsVisible   = true;
-                    _currentLayer            = layer;
                     var timerItems = new System.Collections.Generic.List<TimerBindingOption>
                         { new(null, "(None)") };
                     if (VM is not null)
@@ -126,7 +140,6 @@ public partial class EditorInspectorPanel : UserControl
                     VAlignBotBtn.IsChecked   = layer.TextVAlign == TextVAlign.Bottom;
                     TextStrokePicker.Value   = layer.StrokeColor;
                     TextStrokeWidthBox.Text  = layer.StrokeWidth.ToString("F1");
-                    RefreshSpans(layer);
                     break;
 
                 case LayerType.Image:
@@ -236,19 +249,36 @@ public partial class EditorInspectorPanel : UserControl
     void OnFontFamilySelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (_loading || VM?.SelectedLayer is not { Type: LayerType.Text } layer) return;
-        if (FontFamilyBox.SelectedItem is string fam && !string.IsNullOrEmpty(fam))
+        if (FontFamilyBox.SelectedItem is not string fam || string.IsNullOrEmpty(fam)) return;
+
+        if (_canvas?.HasRecentSpanSelection(layer) == true)
         {
             VM.BeginLayerEdit();
-            layer.FontFamily = fam;
-            VM.NotifySlideChanged();
+            _canvas.ApplySpanSelectionFormat(fontFamily: fam);
+            return;
         }
+
+        VM.BeginLayerEdit();
+        layer.FontFamily = fam;
+        VM.NotifySlideChanged();
     }
 
     void OnFontSizeLostFocus(object? sender, RoutedEventArgs e)
     {
         if (_loading || VM?.SelectedLayer is not { Type: LayerType.Text } layer) return;
-        if (float.TryParse(FontSizeBox.Text, out float px) && px > 0)
-        { VM.BeginLayerEdit(); layer.FontSize = px / VH; VM.NotifySlideChanged(); }
+        if (!float.TryParse(FontSizeBox.Text, out float px) || px <= 0) return;
+        float normalized = px / VH;
+
+        if (_canvas?.HasRecentSpanSelection(layer) == true)
+        {
+            VM.BeginLayerEdit();
+            _canvas.ApplySpanSelectionFormat(fontSize: normalized);
+            return;
+        }
+
+        VM.BeginLayerEdit();
+        layer.FontSize = normalized;
+        VM.NotifySlideChanged();
     }
 
     void OnTextColorChanged(SKColor color)
@@ -260,6 +290,16 @@ public partial class EditorInspectorPanel : UserControl
     void OnStyleClick(object? sender, RoutedEventArgs e)
     {
         if (_loading || VM?.SelectedLayer is not { Type: LayerType.Text } layer) return;
+
+        if (_canvas?.HasRecentSpanSelection(layer) == true)
+        {
+            VM.BeginLayerEdit();
+            _canvas.ApplySpanSelectionFormat(
+                bold:   sender == BoldBtn   ? BoldBtn.IsChecked   : null,
+                italic: sender == ItalicBtn ? ItalicBtn.IsChecked : null);
+            return;
+        }
+
         VM.BeginLayerEdit();
         if (sender == BoldBtn)   layer.Bold   = BoldBtn.IsChecked   == true;
         if (sender == ItalicBtn) layer.Italic = ItalicBtn.IsChecked == true;
@@ -482,152 +522,4 @@ public partial class EditorInspectorPanel : UserControl
         e.Handled = true;
     }
 
-    // ── Rich Text Spans ───────────────────────────────────────────────────────
-
-    Control BuildSpanRow(TextSpan span, int index, SlideLayer layer)
-    {
-        // Text content box
-        var textBox = new TextBox
-        {
-            Text          = span.Text,
-            AcceptsReturn = true,
-            TextWrapping  = Avalonia.Media.TextWrapping.Wrap,
-            MinHeight     = 48,
-            MaxHeight     = 120,
-            Margin        = new Avalonia.Thickness(0, 0, 0, 4),
-        };
-        textBox.LostFocus += (_, _) =>
-        {
-            VM?.BeginLayerEdit();
-            span.Text = textBox.Text ?? string.Empty;
-            VM?.NotifySlideChanged();
-        };
-
-        // Font size override
-        var fontSizeBox = new TextBox
-        {
-            Text      = span.FontSize.HasValue ? ((int)(span.FontSize.Value * VH)).ToString() : "",
-            Watermark = "inherit",
-            Width     = 70,
-            Height    = 28,
-        };
-        fontSizeBox.LostFocus += (_, _) =>
-        {
-            VM?.BeginLayerEdit();
-            if (string.IsNullOrWhiteSpace(fontSizeBox.Text))
-                span.FontSize = null;
-            else if (float.TryParse(fontSizeBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out float px) && px > 0)
-                span.FontSize = px / VH;
-            VM?.NotifySlideChanged();
-        };
-
-        // Bold toggle
-        var boldBtn = new ToggleButton
-        {
-            Content    = "B",
-            FontWeight = Avalonia.Media.FontWeight.Bold,
-            IsChecked  = span.Bold,
-            Width = 28, Height = 28,
-        };
-        boldBtn.Classes.Add("option-toggle");
-        boldBtn.IsCheckedChanged += (_, _) =>
-        {
-            VM?.BeginLayerEdit();
-            span.Bold = boldBtn.IsChecked;
-            VM?.NotifySlideChanged();
-        };
-
-        // Italic toggle
-        var italicBtn = new ToggleButton
-        {
-            Content   = "I",
-            FontStyle = Avalonia.Media.FontStyle.Italic,
-            IsChecked = span.Italic,
-            Width = 28, Height = 28,
-        };
-        italicBtn.Classes.Add("option-toggle");
-        italicBtn.IsCheckedChanged += (_, _) =>
-        {
-            VM?.BeginLayerEdit();
-            span.Italic = italicBtn.IsChecked;
-            VM?.NotifySlideChanged();
-        };
-
-        // Delete button
-        var deleteBtn = new Button
-        {
-            Content         = "×",
-            FontSize        = 15,
-            Width           = 28,
-            Height          = 28,
-            Background      = Avalonia.Media.Brushes.Transparent,
-            Foreground      = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#cc4444")),
-            BorderThickness = new Avalonia.Thickness(0),
-        };
-        ToolTip.SetTip(deleteBtn, "Remove span");
-        deleteBtn.Click += (_, _) =>
-        {
-            VM?.BeginLayerEdit();
-            layer.Spans.Remove(span);
-            RefreshSpans(layer);
-            VM?.NotifySlideChanged();
-        };
-
-        // Span header row: index label + bold + italic + font size + delete
-        var headerRow = new StackPanel
-        {
-            Orientation = Avalonia.Layout.Orientation.Horizontal,
-            Spacing     = 4,
-            Margin      = new Avalonia.Thickness(0, 0, 0, 4),
-        };
-        headerRow.Children.Add(new TextBlock
-        {
-            Text              = $"Span {index + 1}",
-            Foreground        = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#aaaaaa")),
-            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-            FontSize          = 11,
-            MinWidth          = 50,
-        });
-        headerRow.Children.Add(boldBtn);
-        headerRow.Children.Add(italicBtn);
-        headerRow.Children.Add(new TextBlock
-        {
-            Text              = "px:",
-            Foreground        = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#888888")),
-            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-            FontSize          = 11,
-        });
-        headerRow.Children.Add(fontSizeBox);
-        headerRow.Children.Add(deleteBtn);
-
-        var innerPanel = new StackPanel();
-        innerPanel.Children.Add(headerRow);
-        innerPanel.Children.Add(textBox);
-
-        return new Border
-        {
-            BorderBrush     = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#3a3a3a")),
-            BorderThickness = new Avalonia.Thickness(0, 0, 0, 1),
-            Margin          = new Avalonia.Thickness(0, 0, 0, 8),
-            Child           = innerPanel,
-        };
-    }
-
-    void RefreshSpans(SlideLayer layer)
-    {
-        SpanList.ItemsSource = null;
-        var rows = new List<Control>();
-        for (int i = 0; i < layer.Spans.Count; i++)
-            rows.Add(BuildSpanRow(layer.Spans[i], i, layer));
-        SpanList.ItemsSource = rows;
-    }
-
-    void OnAddSpan(object? sender, RoutedEventArgs e)
-    {
-        if (_currentLayer is null || _currentLayer.Type != LayerType.Text) return;
-        VM?.BeginLayerEdit();
-        _currentLayer.Spans.Add(new TextSpan { Text = "" });
-        RefreshSpans(_currentLayer);
-        VM?.NotifySlideChanged();
-    }
 }

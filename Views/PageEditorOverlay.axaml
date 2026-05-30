@@ -161,7 +161,7 @@
             <!-- Right: Property inspector -->
             <Border Grid.Column="4"
                     BorderBrush="#555555" BorderThickness="1,0,0,0">
-                <views:EditorInspectorPanel/>
+                <views:EditorInspectorPanel x:Name="TheInspector"/>
             </Border>
 
         </Grid>
