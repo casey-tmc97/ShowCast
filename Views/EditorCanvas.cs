@@ -125,27 +125,11 @@ public class EditorCanvas : UserControl, IDisposable
     DateTime _animStart;
 
     // ── Inline text editing ───────────────────────────────────────────────────
-    TextBox?    _inlineBox;
-    SlideLayer? _inlineLayer;
-    bool        _inlineCommitting;
-    // Named handler stored so RemoveInlineBox can unsubscribe it cleanly.
-    EventHandler<Avalonia.AvaloniaPropertyChangedEventArgs>? _inlineBoxPropHandler;
+    CanvasTextEditor? _textEditor;
 
-    // Last text selection made in the inline editor (persists after editor closes
-    // for ~1 second so the inspector can apply formatting to the selected range).
-    // _lastFormatTime starts at DateTime.MinValue (safe: HasRecentSpanSelection's
-    // _lastFormatSelEnd > _lastFormatSelStart guard fires first on startup).
-    SlideLayer? _lastFormatLayer;
-    int         _lastFormatSelStart;
-    int         _lastFormatSelEnd;
-    DateTime    _lastFormatTime;
+    public CanvasTextEditor? ActiveTextEditor => _textEditor;
 
-    /// <summary>
-    /// Fires when the inline editor's text selection changes.
-    /// Arguments: (bold?, italic?, fontSize?, fontFamily?) of the span at the cursor.
-    /// </summary>
-    // Replaced by SpanFormatChanged (Action<SpanFormatInfo>) in Task 5 — do not extend.
-    public event Action<bool?, bool?, float?, string?>? InlineSpanFormatChanged;
+    public event Action<SpanFormatInfo>? SpanFormatChanged;
 
     public EditorCanvas()
     {
@@ -204,7 +188,7 @@ public class EditorCanvas : UserControl, IDisposable
 
     // ── Animation preview ─────────────────────────────────────────────────────
 
-    public bool IsInlineEditing => _inlineBox is not null;
+    public bool IsInlineEditing => _textEditor is not null;
 
     public void PreviewAnimation()
     {
@@ -275,6 +259,7 @@ public class EditorCanvas : UserControl, IDisposable
         RebuildGrid();
         RebuildSafeBoundaries();
         UpdateHandles();
+        _textEditor?.UpdateImageRect(GetImageRect());
     }
 
     // ── Slide rendering ───────────────────────────────────────────────────────
@@ -617,7 +602,23 @@ public class EditorCanvas : UserControl, IDisposable
     void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (_vm is null) return;
-        if (_inlineBox is not null) { CommitInlineEdit(); return; }
+        // Forward click into active text editor (cursor placement or commit on outside click)
+        if (_textEditor is not null)
+        {
+            var edPt = e.GetPosition(_overlay);
+            var (enx, eny) = ToNorm(edPt);
+            bool insideLayer = _vm.SelectedLayer is { } sel2
+                && enx >= sel2.X && enx <= sel2.X + sel2.Width
+                && eny >= sel2.Y && eny <= sel2.Y + sel2.Height;
+            if (insideLayer)
+            {
+                _textEditor.OnPointerPressed(edPt);
+                e.Handled = true;
+                return;
+            }
+            EndCustomEdit();
+            return;
+        }
         var pt = e.GetPosition(_overlay);
 
         // 1. Rotation handle
@@ -676,6 +677,11 @@ public class EditorCanvas : UserControl, IDisposable
     void OnPointerMoved(object? sender, PointerEventArgs e)
     {
         var pt = e.GetPosition(_overlay);
+        if (_textEditor is not null)
+        {
+            _textEditor.OnPointerMoved(pt, e.GetCurrentPoint(_overlay).Properties.IsLeftButtonPressed);
+            return;
+        }
         UpdateRulerPointers(pt);
 
         if (!_dragging || _vm?.SelectedLayer is not { } layer) return;
@@ -741,6 +747,7 @@ public class EditorCanvas : UserControl, IDisposable
 
     void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        _textEditor?.OnPointerReleased();
         if (_dragging)
         {
             _dragging = false;
@@ -805,189 +812,41 @@ public class EditorCanvas : UserControl, IDisposable
         if (hit is null) return;
 
         _vm.SelectedLayer = hit;
-        BeginInlineEdit(hit);
+        BeginCustomEdit(hit, e.GetPosition(_overlay));
         e.Handled = true;
     }
 
-    void BeginInlineEdit(SlideLayer layer)
+    void BeginCustomEdit(SlideLayer layer, Point? clickPosition = null)
     {
-        CommitInlineEdit();
-
-        _inlineLayer = layer;
-        _vm?.BeginLayerEdit();
-
-        var ir = GetImageRect();
-        double x  = ir.X + layer.X * ir.Width;
-        double y  = ir.Y + layer.Y * ir.Height;
-        double w  = layer.Width  * ir.Width;
-        double h  = layer.Height * ir.Height;
-        double fs = Math.Max(8, layer.FontSize * ir.Height);
-
-        var box = new TextBox
-        {
-            Text             = layer.EffectiveText,
-            AcceptsReturn    = true,
-            TextWrapping     = TextWrapping.Wrap,
-            Width            = w,
-            Height           = h,
-            FontSize         = fs,
-            FontFamily       = string.IsNullOrEmpty(layer.FontFamily)
-                                   ? FontFamily.Default
-                                   : new FontFamily(layer.FontFamily),
-            Background       = new SolidColorBrush(Color.FromArgb(200, 15, 15, 15)),
-            Foreground       = Brushes.White,
-            CaretBrush       = Brushes.White,
-            SelectionBrush   = new SolidColorBrush(Color.FromArgb(120, 59, 130, 246)),
-            BorderBrush      = new SolidColorBrush(Color.FromRgb(59, 130, 246)),
-            BorderThickness  = new Thickness(2),
-            Padding          = new Thickness(4),
-            VerticalAlignment        = Avalonia.Layout.VerticalAlignment.Top,
-            VerticalContentAlignment = layer.TextVAlign switch
-            {
-                TextVAlign.Bottom => Avalonia.Layout.VerticalAlignment.Bottom,
-                TextVAlign.Middle => Avalonia.Layout.VerticalAlignment.Center,
-                _                 => Avalonia.Layout.VerticalAlignment.Top,
-            },
-            TextAlignment    = layer.TextHAlign switch
-            {
-                TextHAlign.Left  => TextAlignment.Left,
-                TextHAlign.Right => TextAlignment.Right,
-                _                => TextAlignment.Center,
-            },
-        };
-
-        Canvas.SetLeft(box, x);
-        Canvas.SetTop(box, y);
-
-        box.KeyDown   += OnInlineKeyDown;
-        box.LostFocus += OnInlineLostFocus;
-
-        _inlineBoxPropHandler = (_, pe) =>
-        {
-            if (_inlineLayer is null || _inlineBox is null) return;
-            if (pe.Property != TextBox.SelectionStartProperty && pe.Property != TextBox.SelectionEndProperty) return;
-            int start = Math.Min(_inlineBox.SelectionStart, _inlineBox.SelectionEnd);
-            int end   = Math.Max(_inlineBox.SelectionStart, _inlineBox.SelectionEnd);
-            // Only save non-empty selections: Avalonia clears SelectionStart/End to zero
-            // on focus-loss BEFORE LostFocus fires, which would erase the range we need
-            // for the inspector button click that caused the focus change.
-            if (end > start)
-            {
-                _lastFormatSelStart = start;
-                _lastFormatSelEnd   = end;
-                _lastFormatLayer    = _inlineLayer;
-            }
-            var fmt = SpanEditor.GetFormatAt(_inlineLayer, start);
-            InlineSpanFormatChanged?.Invoke(fmt.bold, fmt.italic, fmt.fontSize, fmt.fontFamily);
-        };
-        box.PropertyChanged += _inlineBoxPropHandler;
-
-        _overlay.Children.Add(box);
-        _inlineBox = box;
-
-        Dispatcher.UIThread.Post(() => { box.Focus(); box.SelectAll(); });
+        EndCustomEdit();
+        _textEditor = new CanvasTextEditor(
+            layer, _overlay, GetImageRect(),
+            RebuildSlide,
+            info => SpanFormatChanged?.Invoke(info),
+            _vm!);
+        _textEditor.Open(clickPosition);
     }
 
-    void OnInlineKeyDown(object? sender, KeyEventArgs e)
+    void EndCustomEdit()
     {
-        if (e.Key == Key.Escape) { CancelInlineEdit(); e.Handled = true; return; }
-
-        bool ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
-        if (ctrl && (e.Key == Key.B || e.Key == Key.I) && _inlineLayer is not null && _inlineBox is not null)
-        {
-            int selStart = Math.Min(_inlineBox.SelectionStart, _inlineBox.SelectionEnd);
-            int selEnd   = Math.Max(_inlineBox.SelectionStart, _inlineBox.SelectionEnd);
-            if (selStart == selEnd) { e.Handled = true; return; }
-
-            var fmt = SpanEditor.GetFormatAt(_inlineLayer, selStart);
-            bool? curBold = fmt.bold; bool? curItalic = fmt.italic;
-            _vm?.BeginLayerEdit();
-            if (e.Key == Key.B)
-                SpanEditor.ApplyFormat(_inlineLayer, selStart, selEnd, bold: curBold == true ? false : true);
-            else
-                SpanEditor.ApplyFormat(_inlineLayer, selStart, selEnd, italic: curItalic == true ? false : true);
-
-            _vm?.NotifySlideChanged();
-            RebuildSlide();
-            e.Handled = true;
-        }
+        if (_textEditor is null) return;
+        var ed = _textEditor;
+        _textEditor = null;
+        ed.Commit();
     }
 
-    void OnInlineLostFocus(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    void CancelCustomEdit()
     {
-        CommitInlineEdit();
-    }
-
-    void CommitInlineEdit()
-    {
-        if (_inlineCommitting || _inlineBox is null || _inlineLayer is null) return;
-        _inlineCommitting = true;
-        string newText = _inlineBox.Text ?? string.Empty;
-        string oldText = _inlineLayer.EffectiveText;
-        _lastFormatTime = DateTime.UtcNow;
-        RemoveInlineBox();
-        if (_inlineLayer.Spans.Count > 0)
-            SpanEditor.ReconcileSpans(_inlineLayer, oldText, newText);
-        else
-            _inlineLayer.Text = newText;
-        _vm?.NotifySlideChanged();
-        RebuildSlide();
-        _inlineLayer      = null;
-        _inlineCommitting = false;
-    }
-
-    void CancelInlineEdit()
-    {
-        if (_inlineCommitting) return;
-        _inlineCommitting = true;
-        RemoveInlineBox();
-        _inlineLayer      = null;
-        _inlineCommitting = false;
-        RebuildSlide();
-    }
-
-    /// <summary>
-    /// True if the user made a non-empty text selection in the inline editor within the
-    /// last second for the given layer. Used by the inspector to apply formatting to the
-    /// selected range rather than the whole layer.
-    /// </summary>
-    public bool HasRecentSpanSelection(SlideLayer? layer) =>
-        layer is not null
-        && layer == _lastFormatLayer
-        && _lastFormatSelEnd > _lastFormatSelStart
-        && (DateTime.UtcNow - _lastFormatTime).TotalMilliseconds < 1000;
-
-    /// <summary>
-    /// Apply formatting to the last saved span selection.
-    /// Call only when HasRecentSpanSelection returns true.
-    /// </summary>
-    // Replaced by CanvasTextEditor.ApplyFormat in Task 5 — do not extend.
-    public void ApplySpanSelectionFormat(bool? bold = null, bool? italic = null,
-                                         float? fontSize = null, string? fontFamily = null)
-    {
-        if (_lastFormatLayer is null || _lastFormatSelEnd <= _lastFormatSelStart) return;
-        SpanEditor.ApplyFormat(_lastFormatLayer, _lastFormatSelStart, _lastFormatSelEnd,
-                               bold, italic, fontSize, fontFamily);
-        _vm?.NotifySlideChanged();
-        RebuildSlide();
-    }
-
-    void RemoveInlineBox()
-    {
-        if (_inlineBox is null) return;
-        _inlineBox.KeyDown      -= OnInlineKeyDown;
-        _inlineBox.LostFocus    -= OnInlineLostFocus;
-        if (_inlineBoxPropHandler is not null)
-            _inlineBox.PropertyChanged -= _inlineBoxPropHandler;
-        _inlineBoxPropHandler = null;
-        _overlay.Children.Remove(_inlineBox);
-        _inlineBox = null;
+        if (_textEditor is null) return;
+        var ed = _textEditor;
+        _textEditor = null;
+        ed.Cancel();
     }
 
     public void Dispose()
     {
         _animTimer.Stop();
-        CommitInlineEdit();
+        EndCustomEdit();
         foreach (var s in _subs) s.Dispose();
         if (_vm is not null) _vm.SlideContentChanged -= OnSlideContentChanged;
     }

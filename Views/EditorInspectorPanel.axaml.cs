@@ -42,25 +42,25 @@ public partial class EditorInspectorPanel : UserControl
     public void SetCanvas(EditorCanvas canvas)
     {
         if (_canvas is not null)
-            _canvas.InlineSpanFormatChanged -= OnInlineSpanFormatChanged;
+            _canvas.SpanFormatChanged -= OnSpanFormatChanged;
         _canvas = canvas;
-        _canvas.InlineSpanFormatChanged += OnInlineSpanFormatChanged;
+        _canvas.SpanFormatChanged += OnSpanFormatChanged;
     }
 
-    void OnInlineSpanFormatChanged(bool? bold, bool? italic, float? fontSize, string? fontFamily)
+    void OnSpanFormatChanged(SpanFormatInfo info)
     {
         // Guard with _loading so SelectionChanged/LostFocus handlers don't fire
         // and mutate the layer while we're updating UI from a selection event.
         _loading = true;
         try
         {
-            BoldBtn.IsChecked   = bold;
-            ItalicBtn.IsChecked = italic;
-            FontSizeBox.Text = fontSize.HasValue
-                ? ((int)(fontSize.Value * VH)).ToString()
+            BoldBtn.IsChecked   = info.Bold;
+            ItalicBtn.IsChecked = info.Italic;
+            FontSizeBox.Text = info.FontSize.HasValue
+                ? ((int)(info.FontSize.Value * VH)).ToString()
                 : VM?.SelectedLayer is { } l ? (l.FontSize * VH).ToString("F0") : "";
-            if (fontFamily is not null)
-                FontFamilyBox.SelectedItem = fontFamily;
+            if (info.FontFamily is not null)
+                FontFamilyBox.SelectedItem = info.FontFamily;
         }
         finally
         {
@@ -261,10 +261,10 @@ public partial class EditorInspectorPanel : UserControl
         if (_loading || VM?.SelectedLayer is not { Type: LayerType.Text } layer) return;
         if (FontFamilyBox.SelectedItem is not string fam || string.IsNullOrEmpty(fam)) return;
 
-        if (_canvas?.HasRecentSpanSelection(layer) == true)
+        if (_canvas?.ActiveTextEditor is { } ed1)
         {
             VM.BeginLayerEdit();
-            _canvas.ApplySpanSelectionFormat(fontFamily: fam);
+            ed1.ApplyFormat(fontFamily: fam);
             return;
         }
 
@@ -279,10 +279,10 @@ public partial class EditorInspectorPanel : UserControl
         if (!float.TryParse(FontSizeBox.Text, out float px) || px <= 0) return;
         float normalized = px / VH;
 
-        if (_canvas?.HasRecentSpanSelection(layer) == true)
+        if (_canvas?.ActiveTextEditor is { } ed2)
         {
             VM.BeginLayerEdit();
-            _canvas.ApplySpanSelectionFormat(fontSize: normalized);
+            ed2.ApplyFormat(fontSize: normalized);
             return;
         }
 
@@ -301,10 +301,10 @@ public partial class EditorInspectorPanel : UserControl
     {
         if (_loading || VM?.SelectedLayer is not { Type: LayerType.Text } layer) return;
 
-        if (_canvas?.HasRecentSpanSelection(layer) == true)
+        if (_canvas?.ActiveTextEditor is { } ed3)
         {
             VM.BeginLayerEdit();
-            _canvas.ApplySpanSelectionFormat(
+            ed3.ApplyFormat(
                 bold:   sender == BoldBtn   ? BoldBtn.IsChecked   : null,
                 italic: sender == ItalicBtn ? ItalicBtn.IsChecked : null);
             return;
