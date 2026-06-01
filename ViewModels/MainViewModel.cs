@@ -1657,9 +1657,24 @@ public class MainViewModel : ViewModelBase
         }
         else
         {
-            int pagesIdx = SelectedPage is { } sel2 ? Pages.IndexOf(sel2) : Pages.Count - 1;
-            Pages.Insert(pagesIdx + 1, newVm);
-            SelectedPage = newVm;
+            if (!ShowingRundown)
+            {
+                int pagesIdx = SelectedPage is { } sel2 ? Pages.IndexOf(sel2) : Pages.Count - 1;
+                Pages.Insert(pagesIdx + 1, newVm);
+                SelectedPage = newVm;
+            }
+            else
+            {
+                var selPage = SelectedPage;
+                var group = selPage is not null
+                    ? PageGroups.FirstOrDefault(g => g.Pages.Contains(selPage))
+                    : PageGroups.FirstOrDefault(g => g.Package == package);
+                if (group is not null)
+                {
+                    int groupIdx = selPage is not null ? group.Pages.IndexOf(selPage) : group.Pages.Count - 1;
+                    group.Pages.Insert(groupIdx >= 0 ? groupIdx + 1 : group.Pages.Count, newVm);
+                }
+            }
             RenameDefaultPages(package);
         }
         RaiseHistoryChanged();
