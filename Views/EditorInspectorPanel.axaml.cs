@@ -54,18 +54,25 @@ public partial class EditorInspectorPanel : UserControl
         _loading = true;
         try
         {
-            BoldBtn.IsChecked   = info.Bold;
-            ItalicBtn.IsChecked = info.Italic;
+            BoldBtn.IsChecked       = info.Bold;
+            ItalicBtn.IsChecked     = info.Italic;
+            UnderlineBtn.IsChecked  = info.Underline;
+            StrikeBtn.IsChecked     = info.Strikethrough;
             FontSizeBox.Text = info.FontSize.HasValue
                 ? ((int)(info.FontSize.Value * VH)).ToString()
                 : VM?.SelectedLayer is { } l ? (l.FontSize * VH).ToString("F0") : "";
             if (info.FontFamily is not null)
                 FontFamilyBox.SelectedItem = info.FontFamily;
+            BaselineBox.Text = info.Baseline.HasValue
+                ? info.Baseline.Value.ToString("F1")
+                : VM?.SelectedLayer is { } l2 ? l2.Baseline.ToString("F1") : "0";
+            KerningBox.Text = info.Kerning.HasValue
+                ? info.Kerning.Value.ToString("F1")
+                : VM?.SelectedLayer is { } l3 ? l3.Kerning.ToString("F1") : "0";
+            if (info.Color.HasValue)
+                SpanColorPicker.Value = info.Color.Value;
         }
-        finally
-        {
-            _loading = false;
-        }
+        finally { _loading = false; }
     }
 
     protected override void OnDataContextChanged(EventArgs e)
@@ -78,6 +85,7 @@ public partial class EditorInspectorPanel : UserControl
         TextStrokePicker.ColorChanged   -= OnTextStrokeColorChanged;
         FillColorPicker.ColorChanged    -= OnFillColorChanged;
         FillStrokePicker.ColorChanged   -= OnFillStrokeColorChanged;
+        SpanColorPicker.ColorChanged    -= OnSpanColorChanged;
 
         var vm = DataContext as MainViewModel;
         if (vm is null) return;
@@ -86,6 +94,7 @@ public partial class EditorInspectorPanel : UserControl
         TextStrokePicker.ColorChanged   += OnTextStrokeColorChanged;
         FillColorPicker.ColorChanged    += OnFillColorChanged;
         FillStrokePicker.ColorChanged   += OnFillStrokeColorChanged;
+        SpanColorPicker.ColorChanged    += OnSpanColorChanged;
 
         _subs.Add(vm.WhenAnyValue(x => x.SelectedLayer).Subscribe(LoadLayer));
     }
@@ -150,6 +159,11 @@ public partial class EditorInspectorPanel : UserControl
                     VAlignBotBtn.IsChecked   = layer.TextVAlign == TextVAlign.Bottom;
                     TextStrokePicker.Value   = layer.StrokeColor;
                     TextStrokeWidthBox.Text  = layer.StrokeWidth.ToString("F1");
+                    UnderlineBtn.IsChecked  = layer.Underline;
+                    StrikeBtn.IsChecked     = layer.Strikethrough;
+                    BaselineBox.Text        = layer.Baseline.ToString("F1");
+                    KerningBox.Text         = layer.Kerning.ToString("F1");
+                    SpanColorPicker.Value   = layer.Color;
                     break;
 
                 case LayerType.Image:
@@ -261,16 +275,17 @@ public partial class EditorInspectorPanel : UserControl
         if (_loading || VM?.SelectedLayer is not { Type: LayerType.Text } layer) return;
         if (FontFamilyBox.SelectedItem is not string fam || string.IsNullOrEmpty(fam)) return;
 
-        if (_canvas?.ActiveTextEditor is { } ed1)
+        var editor = _canvas?.ActiveTextEditor;
+        if (editor is not null)
         {
-            VM.BeginLayerEdit();
-            ed1.ApplyFormat(fontFamily: fam);
+            editor.ApplyFormat(fontFamily: fam);
+            VM!.NotifySlideChanged();
             return;
         }
 
-        VM.BeginLayerEdit();
+        VM!.BeginLayerEdit();
         layer.FontFamily = fam;
-        VM.NotifySlideChanged();
+        VM!.NotifySlideChanged();
     }
 
     void OnFontSizeLostFocus(object? sender, RoutedEventArgs e)
@@ -279,16 +294,17 @@ public partial class EditorInspectorPanel : UserControl
         if (!float.TryParse(FontSizeBox.Text, out float px) || px <= 0) return;
         float normalized = px / VH;
 
-        if (_canvas?.ActiveTextEditor is { } ed2)
+        var editor = _canvas?.ActiveTextEditor;
+        if (editor is not null)
         {
-            VM.BeginLayerEdit();
-            ed2.ApplyFormat(fontSize: normalized);
+            editor.ApplyFormat(fontSize: normalized);
+            VM!.NotifySlideChanged();
             return;
         }
 
-        VM.BeginLayerEdit();
+        VM!.BeginLayerEdit();
         layer.FontSize = normalized;
-        VM.NotifySlideChanged();
+        VM!.NotifySlideChanged();
     }
 
     void OnTextColorChanged(SKColor color)
@@ -301,19 +317,24 @@ public partial class EditorInspectorPanel : UserControl
     {
         if (_loading || VM?.SelectedLayer is not { Type: LayerType.Text } layer) return;
 
-        if (_canvas?.ActiveTextEditor is { } ed3)
+        var editor = _canvas?.ActiveTextEditor;
+        if (editor is not null)
         {
-            VM.BeginLayerEdit();
-            ed3.ApplyFormat(
-                bold:   sender == BoldBtn   ? BoldBtn.IsChecked   : null,
-                italic: sender == ItalicBtn ? ItalicBtn.IsChecked : null);
+            editor.ApplyFormat(
+                bold:          sender == BoldBtn      ? BoldBtn.IsChecked      : null,
+                italic:        sender == ItalicBtn    ? ItalicBtn.IsChecked    : null,
+                underline:     sender == UnderlineBtn ? UnderlineBtn.IsChecked : null,
+                strikethrough: sender == StrikeBtn    ? StrikeBtn.IsChecked    : null);
+            VM!.NotifySlideChanged();
             return;
         }
 
-        VM.BeginLayerEdit();
-        if (sender == BoldBtn)   layer.Bold   = BoldBtn.IsChecked   == true;
-        if (sender == ItalicBtn) layer.Italic = ItalicBtn.IsChecked == true;
-        VM.NotifySlideChanged();
+        VM!.BeginLayerEdit();
+        if (sender == BoldBtn)      layer.Bold          = BoldBtn.IsChecked      == true;
+        if (sender == ItalicBtn)    layer.Italic        = ItalicBtn.IsChecked    == true;
+        if (sender == UnderlineBtn) layer.Underline     = UnderlineBtn.IsChecked == true;
+        if (sender == StrikeBtn)    layer.Strikethrough = StrikeBtn.IsChecked    == true;
+        VM!.NotifySlideChanged();
     }
 
     void OnAlignClick(object? sender, RoutedEventArgs e)
@@ -351,6 +372,59 @@ public partial class EditorInspectorPanel : UserControl
         if (_loading || VM?.SelectedLayer is not { Type: LayerType.Text } layer) return;
         if (float.TryParse(TextStrokeWidthBox.Text, out float w) && w >= 0)
         { VM.BeginLayerEdit(); layer.StrokeWidth = w; VM.NotifySlideChanged(); }
+    }
+
+    void OnBaselineLostFocus(object? sender, RoutedEventArgs e)
+    {
+        if (_loading || VM?.SelectedLayer is not { Type: LayerType.Text } layer) return;
+        if (!float.TryParse(BaselineBox.Text, out float val)) return;
+
+        var editor = _canvas?.ActiveTextEditor;
+        if (editor is not null)
+        {
+            editor.ApplyFormat(baseline: val);
+            VM!.NotifySlideChanged();
+            return;
+        }
+
+        VM!.BeginLayerEdit();
+        layer.Baseline = val;
+        VM!.NotifySlideChanged();
+    }
+
+    void OnKerningLostFocus(object? sender, RoutedEventArgs e)
+    {
+        if (_loading || VM?.SelectedLayer is not { Type: LayerType.Text } layer) return;
+        if (!float.TryParse(KerningBox.Text, out float val)) return;
+
+        var editor = _canvas?.ActiveTextEditor;
+        if (editor is not null)
+        {
+            editor.ApplyFormat(kerning: val);
+            VM!.NotifySlideChanged();
+            return;
+        }
+
+        VM!.BeginLayerEdit();
+        layer.Kerning = val;
+        VM!.NotifySlideChanged();
+    }
+
+    void OnSpanColorChanged(SKColor color)
+    {
+        if (_loading || VM?.SelectedLayer is not { Type: LayerType.Text } layer) return;
+
+        var editor = _canvas?.ActiveTextEditor;
+        if (editor is not null)
+        {
+            editor.ApplyFormat(color: color);
+            VM!.NotifySlideChanged();
+            return;
+        }
+
+        VM!.BeginLayerEdit();
+        layer.Color = color;
+        VM!.NotifySlideChanged();
     }
 
     // ── Fill / Shape ──────────────────────────────────────────────────────────
@@ -529,6 +603,8 @@ public partial class EditorInspectorPanel : UserControl
         else if (tb == TextStrokeWidthBox)  OnTextStrokeWidthLostFocus(tb, null!);
         else if (tb == CornerRadiusBox)     OnCornerRadiusLostFocus(tb, null!);
         else if (tb == FillStrokeWidthBox)  OnFillStrokeWidthLostFocus(tb, null!);
+        else if (tb == BaselineBox)         OnBaselineLostFocus(tb, null!);
+        else if (tb == KerningBox)          OnKerningLostFocus(tb, null!);
         e.Handled = true;
     }
 

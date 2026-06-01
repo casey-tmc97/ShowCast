@@ -264,6 +264,36 @@
                         <ToggleButton Classes="option-toggle" x:Name="ItalicBtn" Content="I" FontStyle="Italic" Click="OnStyleClick"/>
                     </StackPanel>
 
+                    <TextBlock Classes="field-label" Text="Decoration"/>
+                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,0,6">
+                        <ToggleButton Classes="option-toggle" x:Name="UnderlineBtn"
+                                      Click="OnStyleClick">
+                            <TextBlock Text="U" TextDecorations="Underline" FontSize="12"/>
+                        </ToggleButton>
+                        <ToggleButton Classes="option-toggle" x:Name="StrikeBtn"
+                                      Click="OnStyleClick">
+                            <TextBlock Text="S" TextDecorations="Strikethrough" FontSize="12"/>
+                        </ToggleButton>
+                    </StackPanel>
+
+                    <TextBlock Classes="field-label" Text="Span Color"/>
+                    <local:ColorPickerField x:Name="SpanColorPicker" Margin="0,0,0,6"/>
+
+                    <Grid ColumnDefinitions="*,6,*">
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Classes="field-label" Text="Baseline (px)"/>
+                            <TextBox x:Name="BaselineBox"
+                                     LostFocus="OnBaselineLostFocus"
+                                     KeyDown="OnSingleLineKeyDown"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Classes="field-label" Text="Kerning (px)"/>
+                            <TextBox x:Name="KerningBox"
+                                     LostFocus="OnKerningLostFocus"
+                                     KeyDown="OnSingleLineKeyDown"/>
+                        </StackPanel>
+                    </Grid>
+
                     <TextBlock Classes="field-label" Text="H Alignment"/>
                     <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,0,6">
                         <ToggleButton Classes="option-toggle" x:Name="AlignLeftBtn"   Content="Left"   Click="OnAlignClick"/>
