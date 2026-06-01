@@ -429,7 +429,7 @@ public static class PageRenderer
                     TextHAlign.Right => textX - lineW,
                     _                => textX - lineW / 2f,
                 };
-                using var ulp = new SKPaint { Color = paint.Color, StrokeWidth = sw, IsAntialias = true };
+                using var ulp = new SKPaint { Color = paint.Color, StrokeWidth = sw, Style = SKPaintStyle.Stroke, IsAntialias = true };
                 canvas.DrawLine(x1, lineBaseline + sw, x1 + lineW, lineBaseline + sw, ulp);
             }
 
@@ -444,7 +444,7 @@ public static class PageRenderer
                     TextHAlign.Right => textX - lineW,
                     _                => textX - lineW / 2f,
                 };
-                using var stp = new SKPaint { Color = paint.Color, StrokeWidth = sw, IsAntialias = true };
+                using var stp = new SKPaint { Color = paint.Color, StrokeWidth = sw, Style = SKPaintStyle.Stroke, IsAntialias = true };
                 canvas.DrawLine(x1, strikeY, x1 + lineW, strikeY, stp);
             }
         }
@@ -580,9 +580,10 @@ public static class PageRenderer
                         {
                             Color       = paint.Color,
                             StrokeWidth = strokeW,
+                            Style       = SKPaintStyle.Stroke,
                             IsAntialias = true,
                         };
-                        canvas.DrawLine(x, effectiveBaseline + strokeW, x + tw, effectiveBaseline + strokeW, ulPaint);
+                        canvas.DrawLine(x, effectiveBaseline + strokeW, x + tw + kn, effectiveBaseline + strokeW, ulPaint);
                     }
 
                     // Strikethrough
@@ -594,9 +595,10 @@ public static class PageRenderer
                         {
                             Color       = paint.Color,
                             StrokeWidth = strokeW,
+                            Style       = SKPaintStyle.Stroke,
                             IsAntialias = true,
                         };
-                        canvas.DrawLine(x, strikeY, x + tw, strikeY, stPaint);
+                        canvas.DrawLine(x, strikeY, x + tw + kn, strikeY, stPaint);
                     }
 
                     x += tw + kn;
