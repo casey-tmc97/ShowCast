@@ -11,6 +11,7 @@ public static class AppFolders
     public static string Libraries     { get; private set; } = "";
     public static string Playlists     { get; private set; } = "";
     public static string Media         { get; private set; } = "";
+    public static string Video         { get; private set; } = "";
 
     /// <summary>Fixed path for the auto-saved session state.</summary>
     public static string SessionFile   => Path.Combine(Configuration, "session.scf");
@@ -22,11 +23,13 @@ public static class AppFolders
         Libraries     = Path.Combine(Root, "Libraries");
         Playlists     = Path.Combine(Root, "Playlists");
         Media         = Path.Combine(Root, "Media");
+        Video         = Path.Combine(Root, "Video");
 
         Directory.CreateDirectory(Configuration);
         Directory.CreateDirectory(Libraries);
         Directory.CreateDirectory(Playlists);
         Directory.CreateDirectory(Media);
+        Directory.CreateDirectory(Video);
 
         // Default library folder
         Directory.CreateDirectory(Path.Combine(Libraries, "Default"));
