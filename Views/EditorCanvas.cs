@@ -144,6 +144,7 @@ public class EditorCanvas : UserControl, IDisposable
     /// Fires when the inline editor's text selection changes.
     /// Arguments: (bold?, italic?, fontSize?, fontFamily?) of the span at the cursor.
     /// </summary>
+    // Replaced by SpanFormatChanged (Action<SpanFormatInfo>) in Task 5 — do not extend.
     public event Action<bool?, bool?, float?, string?>? InlineSpanFormatChanged;
 
     public EditorCanvas()
@@ -960,6 +961,7 @@ public class EditorCanvas : UserControl, IDisposable
     /// Apply formatting to the last saved span selection.
     /// Call only when HasRecentSpanSelection returns true.
     /// </summary>
+    // Replaced by CanvasTextEditor.ApplyFormat in Task 5 — do not extend.
     public void ApplySpanSelectionFormat(bool? bold = null, bool? italic = null,
                                          float? fontSize = null, string? fontFamily = null)
     {

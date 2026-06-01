@@ -154,4 +154,51 @@ public class SpanEditorTests
         Assert.Equal("Hi", layer.Spans[0].Text);
         Assert.True(layer.Spans[0].Bold);
     }
+
+    // ── New attributes ────────────────────────────────────────────────────────
+
+    [Fact]
+    public void ApplyFormat_SetsUnderlineOnSelectedSpan()
+    {
+        var layer = new SlideLayer { Type = LayerType.Text, Text = "Hello" };
+        SpanEditor.ApplyFormat(layer, 0, 5, underline: true);
+
+        Assert.Single(layer.Spans);
+        Assert.True(layer.Spans[0].Underline);
+    }
+
+    [Fact]
+    public void ApplyFormat_SetsStrikethroughBaseline_OnSelectedSpan()
+    {
+        var layer = new SlideLayer { Type = LayerType.Text, Text = "Hello" };
+        SpanEditor.ApplyFormat(layer, 0, 5, strikethrough: true, baseline: 10f, kerning: 2f);
+
+        Assert.True(layer.Spans[0].Strikethrough);
+        Assert.Equal(10f, layer.Spans[0].Baseline);
+        Assert.Equal(2f,  layer.Spans[0].Kerning);
+    }
+
+    [Fact]
+    public void HasOverride_ReturnsTrueForUnderlineAlone()
+    {
+        // A span with only Underline set must prevent collapse to layer.Text
+        var layer = new SlideLayer { Type = LayerType.Text, Text = "Hi" };
+        SpanEditor.ApplyFormat(layer, 0, 2, underline: true);
+
+        // After apply, spans should exist (not collapsed to layer.Text)
+        Assert.NotEmpty(layer.Spans);
+        Assert.Equal("Hi", layer.EffectiveText);
+    }
+
+    [Fact]
+    public void SameFormat_MergesAdjacentSpans_WhenNewAttributesMatch()
+    {
+        var layer = LayerWithSpans(("Hello", null, null), (" World", null, null));
+        // Both spans have no underline override — applying underline to all should merge them
+        SpanEditor.ApplyFormat(layer, 0, 11, underline: true);
+
+        Assert.Single(layer.Spans);
+        Assert.Equal("Hello World", layer.Spans[0].Text);
+        Assert.True(layer.Spans[0].Underline);
+    }
 }
