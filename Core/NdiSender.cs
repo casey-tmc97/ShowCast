@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -23,13 +24,15 @@ public sealed class NdiSender : IDisposable
 
     volatile bool _running = true;
 
+    readonly VideoFrameRegistry _videoRegistry;
+
     // Transition + animation state (background-thread-only, no locking needed)
     Page?    _prevLive;
     Page?    _fromPage;
     DateTime _transStartTime;
     DateTime _pageStartTime;
 
-    public NdiSender(OutputState output)
+    public NdiSender(OutputState output, IReadOnlyList<AudioDestination> audioDestinations)
     {
         _output = output;
         _w      = output.Config.Width;
@@ -37,6 +40,7 @@ public sealed class NdiSender : IDisposable
         _stride = _w * 4;
         _buffer = new byte[_stride * _h];
         _pin    = GCHandle.Alloc(_buffer, GCHandleType.Pinned);
+        _videoRegistry = new VideoFrameRegistry(audioDestinations);
 
         string streamName = string.IsNullOrWhiteSpace(output.Config.NdiStreamName)
             ? output.Config.Name
@@ -128,6 +132,7 @@ public sealed class NdiSender : IDisposable
             : DateTime.UtcNow;
         if (hasTransition) _transStartTime = DateTime.UtcNow;
         _prevLive = currentLive;
+        _videoRegistry.UpdateSlide(currentLive);
     }
 
     void RenderFrame(bool render)
@@ -158,7 +163,8 @@ public sealed class NdiSender : IDisposable
         {
             double elapsed = (DateTime.UtcNow - _pageStartTime).TotalMilliseconds;
             using var surface = SKSurface.Create(info, _pin.AddrOfPinnedObject(), _stride);
-            PageRenderer.Render(surface.Canvas, page, _output.Roles, _w, _h, elapsed);
+            PageRenderer.Render(surface.Canvas, page, _output.Roles, _w, _h, elapsed,
+                                getVideoFrame: _videoRegistry.TryGetFrame);
         }
         else
         {
@@ -230,6 +236,7 @@ public sealed class NdiSender : IDisposable
         _thread.Join(250);
         if (_sender != IntPtr.Zero)
             NewTek.NDIlib.send_destroy(_sender);
+        _videoRegistry.Dispose();
         _pin.Free();
     }
 }

@@ -292,7 +292,7 @@ public class MainViewModel : ViewModelBase
     {
         if (o.Config.Type != OutputType.NDI || !o.Config.Enabled) return;
         if (!NewTek.NDIlib.IsAvailable) return;
-        _ndiSenders[o.Config.Id] = new ShowCast.Core.NdiSender(o);
+        _ndiSenders[o.Config.Id] = new ShowCast.Core.NdiSender(o, _showFile.Settings.AudioDestinations);
     }
 
     void StopNdiFor(OutputState o)
