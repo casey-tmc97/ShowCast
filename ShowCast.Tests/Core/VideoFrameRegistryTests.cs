@@ -10,6 +10,7 @@ namespace ShowCast.Tests.Core;
 file sealed class FakePlayer : IVideoLayerPlayer
 {
     public bool   Started      { get; private set; }
+    public bool   Stopped      { get; private set; }
     public bool   Disposed     { get; private set; }
     public string? StartedPath { get; private set; }
     public SKBitmap? CurrentFrame { get; set; }
@@ -19,7 +20,7 @@ file sealed class FakePlayer : IVideoLayerPlayer
         Started     = true;
         StartedPath = filePath;
     }
-    public void Stop()    { }
+    public void Stop()    => Stopped = true;
     public void Dispose() => Disposed = true;
 }
 
@@ -59,6 +60,7 @@ public class VideoFrameRegistryTests
         registry.UpdateSlide(MakeVideoPage((Guid.NewGuid(), "clip.mp4")));
         registry.UpdateSlide(null);
 
+        Assert.True(players[0].Stopped);
         Assert.True(players[0].Disposed);
     }
 

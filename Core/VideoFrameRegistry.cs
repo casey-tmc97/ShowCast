@@ -38,6 +38,7 @@ public sealed class VideoFrameRegistry : IDisposable
         // Stop and dispose players for removed layers.
         foreach (var id in _players.Keys.Except(newIds).ToList())
         {
+            _players[id].Stop();
             _players[id].Dispose();
             _players.Remove(id);
         }
@@ -62,7 +63,11 @@ public sealed class VideoFrameRegistry : IDisposable
 
     public void Dispose()
     {
-        foreach (var p in _players.Values) p.Dispose();
+        foreach (var p in _players.Values)
+        {
+            p.Stop();
+            p.Dispose();
+        }
         _players.Clear();
     }
 }
