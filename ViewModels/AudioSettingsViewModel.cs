@@ -68,9 +68,12 @@ public class AudioSettingsViewModel : ReactiveObject
                 Destinations.Add(d);
         }
 
-        // Enumerate NDI
+        // Enumerate NDI — merge into stored so IDs are stable across dialog open/close and file reload
         var ndiDestinations = AudioDeviceEnumerator.EnumerateNdi(_main.ShowFile);
-        foreach (var nd in ndiDestinations)
+        var storedForNdi    = _main.ShowFileDestinations;
+        AudioDeviceEnumerator.MergeNdi(storedForNdi, ndiDestinations);
+
+        foreach (var nd in storedForNdi.Where(d => d.Type == AudioRouteType.Ndi))
         {
             if (!Destinations.Any(d => d.Type == AudioRouteType.Ndi && d.DeviceId == nd.DeviceId))
                 Destinations.Add(nd);

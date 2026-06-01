@@ -8,6 +8,9 @@ public class AudioChannelViewModel : ReactiveObject, IDisposable
     public AudioChannel         Model  { get; }
     public AudioPlayerViewModel Player { get; }
 
+    /// <summary>Injected by MainViewModel. Returns the NdiSender for a given stream name, or null.</summary>
+    public Func<string, NdiSender?>? NdiSenderLookup { get; set; }
+
     public string Name
     {
         get => Model.Name;
@@ -25,10 +28,22 @@ public class AudioChannelViewModel : ReactiveObject, IDisposable
     /// </summary>
     public void ApplyRoute(AudioDestination? destination)
     {
-        if (destination is null) return;
+        if (destination is null)
+        {
+            Player.SetNdiOutput(null);
+            return;
+        }
+
         if (destination.Type == AudioRouteType.Hardware)
-            Player.SetAudioDevice("wasapi", destination.DeviceId);
-        // NDI: no-op in V1 (requires video integration — next phase)
+        {
+            Player.SetNdiOutput(null);
+            Player.SetAudioDevice("mmdevice", destination.DeviceId);
+        }
+        else if (destination.Type == AudioRouteType.Ndi)
+        {
+            var sender = NdiSenderLookup?.Invoke(destination.DeviceId);
+            Player.SetNdiOutput(sender);
+        }
     }
 
     public void Dispose() => Player.Dispose();

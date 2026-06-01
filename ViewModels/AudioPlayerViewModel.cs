@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Avalonia.Threading;
 using LibVLCSharp.Shared;
 using ReactiveUI;
@@ -23,6 +24,21 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
     System.Timers.Timer? _poller;
     string? _pendingOutputModule;
     string? _pendingDeviceId;
+
+    // ── NDI audio capture ─────────────────────────────────────────────────────
+    const uint NdiSampleRate = 48000;
+    const uint NdiChannels   = 2;
+
+    // Read on LibVLC audio thread, written on UI thread — volatile for visibility.
+    volatile NdiSender? _ndiSender;
+
+    // Keeps the managed delegate alive so the GC doesn't collect it while VLC holds the pointer.
+    MediaPlayer.LibVLCAudioPlayCb? _audioPlayDelegate;
+
+    [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl,
+               EntryPoint = "libvlc_audio_set_callbacks")]
+    static extern void NativeSetAudioCallbacks(IntPtr mp,
+        IntPtr play, IntPtr pause, IntPtr resume, IntPtr flush, IntPtr drain, IntPtr opaque);
 
     /// <summary>Exposes the LibVLC instance for device enumeration. Null if unavailable.</summary>
     public LibVLC? LibVlc => _libVlc;
@@ -370,12 +386,36 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
         var oldMedia = _player.Media;
         var newMedia = new Media(_libVlc!, new Uri(absPath));
         _player.Media = newMedia;
-        if (_pendingDeviceId is not null)
+
+        if (_ndiSender is not null)
         {
-            _player.SetOutputDevice(_pendingOutputModule!, _pendingDeviceId);
+            // NDI mode: capture decoded PCM via callbacks instead of sending to hardware.
+            if (_audioPlayDelegate is null)
+            {
+                _audioPlayDelegate = OnAudioPlay;
+                _player.SetAudioFormat("S16N", NdiSampleRate, NdiChannels);
+                _player.SetAudioCallbacks(_audioPlayDelegate, null, null, null, null!);
+            }
             _pendingDeviceId     = null;
             _pendingOutputModule = null;
         }
+        else
+        {
+            // Hardware mode: clear any active NDI callbacks then apply device.
+            if (_audioPlayDelegate is not null)
+            {
+                NativeSetAudioCallbacks(_player.NativeReference,
+                    IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+                _audioPlayDelegate = null;
+            }
+            if (_pendingDeviceId is not null)
+            {
+                _player.SetOutputDevice(_pendingOutputModule!, _pendingDeviceId);
+                _pendingDeviceId     = null;
+                _pendingOutputModule = null;
+            }
+        }
+
         _player.Play();
         _player.SetRate(_selectedPlaylist.Speed);
         _player.Volume = (int)Math.Round(_volume * 100);
@@ -385,6 +425,37 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
         State         = PlaybackState.Playing;
         StatusMessage = "";
     }
+
+    /// <summary>Routes audio to the given NDI sender. Restarts playback immediately
+    /// if a track is playing so the new audio pipeline takes effect now.</summary>
+    public void SetNdiOutput(NdiSender? sender)
+    {
+        _ndiSender = sender;
+
+        if (sender is null && _audioPlayDelegate is not null && _player is not null)
+        {
+            // Disable LibVLC's direct-audio mode so hardware output works on next Play().
+            NativeSetAudioCallbacks(_player.NativeReference,
+                IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+            _audioPlayDelegate = null;
+        }
+
+        // LibVLC only initializes the audio pipeline on Play(), so routing changes
+        // don't take effect until the next play. Restart the player when a track is
+        // already running so the change is immediate.
+        if (State == PlaybackState.Playing && _currentTrack is not null && _player is not null)
+        {
+            var  track = _currentTrack;
+            long posMs = Math.Max(0, _player.Time);
+            Stop();
+            Play(track);
+            if (posMs > 0)
+                _player.Time = posMs;
+        }
+    }
+
+    void OnAudioPlay(IntPtr data, IntPtr samples, uint count, long pts)
+        => _ndiSender?.SubmitAudio(samples, count, (int)NdiSampleRate, (int)NdiChannels);
 
     /// <summary>Sets the audio output device for the next Play() call.</summary>
     public void SetAudioDevice(string outputModule, string deviceId)
@@ -616,6 +687,12 @@ public class AudioPlayerViewModel : ReactiveObject, IDisposable
         _poller?.Dispose();
         if (_player is not null)
         {
+            if (_audioPlayDelegate is not null)
+            {
+                NativeSetAudioCallbacks(_player.NativeReference,
+                    IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+                _audioPlayDelegate = null;
+            }
             if (State != PlaybackState.Stopped)
                 _player.Stop();
             _player.Dispose();

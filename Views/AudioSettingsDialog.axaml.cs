@@ -186,15 +186,10 @@ public partial class AudioSettingsDialog : Window
                     Background      = new SolidColorBrush(Color.Parse("#111111")),
                     BorderBrush     = new SolidColorBrush(Color.Parse("#222222")),
                     BorderThickness = new Thickness(0, 0, 1, 1),
-                    IsEnabled       = !isNdi,
-                    Opacity         = isNdi ? 0.35 : 1.0,
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     Height          = 40,
-                    Cursor          = isNdi ? new Cursor(StandardCursorType.No)
-                                           : new Cursor(StandardCursorType.Hand),
+                    Cursor          = new Cursor(StandardCursorType.Hand),
                 };
-                if (isNdi)
-                    ToolTip.SetTip(cellBorder, "NDI audio routing available in next phase");
 
                 var capturedCh   = ch;
                 var capturedDest = dest;

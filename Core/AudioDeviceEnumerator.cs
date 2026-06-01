@@ -13,7 +13,7 @@ public static class AudioDeviceEnumerator
     /// </summary>
     public static IReadOnlyList<AudioDestination> EnumerateHardware(LibVLC libVlc)
     {
-        return libVlc.AudioOutputDevices("wasapi")
+        return libVlc.AudioOutputDevices("mmdevice")
             .Select(d => new AudioDestination
             {
                 DeviceId    = d.DeviceIdentifier,
@@ -65,6 +65,32 @@ public static class AudioDeviceEnumerator
             else
             {
                 // Only update the system-assigned name — preserve user DisplayName
+                match.SystemName = freshDest.SystemName;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Reconciles freshly enumerated NDI outputs into the stored list.
+    /// Same rules as <see cref="MergeHardware"/>: stable IDs are preserved so
+    /// channel routing references survive dialog close/reopen and file reload.
+    /// </summary>
+    public static void MergeNdi(
+        List<AudioDestination> existing,
+        IReadOnlyList<AudioDestination> fresh)
+    {
+        foreach (var freshDest in fresh)
+        {
+            var match = existing.FirstOrDefault(e =>
+                e.Type == AudioRouteType.Ndi &&
+                e.DeviceId == freshDest.DeviceId);
+
+            if (match is null)
+            {
+                existing.Add(freshDest);
+            }
+            else
+            {
                 match.SystemName = freshDest.SystemName;
             }
         }

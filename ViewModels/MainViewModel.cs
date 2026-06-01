@@ -201,7 +201,7 @@ public class MainViewModel : ViewModelBase
 
         foreach (var channelModel in _showFile.Settings.AudioChannels)
         {
-            var channelVm = new AudioChannelViewModel(channelModel);
+            var channelVm = CreateChannelVm(channelModel);
             bool isFirst  = channelModel == _showFile.Settings.AudioChannels[0];
 
             // Playlists with matching ChannelId, or Guid.Empty (legacy) into the first channel
@@ -218,14 +218,6 @@ public class MainViewModel : ViewModelBase
                 channelVm.Player.CreatePlaylist("Default");
             else
                 channelVm.Player.LoadPlaylists(channelPlaylists, channelModel.SelectedPlaylistId);
-
-            // Restore routing
-            if (channelModel.ActiveDestinationId.HasValue)
-            {
-                var dest = _showFile.Settings.AudioDestinations
-                    .FirstOrDefault(d => d.Id == channelModel.ActiveDestinationId);
-                channelVm.ApplyRoute(dest);
-            }
 
             AudioChannels.Add(channelVm);
         }
@@ -249,6 +241,17 @@ public class MainViewModel : ViewModelBase
 
         foreach (var o in OutputStates)
             StartNdiFor(o);
+
+        // Restore audio routing after NdiSenders are started so NDI lookups succeed.
+        foreach (var ch in AudioChannels)
+        {
+            if (ch.Model.ActiveDestinationId.HasValue)
+            {
+                var dest = _showFile.Settings.AudioDestinations
+                    .FirstOrDefault(d => d.Id == ch.Model.ActiveDestinationId);
+                ch.ApplyRoute(dest);
+            }
+        }
 
         OutputStates.CollectionChanged += (_, e) =>
         {
@@ -302,6 +305,21 @@ public class MainViewModel : ViewModelBase
     {
         foreach (var s in _ndiSenders.Values) s.Dispose();
         _ndiSenders.Clear();
+    }
+
+    ShowCast.Core.NdiSender? FindNdiSender(string streamName)
+    {
+        var output = _showFile.Outputs.FirstOrDefault(o =>
+            o.Type == OutputType.NDI &&
+            (o.NdiStreamName == streamName || o.Name == streamName));
+        return output is not null && _ndiSenders.TryGetValue(output.Id, out var s) ? s : null;
+    }
+
+    AudioChannelViewModel CreateChannelVm(ShowCast.Core.AudioChannel model)
+    {
+        var vm = new AudioChannelViewModel(model);
+        vm.NdiSenderLookup = FindNdiSender;
+        return vm;
     }
     public ObservableCollection<PageGroupViewModel> PageGroups { get; } = new();
 
@@ -528,7 +546,7 @@ public class MainViewModel : ViewModelBase
     {
         var model = new ShowCast.Core.AudioChannel { Name = name };
         _showFile.Settings.AudioChannels.Add(model);
-        var channelVm = new AudioChannelViewModel(model);
+        var channelVm = CreateChannelVm(model);
         channelVm.Player.CreatePlaylist("Default");
         AudioChannels.Add(channelVm);
         SelectedAudioChannel = channelVm;
@@ -2047,7 +2065,7 @@ public class MainViewModel : ViewModelBase
         // ── Default audio channel + playlist ─────────────────────────────────
         var defaultChannelModel = new ShowCast.Core.AudioChannel { Name = "Default" };
         _showFile.Settings.AudioChannels.Add(defaultChannelModel);
-        var defaultChannelVm = new AudioChannelViewModel(defaultChannelModel);
+        var defaultChannelVm = CreateChannelVm(defaultChannelModel);
         defaultChannelVm.Player.CreatePlaylist("Default");
         AudioChannels.Add(defaultChannelVm);
         SelectedAudioChannel = defaultChannelVm;

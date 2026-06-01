@@ -182,6 +182,43 @@ public sealed class NdiSender : IDisposable
         };
     }
 
+    // ── Audio submission (called from LibVLC audio callback thread) ──────────
+
+    /// <summary>
+    /// Converts interleaved S16 PCM to planar float and sends as an NDI audio frame
+    /// on the same stream as the video. Thread-safe: NDI SDK allows concurrent sends.
+    /// </summary>
+    public unsafe void SubmitAudio(IntPtr samples, uint frames, int sampleRate, int channels)
+    {
+        if (!_running || _sender == IntPtr.Zero) return;
+
+        int ns     = (int)frames;
+        int nc     = channels;
+        int stride = ns * sizeof(float);
+
+        float* planar = stackalloc float[ns * nc];
+        short* src    = (short*)samples;
+
+        // Interleaved S16 → planar float  (-32768..32767 → -1..1)
+        for (int i = 0; i < ns; i++)
+            for (int ch = 0; ch < nc; ch++)
+                planar[ch * ns + i] = src[i * nc + ch] / 32768.0f;
+
+        var frame = new NewTek.NDIlib.audio_frame_v2_t
+        {
+            sample_rate             = sampleRate,
+            no_channels             = nc,
+            no_samples              = ns,
+            timecode                = long.MaxValue,  // synthesize
+            p_data                  = (IntPtr)planar,
+            channel_stride_in_bytes = stride,
+            p_metadata              = IntPtr.Zero,
+            timestamp               = 0
+        };
+
+        NewTek.NDIlib.send_send_audio_v2(_sender, ref frame);
+    }
+
     // ── Disposal ──────────────────────────────────────────────────────────────
 
     public void Dispose()

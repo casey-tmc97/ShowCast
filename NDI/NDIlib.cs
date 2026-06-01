@@ -110,6 +110,21 @@ public static class NDIlib
         public long   timestamp;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct audio_frame_v2_t
+    {
+        public int    sample_rate;
+        public int    no_channels;
+        public int    no_samples;
+        private int   _pad;               // align timecode to 8 bytes
+        public long   timecode;
+        public IntPtr p_data;             // float* planar
+        public int    channel_stride_in_bytes;
+        private int   _pad2;              // align p_metadata to 8 bytes
+        public IntPtr p_metadata;
+        public long   timestamp;
+    }
+
     // ── Initialisation ────────────────────────────────────────────────────────
 
     [DllImport(Dll, EntryPoint = "NDIlib_initialize")]
@@ -132,4 +147,8 @@ public static class NDIlib
 
     [DllImport(Dll, EntryPoint = "NDIlib_send_get_no_connections")]
     public static extern int send_get_no_connections(IntPtr p_instance, uint timeout_in_ms);
+
+    [DllImport(Dll, EntryPoint = "NDIlib_send_send_audio_v2")]
+    public static extern void send_send_audio_v2(IntPtr p_instance,
+                                                  ref audio_frame_v2_t p_audio_data);
 }
