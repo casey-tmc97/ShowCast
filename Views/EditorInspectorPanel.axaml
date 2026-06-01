@@ -255,8 +255,14 @@
                         </StackPanel>
                     </Grid>
 
-                    <TextBlock Classes="field-label" Text="Color"/>
-                    <local:ColorPickerField x:Name="TextColorPicker" Margin="0,0,0,6"/>
+                    <StackPanel x:Name="TextColorRow">
+                        <TextBlock Classes="field-label" Text="Color"/>
+                        <local:ColorPickerField x:Name="TextColorPicker" Margin="0,0,0,6"/>
+                    </StackPanel>
+                    <StackPanel x:Name="SpanColorRow" IsVisible="False">
+                        <TextBlock Classes="field-label" Text="Selection Color"/>
+                        <local:ColorPickerField x:Name="SpanColorPicker" Margin="0,0,0,6"/>
+                    </StackPanel>
 
                     <TextBlock Classes="field-label" Text="Style"/>
                     <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,0,6">
@@ -274,11 +280,6 @@
                                       Click="OnStyleClick">
                             <TextBlock Text="S" TextDecorations="Strikethrough" FontSize="12"/>
                         </ToggleButton>
-                    </StackPanel>
-
-                    <StackPanel x:Name="SpanColorRow" IsVisible="False">
-                        <TextBlock Classes="field-label" Text="Selection Color"/>
-                        <local:ColorPickerField x:Name="SpanColorPicker" Margin="0,0,0,6"/>
                     </StackPanel>
 
                     <Grid ColumnDefinitions="*,6,*">

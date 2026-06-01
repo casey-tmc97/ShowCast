@@ -49,6 +49,7 @@ public partial class EditorInspectorPanel : UserControl
 
     void OnSpanFormatChanged(SpanFormatInfo info)
     {
+        TextColorRow.IsVisible = false;
         SpanColorRow.IsVisible = true;
         _loading = true;
         try
@@ -114,6 +115,7 @@ public partial class EditorInspectorPanel : UserControl
             TextSection.IsVisible      = false;
             ImageSection.IsVisible     = false;
             FillSection.IsVisible      = false;
+            TextColorRow.IsVisible     = true;
             SpanColorRow.IsVisible     = false;
 
             if (layer is null)
