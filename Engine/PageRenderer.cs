@@ -16,9 +16,10 @@ public static class PageRenderer
 {
     public static void Render(SKCanvas canvas, Page page, LayerRole roleFilter,
                               int canvasWidth, int canvasHeight,
-                              double elapsedMs     = -1.0,
-                              double exitElapsedMs = -1.0,
-                              bool useLiveTimers   = true)
+                              double elapsedMs        = -1.0,
+                              double exitElapsedMs    = -1.0,
+                              bool useLiveTimers      = true,
+                              Func<Guid, SKBitmap?>? getVideoFrame = null)
     {
         canvas.Clear(SKColors.Black);
 
@@ -86,6 +87,20 @@ public static class PageRenderer
                 case LayerType.Image:
                     DrawImagePlaceholder(canvas, layer, canvasWidth, canvasHeight);
                     break;
+
+                case LayerType.Video:
+                {
+                    var frame = getVideoFrame?.Invoke(layer.Id);
+                    if (frame is not null)
+                        DrawBitmapInRect(canvas, frame, rect, layer);
+                    else
+                    {
+                        using var bg = new SKPaint { Color = new SKColor(20, 20, 40, (byte)(layer.Opacity * 255)), BlendMode = ToSkia(layer.BlendMode) };
+                        canvas.DrawRect(rect, bg);
+                        DrawCenteredLabel(canvas, "[ Video ]", rect, SKColors.Gray);
+                    }
+                    break;
+                }
             }
 
             canvas.Restore();
@@ -263,6 +278,42 @@ public static class PageRenderer
         BlendMode.Add      => SKBlendMode.Plus,
         _                  => SKBlendMode.SrcOver
     };
+
+    static void DrawBitmapInRect(SKCanvas canvas, SKBitmap bmp, SKRect rect, SlideLayer layer)
+    {
+        byte alpha = (byte)(layer.Opacity * 255);
+        using var paint = new SKPaint
+        {
+            IsAntialias = true,
+            Color       = SKColors.White.WithAlpha(alpha),
+            BlendMode   = ToSkia(layer.BlendMode)
+        };
+
+        var src = new SKRect(0, 0, bmp.Width, bmp.Height);
+
+        switch (layer.ImageFit)
+        {
+            case ImageFit.Stretch:
+                canvas.DrawBitmap(bmp, src, rect, paint);
+                break;
+
+            case ImageFit.Fill:
+                float scaleF = Math.Max(rect.Width / bmp.Width, rect.Height / bmp.Height);
+                float cw = rect.Width / scaleF, ch = rect.Height / scaleF;
+                src = new SKRect((bmp.Width - cw) / 2, (bmp.Height - ch) / 2,
+                                 (bmp.Width + cw) / 2, (bmp.Height + ch) / 2);
+                canvas.DrawBitmap(bmp, src, rect, paint);
+                break;
+
+            default: // Fit — letterbox, preserve aspect
+                float scaleL = Math.Min(rect.Width / bmp.Width, rect.Height / bmp.Height);
+                float fw = bmp.Width * scaleL, fh = bmp.Height * scaleL;
+                var dst = new SKRect(rect.MidX - fw / 2, rect.MidY - fh / 2,
+                                     rect.MidX + fw / 2, rect.MidY + fh / 2);
+                canvas.DrawBitmap(bmp, src, dst, paint);
+                break;
+        }
+    }
 
     // ── Shape drawing ─────────────────────────────────────────────────────────
 
@@ -631,43 +682,10 @@ public static class PageRenderer
 
         if (bmp is not null)
         {
-            byte alpha = (byte)(layer.Opacity * 255);
-            using var paint = new SKPaint
-            {
-                IsAntialias = true,
-                Color       = SKColors.White.WithAlpha(alpha),
-                BlendMode   = ToSkia(layer.BlendMode)
-            };
-
-            var src  = new SKRect(0, 0, bmp.Width, bmp.Height);
-            SKRect dst;
-
-            switch (layer.ImageFit)
-            {
-                case ImageFit.Stretch:
-                    canvas.DrawBitmap(bmp, src, rect, paint);
-                    break;
-
-                case ImageFit.Fill: // Cover — scale up, crop excess
-                    float scaleF = Math.Max(rect.Width / bmp.Width, rect.Height / bmp.Height);
-                    float cw = rect.Width / scaleF, ch = rect.Height / scaleF;
-                    src = new SKRect((bmp.Width - cw) / 2, (bmp.Height - ch) / 2,
-                                     (bmp.Width + cw) / 2, (bmp.Height + ch) / 2);
-                    canvas.DrawBitmap(bmp, src, rect, paint);
-                    break;
-
-                default: // Fit — letterbox, preserve aspect
-                    float scaleL = Math.Min(rect.Width / bmp.Width, rect.Height / bmp.Height);
-                    float fw = bmp.Width * scaleL, fh = bmp.Height * scaleL;
-                    dst = new SKRect(rect.MidX - fw / 2, rect.MidY - fh / 2,
-                                     rect.MidX + fw / 2, rect.MidY + fh / 2);
-                    canvas.DrawBitmap(bmp, src, dst, paint);
-                    break;
-            }
+            DrawBitmapInRect(canvas, bmp, rect, layer);
             return;
         }
 
-        // Fallback placeholder
         using var bg = new SKPaint { Color = new SKColor(60, 60, 80, (byte)(layer.Opacity * 255)), BlendMode = ToSkia(layer.BlendMode) };
         canvas.DrawRect(rect, bg);
         DrawCenteredLabel(canvas, "[ Image ]", rect, SKColors.Gray);
