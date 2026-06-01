@@ -876,8 +876,8 @@ public class EditorCanvas : UserControl, IDisposable
                 _lastFormatSelEnd   = end;
                 _lastFormatLayer    = _inlineLayer;
             }
-            var (b, i, fs, ff) = SpanEditor.GetFormatAt(_inlineLayer, start);
-            InlineSpanFormatChanged?.Invoke(b, i, fs, ff);
+            var fmt = SpanEditor.GetFormatAt(_inlineLayer, start);
+            InlineSpanFormatChanged?.Invoke(fmt.bold, fmt.italic, fmt.fontSize, fmt.fontFamily);
         };
         box.PropertyChanged += _inlineBoxPropHandler;
 
@@ -898,7 +898,8 @@ public class EditorCanvas : UserControl, IDisposable
             int selEnd   = Math.Max(_inlineBox.SelectionStart, _inlineBox.SelectionEnd);
             if (selStart == selEnd) { e.Handled = true; return; }
 
-            var (curBold, curItalic, _, _) = SpanEditor.GetFormatAt(_inlineLayer, selStart);
+            var fmt = SpanEditor.GetFormatAt(_inlineLayer, selStart);
+            bool? curBold = fmt.bold; bool? curItalic = fmt.italic;
             _vm?.BeginLayerEdit();
             if (e.Key == Key.B)
                 SpanEditor.ApplyFormat(_inlineLayer, selStart, selEnd, bold: curBold == true ? false : true);

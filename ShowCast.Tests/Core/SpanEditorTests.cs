@@ -72,22 +72,22 @@ public class SpanEditorTests
     {
         var layer = LayerWithSpans(("Hello", true, null), (" World", null, true));
 
-        var (bold, italic, _, _) = SpanEditor.GetFormatAt(layer, 0);
-        Assert.True(bold);
-        Assert.Null(italic);
+        var fmt0 = SpanEditor.GetFormatAt(layer, 0);  // in "Hello"
+        Assert.True(fmt0.bold);
+        Assert.Null(fmt0.italic);
 
-        (bold, italic, _, _) = SpanEditor.GetFormatAt(layer, 7);
-        Assert.Null(bold);
-        Assert.True(italic);
+        var fmt7 = SpanEditor.GetFormatAt(layer, 7);  // in " World"
+        Assert.Null(fmt7.bold);
+        Assert.True(fmt7.italic);
     }
 
     [Fact]
     public void GetFormatAt_ReturnsLastSpan_WhenPosAtEnd()
     {
         var layer = LayerWithSpans(("Hello", true, null), (" World", null, true));
-        var (bold, italic, _, _) = SpanEditor.GetFormatAt(layer, 11);
-        Assert.Null(bold);
-        Assert.True(italic);
+        var fmt = SpanEditor.GetFormatAt(layer, 11); // past end
+        Assert.Null(fmt.bold);
+        Assert.True(fmt.italic);
     }
 
     [Fact]
@@ -136,12 +136,12 @@ public class SpanEditorTests
     public void GetFormatAt_ReturnsDefault_WhenSpansEmpty()
     {
         var layer = new SlideLayer { Type = LayerType.Text, Text = "Hello" };
-        var (bold, italic, fontSize, fontFamily) = SpanEditor.GetFormatAt(layer, 0);
+        var fmt = SpanEditor.GetFormatAt(layer, 0);
 
-        Assert.Null(bold);
-        Assert.Null(italic);
-        Assert.Null(fontSize);
-        Assert.Null(fontFamily);
+        Assert.Null(fmt.bold);
+        Assert.Null(fmt.italic);
+        Assert.Null(fmt.fontSize);
+        Assert.Null(fmt.fontFamily);
     }
 
     [Fact]

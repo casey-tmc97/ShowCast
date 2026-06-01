@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SkiaSharp;
 
 namespace ShowCast.Core;
 
@@ -13,7 +14,10 @@ public static class SpanEditor
     /// </summary>
     public static void ApplyFormat(SlideLayer layer, int selStart, int selEnd,
                                    bool? bold = null, bool? italic = null,
-                                   float? fontSize = null, string? fontFamily = null)
+                                   float? fontSize = null, string? fontFamily = null,
+                                   bool? underline = null, bool? strikethrough = null,
+                                   float? baseline = null, float? kerning = null,
+                                   SKColor? color = null)
     {
         if (selStart >= selEnd) return;
 
@@ -38,10 +42,15 @@ public static class SpanEditor
             int spanEnd = ci + span.Text.Length;
             if (ci >= selStart && spanEnd <= selEnd)
             {
-                if (bold.HasValue)           span.Bold       = bold;
-                if (italic.HasValue)         span.Italic     = italic;
-                if (fontSize.HasValue)       span.FontSize   = fontSize;
-                if (fontFamily is not null)  span.FontFamily = fontFamily;
+                if (bold.HasValue)          span.Bold          = bold;
+                if (italic.HasValue)        span.Italic        = italic;
+                if (fontSize.HasValue)      span.FontSize      = fontSize;
+                if (fontFamily is not null) span.FontFamily    = fontFamily;
+                if (underline.HasValue)     span.Underline     = underline;
+                if (strikethrough.HasValue) span.Strikethrough = strikethrough;
+                if (baseline.HasValue)      span.Baseline      = baseline;
+                if (kerning.HasValue)       span.Kerning       = kerning;
+                if (color.HasValue)         span.Color         = color;
             }
             ci = spanEnd;
         }
@@ -53,7 +62,9 @@ public static class SpanEditor
     /// Returns the formatting of the span that covers character position pos.
     /// All values are nullable (null = inherit from layer).
     /// </summary>
-    public static (bool? bold, bool? italic, float? fontSize, string? fontFamily)
+    public static (bool? bold, bool? italic, float? fontSize, string? fontFamily,
+                   bool? underline, bool? strikethrough, float? baseline, float? kerning,
+                   SKColor? color)
         GetFormatAt(SlideLayer layer, int pos)
     {
         if (layer.Spans.Count == 0) return default;
@@ -61,10 +72,14 @@ public static class SpanEditor
         foreach (var span in layer.Spans)
         {
             ci += span.Text.Length;
-            if (pos < ci) return (span.Bold, span.Italic, span.FontSize, span.FontFamily);
+            if (pos < ci) return (span.Bold, span.Italic, span.FontSize, span.FontFamily,
+                                  span.Underline, span.Strikethrough, span.Baseline, span.Kerning,
+                                  span.Color);
         }
         var last = layer.Spans[^1];
-        return (last.Bold, last.Italic, last.FontSize, last.FontFamily);
+        return (last.Bold, last.Italic, last.FontSize, last.FontFamily,
+                last.Underline, last.Strikethrough, last.Baseline, last.Kerning,
+                last.Color);
     }
 
     /// <summary>
@@ -202,14 +217,20 @@ public static class SpanEditor
     static TextSpan Clone(TextSpan src, string text) => new()
     {
         Text = text, Bold = src.Bold, Italic = src.Italic,
-        FontSize = src.FontSize, FontFamily = src.FontFamily, Color = src.Color
+        FontSize = src.FontSize, FontFamily = src.FontFamily, Color = src.Color,
+        Underline = src.Underline, Strikethrough = src.Strikethrough,
+        Baseline = src.Baseline, Kerning = src.Kerning
     };
 
     static bool HasOverride(TextSpan s) =>
         s.Bold.HasValue || s.Italic.HasValue || s.FontSize.HasValue
-        || s.FontFamily is not null || s.Color.HasValue;
+        || s.FontFamily is not null || s.Color.HasValue
+        || s.Underline.HasValue || s.Strikethrough.HasValue
+        || s.Baseline.HasValue || s.Kerning.HasValue;
 
     static bool SameFormat(TextSpan a, TextSpan b) =>
         a.Bold == b.Bold && a.Italic == b.Italic && a.FontSize == b.FontSize
-        && a.FontFamily == b.FontFamily && a.Color == b.Color;
+        && a.FontFamily == b.FontFamily && a.Color == b.Color
+        && a.Underline == b.Underline && a.Strikethrough == b.Strikethrough
+        && a.Baseline == b.Baseline && a.Kerning == b.Kerning;
 }

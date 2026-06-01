@@ -87,6 +87,11 @@ public static class ShowFileSerializer
                                 && !string.IsNullOrEmpty(layer.Text))
                                 layer.Spans.Add(new TextSpan { Text = layer.Text });
         },
+
+        // index 2: v3 → v4 — added Underline, Strikethrough, Baseline, Kerning to
+        // TextSpan and SlideLayer. New nullable/defaulted fields; JSON populates them
+        // automatically from absence, so no data migration is required.
+        _ => { },
     };
 
     public static void ApplyMigration(ShowFile file)

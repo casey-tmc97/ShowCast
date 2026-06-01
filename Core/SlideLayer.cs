@@ -64,6 +64,10 @@ public class SlideLayer
     public string     FontFamily { get; set; } = "Arial";
     public bool       Bold       { get; set; } = false;
     public bool       Italic     { get; set; } = false;
+    public bool  Underline     { get; set; } = false;
+    public bool  Strikethrough { get; set; } = false;
+    public float Baseline      { get; set; } = 0f;
+    public float Kerning       { get; set; } = 0f;
     public TextHAlign TextHAlign { get; set; } = TextHAlign.Center;
     public TextVAlign TextVAlign { get; set; } = TextVAlign.Middle;
     public string     AssetPath  { get; set; } = string.Empty;
@@ -107,6 +111,10 @@ public class SlideLayer
         Text            = Text,           Color         = Color,
         FontSize        = FontSize,       FontFamily    = FontFamily,
         Bold            = Bold,           Italic        = Italic,
+        Underline       = Underline,
+        Strikethrough   = Strikethrough,
+        Baseline        = Baseline,
+        Kerning         = Kerning,
         TextHAlign      = TextHAlign,     TextVAlign    = TextVAlign,
         AssetPath       = AssetPath,      ImageFit      = ImageFit,
         Spans           = Spans.Select(s => new TextSpan
@@ -117,6 +125,10 @@ public class SlideLayer
             Bold       = s.Bold,
             Italic     = s.Italic,
             Color      = s.Color,
+            Underline     = s.Underline,
+            Strikethrough = s.Strikethrough,
+            Baseline      = s.Baseline,
+            Kerning       = s.Kerning,
         }).ToList(),
         EntryAnim       = EntryAnim,
         EntryDurationMs = EntryDurationMs,
