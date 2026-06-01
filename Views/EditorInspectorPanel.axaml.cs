@@ -49,8 +49,7 @@ public partial class EditorInspectorPanel : UserControl
 
     void OnSpanFormatChanged(SpanFormatInfo info)
     {
-        // Guard with _loading so SelectionChanged/LostFocus handlers don't fire
-        // and mutate the layer while we're updating UI from a selection event.
+        SpanColorRow.IsVisible = true;
         _loading = true;
         try
         {
@@ -115,6 +114,7 @@ public partial class EditorInspectorPanel : UserControl
             TextSection.IsVisible      = false;
             ImageSection.IsVisible     = false;
             FillSection.IsVisible      = false;
+            SpanColorRow.IsVisible     = false;
 
             if (layer is null)
             {

@@ -276,8 +276,10 @@
                         </ToggleButton>
                     </StackPanel>
 
-                    <TextBlock Classes="field-label" Text="Span Color"/>
-                    <local:ColorPickerField x:Name="SpanColorPicker" Margin="0,0,0,6"/>
+                    <StackPanel x:Name="SpanColorRow" IsVisible="False">
+                        <TextBlock Classes="field-label" Text="Selection Color"/>
+                        <local:ColorPickerField x:Name="SpanColorPicker" Margin="0,0,0,6"/>
+                    </StackPanel>
 
                     <Grid ColumnDefinitions="*,6,*">
                         <StackPanel Grid.Column="0">
