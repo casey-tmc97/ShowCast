@@ -395,6 +395,8 @@ public static class PageRenderer
             _                 => rect.MidY   - total / 2f + fontSize
         };
 
+        float baselineShift = layer.Baseline * h / 1080f;
+
         // Draw stroke under fill if set
         if (layer.StrokeWidth > 0 && layer.StrokeColor.Alpha > 0)
         {
@@ -409,11 +411,43 @@ public static class PageRenderer
                 TextAlign   = skAlign
             };
             for (int i = 0; i < lines.Count; i++)
-                canvas.DrawText(lines[i], textX, startY + i * lh, sp);
+                canvas.DrawText(lines[i], textX, startY + i * lh - baselineShift, sp);
         }
 
         for (int i = 0; i < lines.Count; i++)
-            canvas.DrawText(lines[i], textX, startY + i * lh, paint);
+        {
+            float lineBaseline = startY + i * lh - baselineShift;
+            canvas.DrawText(lines[i], textX, lineBaseline, paint);
+
+            if (layer.Underline)
+            {
+                float sw = fontSize * 0.06f;
+                float lineW = paint.MeasureText(lines[i]);
+                float x1 = layer.TextHAlign switch
+                {
+                    TextHAlign.Left  => textX,
+                    TextHAlign.Right => textX - lineW,
+                    _                => textX - lineW / 2f,
+                };
+                using var ulp = new SKPaint { Color = paint.Color, StrokeWidth = sw, IsAntialias = true };
+                canvas.DrawLine(x1, lineBaseline + sw, x1 + lineW, lineBaseline + sw, ulp);
+            }
+
+            if (layer.Strikethrough)
+            {
+                float sw      = fontSize * 0.06f;
+                float strikeY = lineBaseline - fontSize * 0.30f;
+                float lineW   = paint.MeasureText(lines[i]);
+                float x1 = layer.TextHAlign switch
+                {
+                    TextHAlign.Left  => textX,
+                    TextHAlign.Right => textX - lineW,
+                    _                => textX - lineW / 2f,
+                };
+                using var stp = new SKPaint { Color = paint.Color, StrokeWidth = sw, IsAntialias = true };
+                canvas.DrawLine(x1, strikeY, x1 + lineW, strikeY, stp);
+            }
+        }
     }
 
     static void DrawSpans(SKCanvas canvas, SlideLayer layer, int w, int h)
@@ -424,8 +458,9 @@ public static class PageRenderer
         float bw = layer.Width * w, bh = layer.Height * h;
         if (bw <= 0 || bh <= 0) return;
 
-        // Build per-span render info: (text, typeface, paint, lineH)
-        var spanInfos = new List<(string text, SKTypeface tf, SKPaint paint, float lineH)>();
+        // Build per-span render info: (text, typeface, paint, lineH, underline, strikethrough, baselineShift, kerning)
+        var spanInfos = new List<(string text, SKTypeface tf, SKPaint paint, float lineH,
+                                  bool underline, bool strikethrough, float baselineShift, float kerning)>();
         foreach (var span in layer.Spans)
         {
             if (string.IsNullOrEmpty(span.Text)) continue;
@@ -435,6 +470,10 @@ public static class PageRenderer
             bool   bold   = span.Bold        ?? layer.Bold;
             bool   italic = span.Italic      ?? layer.Italic;
             var    color  = span.Color       ?? layer.Color;
+            bool   ul     = span.Underline     ?? layer.Underline;
+            bool   st     = span.Strikethrough ?? layer.Strikethrough;
+            float  bshift = (span.Baseline ?? layer.Baseline) * h / 1080f;
+            float  kern   = (span.Kerning  ?? layer.Kerning)  * w / 1920f;
 
             var style = (bold, italic) switch
             {
@@ -451,15 +490,16 @@ public static class PageRenderer
                 IsAntialias = true,
                 Typeface    = tf,
             };
-            spanInfos.Add((span.Text, tf, paint, fs * 1.25f));
+            spanInfos.Add((span.Text, tf, paint, fs * 1.25f, ul, st, bshift, kern));
         }
 
         if (spanInfos.Count == 0) return;
 
         // Tokenise: split each span's text into word-units, keeping newlines as explicit break tokens
-        // Each token: (text, paint, measured_width, lineH)
-        var tokens = new List<(string txt, SKPaint p, float tw, float lh)>();
-        foreach (var (spanText, _, paint, lh) in spanInfos)
+        // Each token: (text, paint, measured_width, lineH, underline, strikethrough, baselineShift, kerning)
+        var tokens = new List<(string txt, SKPaint p, float tw, float lh,
+                               bool ul, bool st, float bs, float kn)>();
+        foreach (var (spanText, _, paint, lh, ul, st, bs, kn) in spanInfos)
         {
             var parts = spanText.Split('\n');
             for (int pi = 0; pi < parts.Length; pi++)
@@ -471,17 +511,19 @@ public static class PageRenderer
                     string tok      = addSpace ? words[wi] + " " : words[wi];
                     if (tok.Length == 0) continue;
                     float tw = paint.MeasureText(tok);
-                    tokens.Add((tok, paint, tw, lh));
+                    tokens.Add((tok, paint, tw, lh, ul, st, bs, kn));
                 }
                 // Explicit newline token between parts
                 if (pi < parts.Length - 1)
-                    tokens.Add(("\n", paint, bw + 1, lh)); // width > bw forces a wrap
+                    tokens.Add(("\n", paint, bw + 1, lh, ul, st, bs, kn)); // width > bw forces a wrap
             }
         }
 
         // Word-wrap into lines
-        var lines = new List<List<(string txt, SKPaint p, float tw, float lh)>>();
-        var cur   = new List<(string txt, SKPaint p, float tw, float lh)>();
+        var lines = new List<List<(string txt, SKPaint p, float tw, float lh,
+                                   bool ul, bool st, float bs, float kn)>>();
+        var cur   = new List<(string txt, SKPaint p, float tw, float lh,
+                              bool ul, bool st, float bs, float kn)>();
         float curW = 0;
         foreach (var tok in tokens)
         {
@@ -525,10 +567,39 @@ public static class PageRenderer
                     _                 => bx,
                 };
                 float baseline = y + lineH * 0.8f;
-                foreach (var (txt, paint, tw, _) in line)
+                foreach (var (txt, paint, tw, _, ul, st, bs, kn) in line)
                 {
-                    canvas.DrawText(txt, x, baseline, paint);
-                    x += tw;
+                    float effectiveBaseline = baseline - bs;
+                    canvas.DrawText(txt, x, effectiveBaseline, paint);
+
+                    // Underline
+                    if (ul)
+                    {
+                        float strokeW = paint.TextSize * 0.06f;
+                        using var ulPaint = new SKPaint
+                        {
+                            Color       = paint.Color,
+                            StrokeWidth = strokeW,
+                            IsAntialias = true,
+                        };
+                        canvas.DrawLine(x, effectiveBaseline + strokeW, x + tw, effectiveBaseline + strokeW, ulPaint);
+                    }
+
+                    // Strikethrough
+                    if (st)
+                    {
+                        float strokeW = paint.TextSize * 0.06f;
+                        float strikeY = effectiveBaseline - paint.TextSize * 0.30f;
+                        using var stPaint = new SKPaint
+                        {
+                            Color       = paint.Color,
+                            StrokeWidth = strokeW,
+                            IsAntialias = true,
+                        };
+                        canvas.DrawLine(x, strikeY, x + tw, strikeY, stPaint);
+                    }
+
+                    x += tw + kn;
                 }
                 y += lineH;
             }
@@ -541,9 +612,11 @@ public static class PageRenderer
         DisposeSpanInfos(spanInfos);
     }
 
-    static void DisposeSpanInfos(List<(string text, SKTypeface tf, SKPaint paint, float lineH)> infos)
+    static void DisposeSpanInfos(
+        List<(string text, SKTypeface tf, SKPaint paint, float lineH,
+              bool ul, bool st, float baselineShift, float kerning)> infos)
     {
-        foreach (var (_, tf, p, _) in infos) { tf.Dispose(); p.Dispose(); }
+        foreach (var (_, tf, p, _, _, _, _, _) in infos) { tf.Dispose(); p.Dispose(); }
     }
 
     // ── Placeholders ──────────────────────────────────────────────────────────
