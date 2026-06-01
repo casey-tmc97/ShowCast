@@ -106,6 +106,28 @@ public partial class EditorInspectorPanel : UserControl
     // or LostFocus. Must be called before overwriting the fields in LoadLayer, because
     // Avalonia fires PointerPressed (which changes SelectedLayer → LoadLayer) BEFORE
     // LostFocus fires on the previously focused field.
+    void FlushTransformFields()
+    {
+        if (_displayedLayer is null) return;
+        var layer = _displayedLayer;
+
+        float? newX   = (float.TryParse(LayerXBox.Text,   out float x)            && Math.Abs(Math.Clamp(x / VW, 0f, 1f)        - layer.X)               > 0.0001f) ? Math.Clamp(x / VW, 0f, 1f)        : (float?)null;
+        float? newY   = (float.TryParse(LayerYBox.Text,   out float y)            && Math.Abs(Math.Clamp(y / VH, 0f, 1f)        - layer.Y)               > 0.0001f) ? Math.Clamp(y / VH, 0f, 1f)        : (float?)null;
+        float? newW   = (float.TryParse(LayerWBox.Text,   out float w) && w > 0   && Math.Abs(Math.Clamp(w / VW, 0.01f, 1f)     - layer.Width)           > 0.0001f) ? Math.Clamp(w / VW, 0.01f, 1f)     : (float?)null;
+        float? newH   = (float.TryParse(LayerHBox.Text,   out float h) && h > 0   && Math.Abs(Math.Clamp(h / VH, 0.01f, 1f)     - layer.Height)          > 0.0001f) ? Math.Clamp(h / VH, 0.01f, 1f)     : (float?)null;
+        float? newRot = (float.TryParse(LayerRotBox.Text, out float r)            && Math.Abs(r - layer.RotationDegrees)                                  > 0.001f)  ? r                                  : (float?)null;
+
+        if (newX == null && newY == null && newW == null && newH == null && newRot == null) return;
+
+        VM?.BeginLayerEdit();
+        if (newX   != null) layer.X                 = newX.Value;
+        if (newY   != null) layer.Y                 = newY.Value;
+        if (newW   != null) layer.Width             = newW.Value;
+        if (newH   != null) layer.Height            = newH.Value;
+        if (newRot != null) layer.RotationDegrees   = newRot.Value;
+        VM?.NotifySlideChanged();
+    }
+
     void FlushAnimationFields()
     {
         if (_displayedLayer is null) return;
@@ -130,6 +152,7 @@ public partial class EditorInspectorPanel : UserControl
 
     void LoadLayer(SlideLayer? layer)
     {
+        FlushTransformFields();
         FlushAnimationFields();
         _displayedLayer = layer;
         _loading = true;
@@ -267,12 +290,19 @@ public partial class EditorInspectorPanel : UserControl
     void OnTransformLostFocus(object? sender, RoutedEventArgs e)
     {
         if (_loading || VM?.SelectedLayer is not { } layer) return;
+        bool changed = false;
+        if (float.TryParse(LayerXBox.Text,   out float x) && Math.Abs(Math.Clamp(x / VW, 0f, 1f)    - layer.X)             > 0.0001f) changed = true;
+        if (float.TryParse(LayerYBox.Text,   out float y) && Math.Abs(Math.Clamp(y / VH, 0f, 1f)    - layer.Y)             > 0.0001f) changed = true;
+        if (float.TryParse(LayerWBox.Text,   out float w) && w > 0 && Math.Abs(Math.Clamp(w / VW, 0.01f, 1f) - layer.Width)  > 0.0001f) changed = true;
+        if (float.TryParse(LayerHBox.Text,   out float h) && h > 0 && Math.Abs(Math.Clamp(h / VH, 0.01f, 1f) - layer.Height) > 0.0001f) changed = true;
+        if (float.TryParse(LayerRotBox.Text, out float r) && Math.Abs(r - layer.RotationDegrees)                             > 0.001f)  changed = true;
+        if (!changed) return;
         VM.BeginLayerEdit();
-        if (float.TryParse(LayerXBox.Text,   out float x))  layer.X               = Math.Clamp(x / VW, 0f, 1f);
-        if (float.TryParse(LayerYBox.Text,   out float y))  layer.Y               = Math.Clamp(y / VH, 0f, 1f);
-        if (float.TryParse(LayerWBox.Text,   out float w) && w > 0) layer.Width   = Math.Clamp(w / VW, 0.01f, 1f);
-        if (float.TryParse(LayerHBox.Text,   out float h) && h > 0) layer.Height  = Math.Clamp(h / VH, 0.01f, 1f);
-        if (float.TryParse(LayerRotBox.Text, out float r))  layer.RotationDegrees = r;
+        if (float.TryParse(LayerXBox.Text,   out x))  layer.X               = Math.Clamp(x / VW, 0f, 1f);
+        if (float.TryParse(LayerYBox.Text,   out y))  layer.Y               = Math.Clamp(y / VH, 0f, 1f);
+        if (float.TryParse(LayerWBox.Text,   out w) && w > 0) layer.Width   = Math.Clamp(w / VW, 0.01f, 1f);
+        if (float.TryParse(LayerHBox.Text,   out h) && h > 0) layer.Height  = Math.Clamp(h / VH, 0.01f, 1f);
+        if (float.TryParse(LayerRotBox.Text, out r))  layer.RotationDegrees = r;
         VM.NotifySlideChanged();
     }
 
