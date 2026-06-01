@@ -102,10 +102,57 @@ public partial class EditorInspectorPanel : UserControl
 
     // ── Load layer ────────────────────────────────────────────────────────────
 
-    // Saves any animation text-field values the user typed but didn't commit via Enter
-    // or LostFocus. Must be called before overwriting the fields in LoadLayer, because
-    // Avalonia fires PointerPressed (which changes SelectedLayer → LoadLayer) BEFORE
-    // LostFocus fires on the previously focused field.
+    // Each Flush* method saves typed-but-uncommitted values to _displayedLayer.
+    // They are called at the top of LoadLayer, before fields are overwritten, because
+    // Avalonia fires PointerPressed (which triggers LoadLayer via SelectedLayer change)
+    // BEFORE LostFocus fires on the previously focused field.
+
+    void FlushLayerNameField()
+    {
+        if (_displayedLayer is null) return;
+        var newName = LayerNameBox.Text?.Trim();
+        if (!string.IsNullOrEmpty(newName) && newName != _displayedLayer.Name)
+        {
+            _displayedLayer.Name = newName;
+            VM?.NotifySlideChanged();
+        }
+    }
+
+    void FlushTextLayerFields()
+    {
+        if (_displayedLayer is not { Type: LayerType.Text } layer) return;
+
+        float? newFs  = (float.TryParse(FontSizeBox.Text,       out float fs)  && fs  > 0   && Math.Abs(fs  / VH - layer.FontSize)   > 0.0001f) ? fs  / VH     : (float?)null;
+        float? newSw  = (float.TryParse(TextStrokeWidthBox.Text, out float sw)  && sw  >= 0  && Math.Abs(sw  - layer.StrokeWidth)      > 0.001f)  ? sw           : (float?)null;
+        float? newBl  = (float.TryParse(BaselineBox.Text,        out float bl)              && Math.Abs(bl  - layer.Baseline)          > 0.001f)  ? bl           : (float?)null;
+        float? newKr  = (float.TryParse(KerningBox.Text,         out float kr)              && Math.Abs(kr  - layer.Kerning)           > 0.001f)  ? kr           : (float?)null;
+
+        if (newFs == null && newSw == null && newBl == null && newKr == null) return;
+
+        VM?.BeginLayerEdit();
+        if (newFs != null) layer.FontSize    = newFs.Value;
+        if (newSw != null) layer.StrokeWidth = newSw.Value;
+        if (newBl != null) layer.Baseline    = newBl.Value;
+        if (newKr != null) layer.Kerning     = newKr.Value;
+        VM?.NotifySlideChanged();
+    }
+
+    void FlushShapeLayerFields()
+    {
+        if (_displayedLayer is not { } layer) return;
+        if (layer.Type is not (LayerType.Background or LayerType.Shape)) return;
+
+        float? newCr  = (float.TryParse(CornerRadiusBox.Text,   out float cr)  && cr  >= 0  && Math.Abs(cr  - layer.CornerRadius)     > 0.001f)  ? cr           : (float?)null;
+        float? newSw  = (float.TryParse(FillStrokeWidthBox.Text, out float sw)  && sw  >= 0  && Math.Abs(sw  - layer.StrokeWidth)      > 0.001f)  ? sw           : (float?)null;
+
+        if (newCr == null && newSw == null) return;
+
+        VM?.BeginLayerEdit();
+        if (newCr != null) layer.CornerRadius = newCr.Value;
+        if (newSw != null) layer.StrokeWidth  = newSw.Value;
+        VM?.NotifySlideChanged();
+    }
+
     void FlushTransformFields()
     {
         if (_displayedLayer is null) return;
@@ -152,8 +199,11 @@ public partial class EditorInspectorPanel : UserControl
 
     void LoadLayer(SlideLayer? layer)
     {
+        FlushLayerNameField();
         FlushTransformFields();
         FlushAnimationFields();
+        FlushTextLayerFields();
+        FlushShapeLayerFields();
         _displayedLayer = layer;
         _loading = true;
         try
@@ -435,7 +485,7 @@ public partial class EditorInspectorPanel : UserControl
     void OnTextStrokeWidthLostFocus(object? sender, RoutedEventArgs e)
     {
         if (_loading || VM?.SelectedLayer is not { Type: LayerType.Text } layer) return;
-        if (float.TryParse(TextStrokeWidthBox.Text, out float w) && w >= 0)
+        if (float.TryParse(TextStrokeWidthBox.Text, out float w) && w >= 0 && Math.Abs(w - layer.StrokeWidth) > 0.001f)
         { VM.BeginLayerEdit(); layer.StrokeWidth = w; VM.NotifySlideChanged(); }
     }
 
@@ -513,7 +563,7 @@ public partial class EditorInspectorPanel : UserControl
     void OnCornerRadiusLostFocus(object? sender, RoutedEventArgs e)
     {
         if (_loading || VM?.SelectedLayer is not { } layer) return;
-        if (float.TryParse(CornerRadiusBox.Text, out float r) && r >= 0)
+        if (float.TryParse(CornerRadiusBox.Text, out float r) && r >= 0 && Math.Abs(r - layer.CornerRadius) > 0.001f)
         { VM.BeginLayerEdit(); layer.CornerRadius = r; VM.NotifySlideChanged(); }
     }
 
@@ -528,7 +578,7 @@ public partial class EditorInspectorPanel : UserControl
     {
         if (_loading || VM?.SelectedLayer is not { } layer) return;
         if (layer.Type is not (LayerType.Background or LayerType.Shape)) return;
-        if (float.TryParse(FillStrokeWidthBox.Text, out float w) && w >= 0)
+        if (float.TryParse(FillStrokeWidthBox.Text, out float w) && w >= 0 && Math.Abs(w - layer.StrokeWidth) > 0.001f)
         { VM.BeginLayerEdit(); layer.StrokeWidth = w; VM.NotifySlideChanged(); }
     }
 
