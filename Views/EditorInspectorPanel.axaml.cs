@@ -29,6 +29,12 @@ public partial class EditorInspectorPanel : UserControl
     EditorCanvas? _canvas;
     SlideLayer? _displayedLayer;
 
+    // Snapshot of transform values at the time LoadLayer last ran.
+    // FlushTransformFields compares text boxes against these, not the current model,
+    // so canvas drag mutations (which update the model but not the text boxes) don't
+    // get treated as user-typed changes and erroneously reverted.
+    float _loadedX, _loadedY, _loadedW, _loadedH, _loadedRot;
+
     static readonly string[] _systemFonts =
         SKFontManager.Default.GetFontFamilies().OrderBy(f => f).ToArray();
 
@@ -158,11 +164,14 @@ public partial class EditorInspectorPanel : UserControl
         if (_displayedLayer is null) return;
         var layer = _displayedLayer;
 
-        float? newX   = (float.TryParse(LayerXBox.Text,   out float x)            && Math.Abs(Math.Clamp(x / VW, 0f, 1f)        - layer.X)               > 0.0001f) ? Math.Clamp(x / VW, 0f, 1f)        : (float?)null;
-        float? newY   = (float.TryParse(LayerYBox.Text,   out float y)            && Math.Abs(Math.Clamp(y / VH, 0f, 1f)        - layer.Y)               > 0.0001f) ? Math.Clamp(y / VH, 0f, 1f)        : (float?)null;
-        float? newW   = (float.TryParse(LayerWBox.Text,   out float w) && w > 0   && Math.Abs(Math.Clamp(w / VW, 0.01f, 1f)     - layer.Width)           > 0.0001f) ? Math.Clamp(w / VW, 0.01f, 1f)     : (float?)null;
-        float? newH   = (float.TryParse(LayerHBox.Text,   out float h) && h > 0   && Math.Abs(Math.Clamp(h / VH, 0.01f, 1f)     - layer.Height)          > 0.0001f) ? Math.Clamp(h / VH, 0.01f, 1f)     : (float?)null;
-        float? newRot = (float.TryParse(LayerRotBox.Text, out float r)            && Math.Abs(r - layer.RotationDegrees)                                  > 0.001f)  ? r                                  : (float?)null;
+        // Compare text boxes against _loaded* (values at last LoadLayer), not the live model.
+        // This means a drag-caused model mutation is invisible here (text box == loaded value),
+        // while a user-typed value (text box != loaded value) is detected and saved correctly.
+        float? newX   = (float.TryParse(LayerXBox.Text,   out float x)            && Math.Abs(Math.Clamp(x / VW, 0f, 1f)    - _loadedX)   > 0.0001f) ? Math.Clamp(x / VW, 0f, 1f)    : (float?)null;
+        float? newY   = (float.TryParse(LayerYBox.Text,   out float y)            && Math.Abs(Math.Clamp(y / VH, 0f, 1f)    - _loadedY)   > 0.0001f) ? Math.Clamp(y / VH, 0f, 1f)    : (float?)null;
+        float? newW   = (float.TryParse(LayerWBox.Text,   out float w) && w > 0   && Math.Abs(Math.Clamp(w / VW, 0.01f, 1f) - _loadedW)   > 0.0001f) ? Math.Clamp(w / VW, 0.01f, 1f) : (float?)null;
+        float? newH   = (float.TryParse(LayerHBox.Text,   out float h) && h > 0   && Math.Abs(Math.Clamp(h / VH, 0.01f, 1f) - _loadedH)   > 0.0001f) ? Math.Clamp(h / VH, 0.01f, 1f) : (float?)null;
+        float? newRot = (float.TryParse(LayerRotBox.Text, out float r)            && Math.Abs(r - _loadedRot)                              > 0.001f)  ? r                              : (float?)null;
 
         if (newX == null && newY == null && newW == null && newH == null && newRot == null) return;
 
@@ -237,6 +246,11 @@ public partial class EditorInspectorPanel : UserControl
             LayerWBox.Text   = (layer.Width  * VW).ToString("F0");
             LayerHBox.Text   = (layer.Height * VH).ToString("F0");
             LayerRotBox.Text = layer.RotationDegrees.ToString("F1");
+            _loadedX   = layer.X;
+            _loadedY   = layer.Y;
+            _loadedW   = layer.Width;
+            _loadedH   = layer.Height;
+            _loadedRot = layer.RotationDegrees;
 
             // ── Type-specific ──
             switch (layer.Type)

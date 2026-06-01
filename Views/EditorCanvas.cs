@@ -754,6 +754,7 @@ public class EditorCanvas : UserControl, IDisposable
             HideCrosshairs();
             e.Pointer.Capture(null);
             RebuildSlide();
+            _vm?.NotifySlideChanged();
             e.Handled = true;
         }
     }
