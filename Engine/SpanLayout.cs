@@ -237,24 +237,29 @@ public static class SpanLayout
         }
 
         // ── Word-wrap ─────────────────────────────────────────────────────────
-        var lineGroups = new List<List<(string txt, int si, int cs, float tw, float lh, float bs, float kn)>>();
-        var cur = new List<(string txt, int si, int cs, float tw, float lh, float bs, float kn)>();
-        float curW = 0f;
+        var lineGroups      = new List<List<(string txt, int si, int cs, float tw, float lh, float bs, float kn)>>();
+        var lineGroupStarts = new List<int>();   // char index where each line starts
+        var cur             = new List<(string txt, int si, int cs, float tw, float lh, float bs, float kn)>();
+        float curW    = 0f;
+        int   nextStart = 0;
         foreach (var tok in tokens)
         {
             bool isNl = tok.txt == "\n";
             if (isNl || (cur.Count > 0 && curW + tok.tw > bw))
             {
                 lineGroups.Add(cur);
-                cur  = new();
-                curW = 0f;
-                if (isNl) continue;
+                lineGroupStarts.Add(nextStart);
+                cur       = new();
+                curW      = 0f;
+                nextStart = isNl ? tok.cs + 1 : (cur.Count > 0 ? cur[0].cs : nextStart);
+                if (isNl) { nextStart = tok.cs + 1; continue; }
             }
+            if (cur.Count == 0) nextStart = tok.cs;
             cur.Add(tok);
             curW += tok.tw;
         }
-        if (cur.Count > 0) lineGroups.Add(cur);
-        if (lineGroups.Count == 0) lineGroups.Add(new());
+        if (cur.Count > 0) { lineGroups.Add(cur); lineGroupStarts.Add(nextStart); }
+        if (lineGroups.Count == 0) { lineGroups.Add(new()); lineGroupStarts.Add(0); }
 
         // ── Vertical layout ───────────────────────────────────────────────────
         float maxLH  = paints.Count > 0 ? paints.Max(p => p.lineH) : defaultLineH;
@@ -286,7 +291,7 @@ public static class SpanLayout
             float lineTop = lineY;
             float baseline = lineTop + lineH * 0.8f;
 
-            int lineCharStart = ltoks.Count > 0 ? ltoks[0].cs : (li > 0 ? lines[li-1].CharEnd : 0);
+            int lineCharStart = lineGroupStarts[li];
             int lineCharEnd   = lineCharStart;
 
             var runs = new List<LayoutRun>();
@@ -299,14 +304,15 @@ public static class SpanLayout
                 float runBase = baseline - bs;
 
                 // Record each char position (0..length inclusive)
+                float accW = 0f;
                 for (int ci = 0; ci <= tok.txt.Length; ci++)
                 {
                     int gci = tok.cs + ci;
                     if (gci > text.Length) break;
-                    float cx = runX + (ci > 0 ? p.MeasureText(tok.txt[..ci]) : 0f);
                     float cw = ci < tok.txt.Length ? p.MeasureText(tok.txt[ci..(ci+1)]) : 0f;
-                    charRects[gci]   = new SKRect(cx, lineTop, cx + cw, lineTop + lineH);
+                    charRects[gci]   = new SKRect(runX + accW, lineTop, runX + accW + cw, lineTop + lineH);
                     charLineIdx[gci] = li;
+                    accW += cw;
                 }
 
                 runs.Add(new LayoutRun
@@ -324,8 +330,8 @@ public static class SpanLayout
                 lineCharEnd = tok.cs + tok.txt.Length;
             }
 
-            // Cursor after last char on this line
-            if (lineCharEnd <= text.Length)
+            // Cursor after last char on this line (skip for empty lines — char already placed by previous line)
+            if (ltoks.Count > 0 && lineCharEnd <= text.Length)
             {
                 charRects[lineCharEnd]   = new SKRect(rx, lineTop, rx, lineTop + lineH);
                 charLineIdx[lineCharEnd] = li;

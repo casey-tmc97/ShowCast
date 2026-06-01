@@ -152,4 +152,19 @@ public class SpanLayoutTests
         Assert.Equal(5, result.GetWordEnd(1));
         Assert.Equal(11, result.GetWordEnd(7));
     }
+
+    [Fact]
+    public void ExplicitNewline_CursorYIncreasesAcrossLines()
+    {
+        var layer = SingleSpanLayer("Hello\nWorld");
+        var result = SpanLayout.Compute(layer, TestRect);
+
+        Assert.Equal(2, result.Lines.Count);
+        float yLine0 = result.GetCharRect(0).Top;   // 'H' is on line 0
+        float yLine1 = result.GetCharRect(6).Top;   // 'W' is on line 1
+        Assert.True(yLine1 > yLine0, "line 1 should be below line 0");
+        // Cursor positions within each line should be on the correct Y
+        Assert.Equal(yLine0, result.GetCharRect(4).Top);  // 'o' of Hello still line 0
+        Assert.Equal(yLine1, result.GetCharRect(7).Top);  // 'o' of World still line 1
+    }
 }
