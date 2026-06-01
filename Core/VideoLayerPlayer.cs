@@ -23,6 +23,7 @@ public sealed class VideoLayerPlayer : IVideoLayerPlayer
     readonly object _frameLock = new();
     SKBitmap?       _currentFrame;
     VideoLoopMode   _loopMode;
+    Media?          _media;
 
     // Managed delegate fields — must stay rooted while VLC holds unmanaged pointers.
     readonly MediaPlayer.LibVLCVideoFormatCb  _fmtCb;
@@ -93,7 +94,7 @@ public sealed class VideoLayerPlayer : IVideoLayerPlayer
         if (_frameBuffer is null || !_pin.IsAllocated) return;
 
         var info   = new SKImageInfo((int)_frameWidth, (int)_frameHeight,
-                                     SKColorType.Bgra8888, SKAlphaType.Premul);
+                                     SKColorType.Bgra8888, SKAlphaType.Unpremul);
         var newBmp = new SKBitmap(info);
         Marshal.Copy(_frameBuffer, 0, newBmp.GetPixels(), _frameBuffer.Length);
 
@@ -110,9 +111,10 @@ public sealed class VideoLayerPlayer : IVideoLayerPlayer
     {
         // Calling Stop/Play directly on the VLC event thread causes a deadlock.
         // Queue to thread pool so we return from the event handler first.
+        var capturedMode = _loopMode;
         System.Threading.ThreadPool.QueueUserWorkItem(_ =>
         {
-            switch (_loopMode)
+            switch (capturedMode)
             {
                 case VideoLoopMode.Loop:
                     _player.Stop();
@@ -137,8 +139,8 @@ public sealed class VideoLayerPlayer : IVideoLayerPlayer
         if (!string.IsNullOrEmpty(audioDeviceId))
             _player.SetOutputDevice("mmdevice", audioDeviceId);
 
-        using var media = new Media(_libVlc, filePath);
-        _player.Media  = media;
+        _media         = new Media(_libVlc, filePath);
+        _player.Media  = _media;
         _player.Volume = (int)(volume * 100);
         _player.Play();
     }
@@ -159,9 +161,11 @@ public sealed class VideoLayerPlayer : IVideoLayerPlayer
         try { _player.Stop(); } catch { }
         _player.Dispose();
         _libVlc.Dispose();
-        if (_pin.IsAllocated) _pin.Free();
+        _media?.Dispose();
+        _media = null;
         lock (_frameLock)
         {
+            if (_pin.IsAllocated) _pin.Free();
             _currentFrame?.Dispose();
             _currentFrame = null;
         }
