@@ -2,7 +2,8 @@ using SkiaSharp;
 
 namespace ShowCast.Core;
 
-public enum LayerType      { Background, Text, Image, Shape, Clock, Feed }
+public enum LayerType      { Background, Text, Image, Shape, Clock, Feed, Video }
+public enum VideoLoopMode  { Loop, HoldLastFrame, GoBlack }
 public enum BlendMode      { Normal, Multiply, Screen, Overlay, Add }
 public enum TextHAlign     { Left, Center, Right }
 public enum TextVAlign     { Top, Middle, Bottom }
@@ -73,6 +74,11 @@ public class SlideLayer
     public string     AssetPath  { get; set; } = string.Empty;
     public ImageFit   ImageFit   { get; set; } = ImageFit.Fit;
 
+    // ── Video ──────────────────────────────────────────────────────────────────
+    public VideoLoopMode VideoLoopMode           { get; set; } = VideoLoopMode.Loop;
+    public float         VideoVolume             { get; set; } = 1.0f;
+    public Guid?         VideoAudioDestinationId { get; set; } = null;
+
     // ── Entry animation ───────────────────────────────────────────────────────
     public LayerAnimation EntryAnim       { get; set; } = LayerAnimation.None;
     public int            EntryDurationMs { get; set; } = 400;
@@ -138,6 +144,9 @@ public class SlideLayer
         ExitAnim        = ExitAnim,
         ExitDurationMs  = ExitDurationMs,
         ExitDelayMs     = ExitDelayMs,
-        ExitEasing      = ExitEasing
+        ExitEasing      = ExitEasing,
+        VideoLoopMode           = VideoLoopMode,
+        VideoVolume             = VideoVolume,
+        VideoAudioDestinationId = VideoAudioDestinationId
     };
 }
