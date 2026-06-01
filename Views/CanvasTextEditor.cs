@@ -169,7 +169,10 @@ public sealed class CanvasTextEditor
 
     public SpanFormatInfo GetFormatAtCursor()
     {
-        var f = SpanEditor.GetFormatAt(_layer, _cursorIndex);
+        // When a selection is active, reflect the format of the selection start so inspector
+        // buttons show the correct state after ApplyFormat runs.
+        int pos = HasSelection() ? Math.Min(_selStart, _selEnd) : _cursorIndex;
+        var f = SpanEditor.GetFormatAt(_layer, pos);
         return new SpanFormatInfo(f.bold, f.italic, f.fontSize, f.fontFamily,
                                   f.underline, f.strikethrough, f.baseline, f.kerning, f.color);
     }
