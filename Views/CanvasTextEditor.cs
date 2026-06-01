@@ -90,6 +90,8 @@ public sealed class CanvasTextEditor
 
     public void Open(Point? clickPosition = null)
     {
+        // Guard against double-open — clean up any existing state first
+        if (_imeBox is not null) Cleanup();
         _vm.BeginLayerEdit();
         _overlay.Children.Add(_cursorLine);
 
@@ -132,6 +134,7 @@ public sealed class CanvasTextEditor
         _layer.Text = _origText;
         _layer.Spans.Clear();
         foreach (var s in _origSpans) _layer.Spans.Add(s);
+        _vm.NotifySlideChanged();   // close the BeginLayerEdit snapshot cleanly
         Cleanup();
         _rebuildSlide();
     }
@@ -143,8 +146,8 @@ public sealed class CanvasTextEditor
         _layout = null;
 
         _overlay.Children.Remove(_cursorLine);
-        foreach (var r in _selRects) _overlay.Children.Remove(r);
-        _selRects.Clear();
+        try { foreach (var r in _selRects) _overlay.Children.Remove(r); }
+        finally { _selRects.Clear(); }
 
         if (_imeBox is not null)
         {
@@ -157,6 +160,7 @@ public sealed class CanvasTextEditor
 
     public void UpdateImageRect(Rect imageRect)
     {
+        if (_imeBox is null) return;  // editor is closed; nothing to update
         _imageRect = imageRect;
         _layout?.Dispose();
         _layout = null;
@@ -332,6 +336,7 @@ public sealed class CanvasTextEditor
     {
         _pointerDown = false;
         if (_selStart == _selEnd) ClearSelection();
+        FireSpanFormatChanged();
     }
 
     // ── Keyboard ──────────────────────────────────────────────────────────────
