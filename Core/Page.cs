@@ -68,7 +68,8 @@ public class Page
     /// Returns layers visible to a given output's role filter, in draw order.
     /// </summary>
     public IEnumerable<SlideLayer> LayersForRoles(LayerRole roles) =>
-        Layers.Where(l => l.Visible && (l.Roles & roles) != 0);
+        Layers.Where(l => l.Visible && (l.Roles & roles) != 0)
+              .OrderBy(l => l.ZOrder);
 
     /// <summary>Representative background color for thumbnail display.</summary>
     public SKColor ThumbnailColor =>

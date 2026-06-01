@@ -327,11 +327,12 @@ public static class PageRenderer
 
     static void DrawText(SKCanvas canvas, SlideLayer layer, int w, int h, bool useLiveTimers = true)
     {
-        // Timer binding takes priority — renders as plain text regardless of spans
-        if (useLiveTimers && layer.TimerBinding is { } tid
-            && TimerTextCache.Values.TryGetValue(tid, out var tv))
+        if (layer.TimerBinding is { } tid)
         {
-            DrawPlainText(canvas, layer, tv, w, h);
+            if (useLiveTimers && TimerTextCache.Values.TryGetValue(tid, out var tv))
+                DrawPlainText(canvas, layer, tv, w, h);
+            else
+                DrawPlainText(canvas, layer, "12:34:56:78", w, h);
             return;
         }
 

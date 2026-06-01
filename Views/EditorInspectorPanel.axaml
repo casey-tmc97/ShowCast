@@ -8,7 +8,7 @@
         <!-- ── Collapsible section expander ──────────────────────────────── -->
         <ControlTheme x:Key="SectionExpander" TargetType="Expander">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="IsExpanded" Value="True"/>
+            <Setter Property="IsExpanded" Value="False"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Template">
                 <ControlTemplate>
@@ -25,7 +25,7 @@
                                       Background="Transparent"
                                       Foreground="#888888"
                                       BorderThickness="0"
-                                      Padding="0,5,0,3"
+                                      Padding="0,8,0,6"
                                       Cursor="Hand">
                             <ToggleButton.Styles>
                                 <Style Selector="ToggleButton:pointerover /template/ ContentPresenter">
@@ -38,16 +38,16 @@
                                     <Setter Property="Background" Value="Transparent"/>
                                 </Style>
                             </ToggleButton.Styles>
-                            <Grid ColumnDefinitions="*,14">
+                            <Grid ColumnDefinitions="*,16">
                                 <TextBlock Grid.Column="0"
                                            Text="{TemplateBinding Header}"
-                                           FontSize="12" FontWeight="Bold"
+                                           FontSize="13" FontWeight="Bold"
                                            Foreground="#cccccc"
                                            VerticalAlignment="Center"/>
                                 <!-- Caret: ▸ by default; style below sets it to ▾ when expanded -->
                                 <TextBlock Grid.Column="1" Name="ExpandCaret"
                                            Text="▸"
-                                           FontSize="9" Foreground="#666666"
+                                           FontSize="11" Foreground="#666666"
                                            VerticalAlignment="Center"
                                            HorizontalAlignment="Right"/>
                             </Grid>
