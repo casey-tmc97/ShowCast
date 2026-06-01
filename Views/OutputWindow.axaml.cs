@@ -18,6 +18,7 @@ public partial class OutputWindow : Window
     readonly OutputState        _output;
     readonly List<IDisposable>  _subs  = new();
     readonly DispatcherTimer    _timer = new();
+    VideoFrameRegistry? _videoRegistry;
 
     DateTime _pageStartTime;
     DateTime _transStartTime;
@@ -25,10 +26,11 @@ public partial class OutputWindow : Window
 
     public OutputWindow() { }
 
-    public OutputWindow(OutputState output)
+    public OutputWindow(OutputState output, IReadOnlyList<ShowCast.Core.AudioDestination> audioDestinations)
     {
         InitializeComponent();
         _output = output;
+        _videoRegistry = new ShowCast.Core.VideoFrameRegistry(audioDestinations);
         Title   = $"ShowCast — {output.Name}";
 
         _timer.Interval = TimeSpan.FromMilliseconds(16);
@@ -37,6 +39,7 @@ public partial class OutputWindow : Window
         Page? prev = null;
         _subs.Add(output.WhenAnyValue(o => o.LivePage).Subscribe(page =>
         {
+            _videoRegistry?.UpdateSlide(page);
             OnLivePageChanged(prev, page);
             prev = page;
         }));
@@ -157,7 +160,8 @@ public partial class OutputWindow : Window
     {
         int w = _output.Config.Width, h = _output.Config.Height;
         using var surface = SKSurface.Create(new SKImageInfo(w, h, SKColorType.Rgba8888));
-        PageRenderer.Render(surface.Canvas, _output.LivePage!, _output.Roles, w, h, elapsed);
+        PageRenderer.Render(surface.Canvas, _output.LivePage!, _output.Roles, w, h, elapsed,
+                            getVideoFrame: _videoRegistry is null ? null : _videoRegistry.TryGetFrame);
         RenderImage.Source = ToWriteableBitmap(surface, w, h);
     }
 
@@ -166,7 +170,8 @@ public partial class OutputWindow : Window
         int w = _output.Config.Width, h = _output.Config.Height;
         using var surface = SKSurface.Create(new SKImageInfo(w, h, SKColorType.Rgba8888));
         if (_output.LivePage is not null)
-            PageRenderer.Render(surface.Canvas, _output.LivePage, _output.Roles, w, h);
+            PageRenderer.Render(surface.Canvas, _output.LivePage, _output.Roles, w, h,
+                                getVideoFrame: _videoRegistry is null ? null : _videoRegistry.TryGetFrame);
         else
             surface.Canvas.Clear(SKColors.Black);
         RenderImage.Source = ToWriteableBitmap(surface, w, h);
@@ -188,6 +193,7 @@ public partial class OutputWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         _timer.Stop();
+        _videoRegistry?.Dispose();
         foreach (var s in _subs) s.Dispose();
         base.OnClosed(e);
     }
