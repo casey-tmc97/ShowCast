@@ -312,7 +312,11 @@ public partial class EditorInspectorPanel : UserControl
     void OnTextColorChanged(SKColor color)
     {
         if (_loading || VM?.SelectedLayer is not { Type: LayerType.Text } layer) return;
-        VM.BeginLayerEdit(); layer.Color = color; VM.NotifySlideChanged();
+        VM.BeginLayerEdit();
+        layer.Color = color;
+        // Clear per-span color overrides so the new layer color applies everywhere.
+        foreach (var span in layer.Spans) span.Color = null;
+        VM.NotifySlideChanged();
     }
 
     void OnStyleClick(object? sender, RoutedEventArgs e)
