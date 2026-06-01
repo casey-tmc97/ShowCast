@@ -27,6 +27,7 @@ public partial class EditorInspectorPanel : UserControl
     readonly List<IDisposable> _subs = new();
     bool _loading;
     EditorCanvas? _canvas;
+    SlideLayer? _displayedLayer;
 
     static readonly string[] _systemFonts =
         SKFontManager.Default.GetFontFamilies().OrderBy(f => f).ToArray();
@@ -101,8 +102,36 @@ public partial class EditorInspectorPanel : UserControl
 
     // ── Load layer ────────────────────────────────────────────────────────────
 
+    // Saves any animation text-field values the user typed but didn't commit via Enter
+    // or LostFocus. Must be called before overwriting the fields in LoadLayer, because
+    // Avalonia fires PointerPressed (which changes SelectedLayer → LoadLayer) BEFORE
+    // LostFocus fires on the previously focused field.
+    void FlushAnimationFields()
+    {
+        if (_displayedLayer is null) return;
+        var layer = _displayedLayer;
+
+        int? newEd   = (int.TryParse(EntryDurationBox.Text, out int v1) && v1 >= 0 && v1 != layer.EntryDurationMs) ? v1 : (int?)null;
+        int? newEdl  = (int.TryParse(EntryDelayBox.Text,    out int v2) && v2 >= 0 && v2 != layer.EntryDelayMs)   ? v2 : (int?)null;
+        int? newHd   = (int.TryParse(HoldDurationBox.Text,  out int v3) && v3 >= 0 && v3 != layer.HoldDurationMs) ? v3 : (int?)null;
+        int? newExd  = (int.TryParse(ExitDurationBox.Text,  out int v4) && v4 >= 0 && v4 != layer.ExitDurationMs) ? v4 : (int?)null;
+        int? newExdl = (int.TryParse(ExitDelayBox.Text,     out int v5) && v5 >= 0 && v5 != layer.ExitDelayMs)    ? v5 : (int?)null;
+
+        if (newEd == null && newEdl == null && newHd == null && newExd == null && newExdl == null) return;
+
+        VM?.BeginLayerEdit();
+        if (newEd   != null) layer.EntryDurationMs = newEd.Value;
+        if (newEdl  != null) layer.EntryDelayMs    = newEdl.Value;
+        if (newHd   != null) layer.HoldDurationMs  = newHd.Value;
+        if (newExd  != null) layer.ExitDurationMs  = newExd.Value;
+        if (newExdl != null) layer.ExitDelayMs     = newExdl.Value;
+        VM?.NotifySlideChanged();
+    }
+
     void LoadLayer(SlideLayer? layer)
     {
+        FlushAnimationFields();
+        _displayedLayer = layer;
         _loading = true;
         try
         {
@@ -533,14 +562,14 @@ public partial class EditorInspectorPanel : UserControl
     void OnEntryDurationLostFocus(object? sender, RoutedEventArgs e)
     {
         if (_loading || VM?.SelectedLayer is not { } layer) return;
-        if (int.TryParse(EntryDurationBox.Text, out int ms) && ms >= 0)
+        if (int.TryParse(EntryDurationBox.Text, out int ms) && ms >= 0 && ms != layer.EntryDurationMs)
         { VM.BeginLayerEdit(); layer.EntryDurationMs = ms; VM.NotifySlideChanged(); }
     }
 
     void OnEntryDelayLostFocus(object? sender, RoutedEventArgs e)
     {
         if (_loading || VM?.SelectedLayer is not { } layer) return;
-        if (int.TryParse(EntryDelayBox.Text, out int ms) && ms >= 0)
+        if (int.TryParse(EntryDelayBox.Text, out int ms) && ms >= 0 && ms != layer.EntryDelayMs)
         { VM.BeginLayerEdit(); layer.EntryDelayMs = ms; VM.NotifySlideChanged(); }
     }
 
@@ -563,7 +592,7 @@ public partial class EditorInspectorPanel : UserControl
     void OnHoldDurationLostFocus(object? sender, RoutedEventArgs e)
     {
         if (_loading || VM?.SelectedLayer is not { } layer) return;
-        if (int.TryParse(HoldDurationBox.Text, out int ms) && ms >= 0)
+        if (int.TryParse(HoldDurationBox.Text, out int ms) && ms >= 0 && ms != layer.HoldDurationMs)
         { VM.BeginLayerEdit(); layer.HoldDurationMs = ms; VM.NotifySlideChanged(); }
     }
 
@@ -578,14 +607,14 @@ public partial class EditorInspectorPanel : UserControl
     void OnExitDurationLostFocus(object? sender, RoutedEventArgs e)
     {
         if (_loading || VM?.SelectedLayer is not { } layer) return;
-        if (int.TryParse(ExitDurationBox.Text, out int ms) && ms >= 0)
+        if (int.TryParse(ExitDurationBox.Text, out int ms) && ms >= 0 && ms != layer.ExitDurationMs)
         { VM.BeginLayerEdit(); layer.ExitDurationMs = ms; VM.NotifySlideChanged(); }
     }
 
     void OnExitDelayLostFocus(object? sender, RoutedEventArgs e)
     {
         if (_loading || VM?.SelectedLayer is not { } layer) return;
-        if (int.TryParse(ExitDelayBox.Text, out int ms) && ms >= 0)
+        if (int.TryParse(ExitDelayBox.Text, out int ms) && ms >= 0 && ms != layer.ExitDelayMs)
         { VM.BeginLayerEdit(); layer.ExitDelayMs = ms; VM.NotifySlideChanged(); }
     }
 
