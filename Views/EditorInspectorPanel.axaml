@@ -472,6 +472,59 @@
                 </StackPanel>
             </Expander>
 
+            <!-- ══ VIDEO ══ -->
+            <Expander x:Name="VideoSection" IsVisible="False"
+                      Theme="{StaticResource SectionExpander}"
+                      Header="VIDEO">
+                <StackPanel Margin="0,2,0,0">
+
+                    <TextBlock Classes="field-label" Text="File"/>
+                    <Grid ColumnDefinitions="*,6,Auto" Margin="0,0,0,6">
+                        <TextBox x:Name="VideoPathBox"
+                                 Grid.Column="0"
+                                 IsReadOnly="True"
+                                 Text="(no file)"
+                                 Foreground="#888888"/>
+                        <Button Grid.Column="2"
+                                x:Name="VideoBrowseBtn"
+                                Content="Browse…"
+                                Height="28"
+                                Padding="8,0"
+                                Background="#3a3a3a"
+                                Foreground="White"
+                                BorderBrush="#555555"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Click="OnVideoBrowse"/>
+                    </Grid>
+
+                    <TextBlock Classes="field-label" Text="Loop Mode"/>
+                    <ComboBox x:Name="VideoLoopModeBox" SelectionChanged="OnVideoLoopModeChanged">
+                        <ComboBoxItem Content="Loop"/>
+                        <ComboBoxItem Content="Hold Last Frame"/>
+                        <ComboBoxItem Content="Go Black"/>
+                    </ComboBox>
+
+                    <Grid ColumnDefinitions="*,8,Auto">
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Classes="field-label" Text="Volume"/>
+                            <Slider x:Name="VideoVolumeSlider" Minimum="0" Maximum="100" Value="100"
+                                    ValueChanged="OnVideoVolumeChanged" Margin="0,4,0,6"/>
+                        </StackPanel>
+                        <TextBlock Grid.Column="2" x:Name="VideoVolumeLabel"
+                                   Text="100%" Foreground="#888888" FontSize="11"
+                                   VerticalAlignment="Center" Width="36"/>
+                    </Grid>
+
+                    <TextBlock Classes="field-label" Text="Audio Output"/>
+                    <ComboBox x:Name="VideoAudioOutputBox"
+                              HorizontalAlignment="Stretch"
+                              Margin="0,0,0,6"
+                              SelectionChanged="OnVideoAudioOutputChanged"/>
+
+                </StackPanel>
+            </Expander>
+
         </StackPanel>
     </ScrollViewer>
 
