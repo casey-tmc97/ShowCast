@@ -10,7 +10,7 @@
         <Border Grid.Row="0"
                 Background="#1a1a1a"
                 BorderBrush="#555555" BorderThickness="0,0,0,1">
-            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
 
                 <!-- Back -->
                 <Button Grid.Column="0" Content="← Back"
@@ -59,8 +59,15 @@
                         Click="OnAddImage"
                         ToolTip.Tip="Add image layer (opens file picker)"/>
 
+                <!-- Add Video -->
+                <Button Grid.Column="7" Content="+ Video"
+                        Classes="tool-btn"
+                        Margin="4,5"
+                        Click="OnAddVideo"
+                        ToolTip.Tip="Add video layer (opens file picker)"/>
+
                 <!-- Toggle Rulers -->
-                <ToggleButton Grid.Column="7"
+                <ToggleButton Grid.Column="8"
                               Content="Rulers"
                               Classes="tool-btn"
                               Margin="4,5"
@@ -68,7 +75,7 @@
                               ToolTip.Tip="Toggle rulers"/>
 
                 <!-- Grid size dropdown (None = off) -->
-                <ComboBox Grid.Column="8"
+                <ComboBox Grid.Column="9"
                           x:Name="GridSizeBox"
                           Width="90" Height="26" FontSize="11"
                           Margin="4,5"
@@ -84,7 +91,7 @@
                 </ComboBox>
 
                 <!-- Toggle Snap -->
-                <ToggleButton Grid.Column="9"
+                <ToggleButton Grid.Column="10"
                               Content="Snap"
                               Classes="tool-btn"
                               Margin="4,5"
@@ -92,7 +99,7 @@
                               ToolTip.Tip="Snap to grid while dragging"/>
 
                 <!-- Toggle Broadcast Safe -->
-                <ToggleButton Grid.Column="10"
+                <ToggleButton Grid.Column="11"
                               Content="Safe"
                               Classes="tool-btn"
                               Margin="4,5"
@@ -100,14 +107,14 @@
                               ToolTip.Tip="Show broadcast safe boundaries (action 5%, title 10%)"/>
 
                 <!-- Delete selected -->
-                <Button Grid.Column="11" Content="Del Layer"
+                <Button Grid.Column="12" Content="Del Layer"
                         Classes="tool-btn"
                         Margin="4,5,8,5"
                         Click="OnDeleteLayer"
                         ToolTip.Tip="Delete selected layer (Delete key)"/>
 
                 <!-- Preview animations -->
-                <Button Grid.Column="12" Content="▶ Preview"
+                <Button Grid.Column="13" Content="▶ Preview"
                         Classes="tool-btn"
                         Margin="4,5,8,5"
                         Click="OnPreviewAnimation"

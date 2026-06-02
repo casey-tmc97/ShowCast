@@ -20,6 +20,7 @@ public partial class EditorLayerPanel : UserControl
             LayerType.Image      => "IMG",
             LayerType.Shape      => "SHP",
             LayerType.Clock      => "CLK",
+            LayerType.Video      => "VID",
             _                    => "?"
         });
 

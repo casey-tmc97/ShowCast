@@ -1388,6 +1388,22 @@ public class MainViewModel : ViewModelBase
         NotifySlideChanged();
     }
 
+    public void AddVideoLayer()
+    {
+        if (EditingPage is null) return;
+        int maxZ = EditingPage.Layers.Count > 0 ? EditingPage.Layers.Max(l => l.ZOrder) : 0;
+        var layer = new SlideLayer
+        {
+            Type   = LayerType.Video, Name = "Video",
+            X      = 0f, Y = 0f, Width = 1f, Height = 1f,
+            ZOrder = maxZ + 1, Roles = LayerRole.All
+        };
+        EditingPage.AddLayer(layer);
+        RefreshEditorLayers();
+        SelectedLayer = layer;
+        NotifySlideChanged();
+    }
+
     public void AddShapeLayer()
     {
         if (EditingPage is null) return;
