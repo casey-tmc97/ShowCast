@@ -281,7 +281,7 @@ public static class PageRenderer
             while (DateTime.UtcNow < deadline && player.CurrentFrame is null)
                 Thread.Sleep(20);
 
-            player.SeekMs(100);
+            player.SeekMs(1000);
 
             // Wait for the post-seek frame (new SKImage reference = new decoded frame).
             var prevFrame = player.CurrentFrame;
