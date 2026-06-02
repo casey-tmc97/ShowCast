@@ -3,6 +3,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using ShowCast.Core;
 using SkiaSharp;
 
@@ -90,38 +92,10 @@ public static class PageRenderer
 
                 case LayerType.Video:
                 {
-                    var frame = getVideoFrame?.Invoke(layer.Id);
+                    // Live frame from output > cached first frame for editor/thumbnails > placeholder.
+                    var frame = getVideoFrame?.Invoke(layer.Id) ?? GetCachedThumbnail(layer.AssetPath);
                     if (frame is not null)
-                    {
-                        byte alpha = (byte)(layer.Opacity * 255);
-                        using var paint = new SKPaint
-                        {
-                            IsAntialias = true,
-                            Color       = SKColors.White.WithAlpha(alpha),
-                            BlendMode   = ToSkia(layer.BlendMode)
-                        };
-                        var src = new SKRect(0, 0, frame.Width, frame.Height);
-                        switch (layer.ImageFit)
-                        {
-                            case ImageFit.Stretch:
-                                canvas.DrawImage(frame, src, rect, paint);
-                                break;
-                            case ImageFit.Fill:
-                                float scaleF = Math.Max(rect.Width / frame.Width, rect.Height / frame.Height);
-                                float cw = rect.Width / scaleF, ch = rect.Height / scaleF;
-                                src = new SKRect((frame.Width - cw) / 2, (frame.Height - ch) / 2,
-                                                 (frame.Width + cw) / 2, (frame.Height + ch) / 2);
-                                canvas.DrawImage(frame, src, rect, paint);
-                                break;
-                            default: // Fit — letterbox
-                                float scaleL = Math.Min(rect.Width / frame.Width, rect.Height / frame.Height);
-                                float fw = frame.Width * scaleL, fh = frame.Height * scaleL;
-                                var dst = new SKRect(rect.MidX - fw / 2, rect.MidY - fh / 2,
-                                                     rect.MidX + fw / 2, rect.MidY + fh / 2);
-                                canvas.DrawImage(frame, src, dst, paint);
-                                break;
-                        }
-                    }
+                        DrawSKImageInRect(canvas, frame, rect, layer);
                     else
                     {
                         using var bg = new SKPaint { Color = new SKColor(20, 20, 40, (byte)(layer.Opacity * 255)), BlendMode = ToSkia(layer.BlendMode) };
@@ -262,6 +236,59 @@ public static class PageRenderer
         }
     }
 
+    // ── Video thumbnail cache ─────────────────────────────────────────────────
+    // Caches the first decoded frame of each video file for editor/thumbnail previews.
+    // Extraction runs on a background Task; completed frames are stored as immutable SKImages.
+
+    static readonly ConcurrentDictionary<string, SKImage?> _videoThumbnailCache = new();
+    static readonly ConcurrentDictionary<string, byte>     _videoExtracting     = new();
+
+    /// <summary>
+    /// Fires (on a background thread) when a video thumbnail finishes extracting.
+    /// Subscribers must dispatch to the UI thread before touching any UI objects.
+    /// </summary>
+    public static event Action? VideoThumbnailCached;
+
+    /// <summary>Remove a cached thumbnail so it is re-extracted on next render.</summary>
+    public static void InvalidateVideoThumbnail(string assetPath)
+        => _videoThumbnailCache.TryRemove(Path.Combine(AppFolders.Video, assetPath), out _);
+
+    /// <summary>Clear all video thumbnails (call on show close/new).</summary>
+    public static void ClearVideoThumbnailCache() => _videoThumbnailCache.Clear();
+
+    static SKImage? GetCachedThumbnail(string assetPath)
+    {
+        if (string.IsNullOrEmpty(assetPath)) return null;
+        var full = Path.Combine(AppFolders.Video, assetPath);
+        if (!File.Exists(full)) return null;
+        if (_videoThumbnailCache.TryGetValue(full, out var cached)) return cached;
+        if (_videoExtracting.TryAdd(full, 0))
+            Task.Run(() => ExtractFirstVideoFrame(full));
+        return null;
+    }
+
+    static void ExtractFirstVideoFrame(string fullPath)
+    {
+        SKImage? frame = null;
+        try
+        {
+            using var player = new VideoLayerPlayer();
+            player.Start(fullPath, VideoLoopMode.HoldLastFrame, 0f, null);
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            while (DateTime.UtcNow < deadline)
+            {
+                frame = player.CurrentFrame;
+                if (frame is not null) break;
+                Thread.Sleep(50);
+            }
+        }
+        catch { }
+
+        _videoThumbnailCache[fullPath] = frame;
+        _videoExtracting.TryRemove(fullPath, out _);
+        if (frame is not null) VideoThumbnailCached?.Invoke();
+    }
+
     // ── Image cache ──────────────────────────────────────────────────────────
     // ConcurrentDictionary: PageRenderer.Render() is called from the NDI background thread
     // AND the UI thread (thumbnails) simultaneously — plain Dictionary is not safe here.
@@ -340,6 +367,42 @@ public static class PageRenderer
                 var dst = new SKRect(rect.MidX - fw / 2, rect.MidY - fh / 2,
                                      rect.MidX + fw / 2, rect.MidY + fh / 2);
                 canvas.DrawBitmap(bmp, src, dst, paint);
+                break;
+        }
+    }
+
+    static void DrawSKImageInRect(SKCanvas canvas, SKImage img, SKRect rect, SlideLayer layer)
+    {
+        byte alpha = (byte)(layer.Opacity * 255);
+        using var paint = new SKPaint
+        {
+            IsAntialias = true,
+            Color       = SKColors.White.WithAlpha(alpha),
+            BlendMode   = ToSkia(layer.BlendMode)
+        };
+
+        var src = new SKRect(0, 0, img.Width, img.Height);
+
+        switch (layer.ImageFit)
+        {
+            case ImageFit.Stretch:
+                canvas.DrawImage(img, src, rect, paint);
+                break;
+
+            case ImageFit.Fill:
+                float scaleF = Math.Max(rect.Width / img.Width, rect.Height / img.Height);
+                float cw = rect.Width / scaleF, ch = rect.Height / scaleF;
+                src = new SKRect((img.Width - cw) / 2, (img.Height - ch) / 2,
+                                 (img.Width + cw) / 2, (img.Height + ch) / 2);
+                canvas.DrawImage(img, src, rect, paint);
+                break;
+
+            default: // Fit — letterbox, preserve aspect
+                float scaleL = Math.Min(rect.Width / img.Width, rect.Height / img.Height);
+                float fw = img.Width * scaleL, fh = img.Height * scaleL;
+                var dst = new SKRect(rect.MidX - fw / 2, rect.MidY - fh / 2,
+                                     rect.MidX + fw / 2, rect.MidY + fh / 2);
+                canvas.DrawImage(img, src, dst, paint);
                 break;
         }
     }

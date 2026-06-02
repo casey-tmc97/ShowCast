@@ -111,6 +111,7 @@ public class MainViewModel : ViewModelBase
         }
 
         PageRenderer.ClearImageCache();
+        PageRenderer.ClearVideoThumbnailCache();
         _showFile = loadResult.File;
         MigratePageNames(_showFile);
         RebuildFromShowFile();
@@ -150,6 +151,7 @@ public class MainViewModel : ViewModelBase
     public void NewFile()
     {
         PageRenderer.ClearImageCache();
+        PageRenderer.ClearVideoThumbnailCache();
         _showFile = new ShowFile();
         RebuildFromShowFile();
         SeedDemoContent();
@@ -1849,7 +1851,31 @@ public class MainViewModel : ViewModelBase
 
     // ── Init ──────────────────────────────────────────────────────────────────
 
-    public MainViewModel() { SeedDemoContent(); StartSchedulerTimer(); }
+    public MainViewModel()
+    {
+        SeedDemoContent();
+        StartSchedulerTimer();
+        PageRenderer.VideoThumbnailCached += OnVideoThumbnailCached;
+    }
+
+    void OnVideoThumbnailCached()
+        => Avalonia.Threading.Dispatcher.UIThread.Post(RebuildVideoLayerThumbnails);
+
+    void RebuildVideoLayerThumbnails()
+    {
+        foreach (var pvm in Pages.Where(p => HasVideoLayers(p.Model)))
+            pvm.RebuildThumbnail();
+        foreach (var group in PageGroups)
+            foreach (var pvm in group.Pages.Where(p => HasVideoLayers(p.Model)))
+                pvm.RebuildThumbnail();
+        foreach (var pvm in EditorPages.Where(p => HasVideoLayers(p.Model)))
+            pvm.RebuildThumbnail();
+        if (_editingPageVm is not null && HasVideoLayers(_editingPageVm.Model))
+            _editingPageVm.RebuildThumbnail();
+    }
+
+    static bool HasVideoLayers(Page page) =>
+        page.Layers.Any(l => l.Type == LayerType.Video && !string.IsNullOrEmpty(l.AssetPath));
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
