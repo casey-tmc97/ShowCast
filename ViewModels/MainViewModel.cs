@@ -292,7 +292,7 @@ public class MainViewModel : ViewModelBase
     {
         if (o.Config.Type != OutputType.NDI || !o.Config.Enabled) return;
         if (!NewTek.NDIlib.IsAvailable) return;
-        _ndiSenders[o.Config.Id] = new ShowCast.Core.NdiSender(o, _showFile.Settings.AudioDestinations);
+        _ndiSenders[o.Config.Id] = new ShowCast.Core.NdiSender(o, _showFile.Settings.AudioDestinations, FindNdiSender);
     }
 
     void StopNdiFor(OutputState o)
@@ -306,6 +306,8 @@ public class MainViewModel : ViewModelBase
         foreach (var s in _ndiSenders.Values) s.Dispose();
         _ndiSenders.Clear();
     }
+
+    public Func<string, ShowCast.Core.NdiSender?> NdiSenderLookup => FindNdiSender;
 
     ShowCast.Core.NdiSender? FindNdiSender(string streamName)
     {

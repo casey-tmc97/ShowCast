@@ -28,6 +28,15 @@ public sealed class VideoLayerPlayer : IVideoLayerPlayer
     VideoLoopMode     _loopMode;
     Media?            _media;
 
+    // NDI audio routing — mirrors the approach in AudioPlayerViewModel.
+    volatile NdiSender? _ndiSender;
+    MediaPlayer.LibVLCAudioPlayCb? _audioPlayDelegate;
+
+    [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl,
+               EntryPoint = "libvlc_audio_set_callbacks")]
+    static extern void NativeSetAudioCallbacks(IntPtr mp,
+        IntPtr play, IntPtr pause, IntPtr resume, IntPtr flush, IntPtr drain, IntPtr opaque);
+
     // Managed delegate fields — must stay rooted while VLC holds unmanaged pointers.
     readonly MediaPlayer.LibVLCVideoFormatCb  _fmtCb;
     readonly MediaPlayer.LibVLCVideoCleanupCb _cleanupCb;
@@ -126,18 +135,43 @@ public sealed class VideoLayerPlayer : IVideoLayerPlayer
         });
     }
 
-    public void Start(string filePath, VideoLoopMode loopMode, float volume, string? audioDeviceId)
+    public void Start(string filePath, VideoLoopMode loopMode, float volume, string? audioDeviceId,
+                      NdiSender? ndiSender = null)
     {
-        _loopMode = loopMode;
+        _loopMode  = loopMode;
+        _ndiSender = ndiSender;
 
-        if (!string.IsNullOrEmpty(audioDeviceId))
-            _player.SetOutputDevice("mmdevice", audioDeviceId);
+        if (ndiSender is not null)
+        {
+            // NDI: intercept decoded PCM and forward to NdiSender.SubmitAudio.
+            if (_audioPlayDelegate is null)
+            {
+                _audioPlayDelegate = OnAudioPlay;
+                _player.SetAudioFormat("S16N", 48000, 2);
+                _player.SetAudioCallbacks(_audioPlayDelegate, null, null, null, null!);
+            }
+        }
+        else
+        {
+            // Hardware: clear any prior NDI callbacks, then select WASAPI device if specified.
+            if (_audioPlayDelegate is not null)
+            {
+                NativeSetAudioCallbacks(_player.NativeReference,
+                    IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+                _audioPlayDelegate = null;
+            }
+            if (!string.IsNullOrEmpty(audioDeviceId))
+                _player.SetOutputDevice("mmdevice", audioDeviceId);
+        }
 
         _media         = new Media(_libVlc, filePath);
         _player.Media  = _media;
         _player.Volume = (int)(volume * 100);
         _player.Play();
     }
+
+    void OnAudioPlay(IntPtr data, IntPtr samples, uint count, long pts)
+        => _ndiSender?.SubmitAudio(samples, count, 48000, 2);
 
     public void Stop()
     {

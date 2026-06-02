@@ -14,13 +14,16 @@ public sealed class VideoFrameRegistry : IDisposable
 {
     readonly IReadOnlyList<AudioDestination> _destinations;
     readonly Func<IVideoLayerPlayer>         _playerFactory;
+    readonly Func<string, NdiSender?>?       _ndiLookup;
     readonly Dictionary<Guid, IVideoLayerPlayer> _players = new();
 
     public VideoFrameRegistry(IReadOnlyList<AudioDestination> destinations,
-                              Func<IVideoLayerPlayer>? playerFactory = null)
+                              Func<IVideoLayerPlayer>? playerFactory = null,
+                              Func<string, NdiSender?>? ndiLookup = null)
     {
         _destinations  = destinations;
         _playerFactory = playerFactory ?? (() => new VideoLayerPlayer());
+        _ndiLookup     = ndiLookup;
     }
 
     /// <summary>
@@ -46,13 +49,19 @@ public sealed class VideoFrameRegistry : IDisposable
         // Start players for new layers.
         foreach (var layer in newLayers.Where(l => !_players.ContainsKey(l.Id)))
         {
-            var player   = _playerFactory();
+            var player = _playerFactory();
             var filePath = Path.Combine(AppFolders.Video, layer.AssetPath);
-            var deviceId = layer.VideoAudioDestinationId is { } destId
-                ? _destinations.FirstOrDefault(d => d.Id == destId)?.DeviceId
+
+            // Resolve audio routing: hardware uses a WASAPI device ID; NDI uses a sender reference.
+            var dest = layer.VideoAudioDestinationId is { } destId
+                ? _destinations.FirstOrDefault(d => d.Id == destId)
+                : null;
+            string? deviceId = dest?.Type == AudioRouteType.Hardware ? dest.DeviceId : null;
+            NdiSender? ndiSender = dest?.Type == AudioRouteType.Ndi
+                ? _ndiLookup?.Invoke(dest.DeviceId)
                 : null;
 
-            player.Start(filePath, layer.VideoLoopMode, layer.VideoVolume, deviceId);
+            player.Start(filePath, layer.VideoLoopMode, layer.VideoVolume, deviceId, ndiSender);
             _players[layer.Id] = player;
         }
     }

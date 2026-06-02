@@ -32,7 +32,8 @@ public sealed class NdiSender : IDisposable
     DateTime _transStartTime;
     DateTime _pageStartTime;
 
-    public NdiSender(OutputState output, IReadOnlyList<AudioDestination> audioDestinations)
+    public NdiSender(OutputState output, IReadOnlyList<AudioDestination> audioDestinations,
+                     Func<string, NdiSender?>? ndiLookup = null)
     {
         _output = output;
         _w      = output.Config.Width;
@@ -40,7 +41,7 @@ public sealed class NdiSender : IDisposable
         _stride = _w * 4;
         _buffer = new byte[_stride * _h];
         _pin    = GCHandle.Alloc(_buffer, GCHandleType.Pinned);
-        _videoRegistry = new VideoFrameRegistry(audioDestinations);
+        _videoRegistry = new VideoFrameRegistry(audioDestinations, ndiLookup: ndiLookup);
 
         string streamName = string.IsNullOrWhiteSpace(output.Config.NdiStreamName)
             ? output.Config.Name

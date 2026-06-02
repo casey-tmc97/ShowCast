@@ -26,11 +26,12 @@ public partial class OutputWindow : Window
 
     public OutputWindow() { }
 
-    public OutputWindow(OutputState output, IReadOnlyList<ShowCast.Core.AudioDestination> audioDestinations)
+    public OutputWindow(OutputState output, IReadOnlyList<ShowCast.Core.AudioDestination> audioDestinations,
+                        Func<string, ShowCast.Core.NdiSender?>? ndiLookup = null)
     {
         InitializeComponent();
         _output = output;
-        _videoRegistry = new ShowCast.Core.VideoFrameRegistry(audioDestinations);
+        _videoRegistry = new ShowCast.Core.VideoFrameRegistry(audioDestinations, ndiLookup: ndiLookup);
         Title   = $"ShowCast — {output.Name}";
 
         _timer.Interval = TimeSpan.FromMilliseconds(16);
