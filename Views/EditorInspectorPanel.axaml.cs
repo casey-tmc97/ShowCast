@@ -793,6 +793,7 @@ public partial class EditorInspectorPanel : UserControl
         VM.BeginLayerEdit();
         layer.AssetPath   = System.IO.Path.GetFileName(path);
         VideoPathBox.Text = layer.AssetPath;
+        ShowCast.Engine.PageRenderer.InvalidateVideoThumbnail(layer.AssetPath);
         VM.NotifySlideChanged();
     }
 

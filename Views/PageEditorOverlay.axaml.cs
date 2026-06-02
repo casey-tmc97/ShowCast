@@ -115,6 +115,7 @@ public partial class PageEditorOverlay : UserControl
         if (VM.SelectedLayer is { Type: ShowCast.Core.LayerType.Video } layer)
         {
             layer.AssetPath = System.IO.Path.GetFileName(path);
+            ShowCast.Engine.PageRenderer.InvalidateVideoThumbnail(layer.AssetPath);
             VM.NotifySlideChanged();
         }
     }
