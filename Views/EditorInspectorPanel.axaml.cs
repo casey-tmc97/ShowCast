@@ -19,6 +19,11 @@ record TimerBindingOption(Guid? Id, string Label)
     public override string ToString() => Label;
 }
 
+record VideoAudioOption(Guid? Id, string Label)
+{
+    public override string ToString() => Label;
+}
+
 public partial class EditorInspectorPanel : UserControl
 {
     const float VW = 1920f;
@@ -206,6 +211,8 @@ public partial class EditorInspectorPanel : UserControl
         VM?.NotifySlideChanged();
     }
 
+    void FlushVideoLayerFields() { }
+
     void LoadLayer(SlideLayer? layer)
     {
         FlushLayerNameField();
@@ -213,6 +220,7 @@ public partial class EditorInspectorPanel : UserControl
         FlushAnimationFields();
         FlushTextLayerFields();
         FlushShapeLayerFields();
+        FlushVideoLayerFields();
         _displayedLayer = layer;
         _loading = true;
         try
@@ -226,6 +234,7 @@ public partial class EditorInspectorPanel : UserControl
             TextSection.IsVisible      = false;
             ImageSection.IsVisible     = false;
             FillSection.IsVisible      = false;
+            VideoSection.IsVisible     = false;
             TextColorRow.IsVisible     = true;
             SpanColorRow.IsVisible     = false;
 
@@ -300,6 +309,21 @@ public partial class EditorInspectorPanel : UserControl
                     FillColorPicker.Value   = layer.Color;
                     FillStrokePicker.Value  = layer.StrokeColor;
                     FillStrokeWidthBox.Text = layer.StrokeWidth.ToString("F1");
+                    break;
+
+                case LayerType.Video:
+                    VideoSection.IsVisible = true;
+                    VideoPathBox.Text = string.IsNullOrEmpty(layer.AssetPath) ? "(no file)" : layer.AssetPath;
+                    VideoLoopModeBox.SelectedIndex = (int)layer.VideoLoopMode;
+                    VideoVolumeSlider.Value  = layer.VideoVolume * 100;
+                    VideoVolumeLabel.Text    = $"{(int)(layer.VideoVolume * 100)}%";
+                    var audioItems = new System.Collections.Generic.List<VideoAudioOption>
+                        { new(null, "Default (OS)") };
+                    if (VM is not null)
+                        audioItems.AddRange(VM.ShowFileDestinations.Select(d => new VideoAudioOption(d.Id, d.DisplayName)));
+                    VideoAudioOutputBox.ItemsSource   = audioItems;
+                    VideoAudioOutputBox.SelectedIndex = layer.VideoAudioDestinationId is null ? 0
+                        : audioItems.FindIndex(i => i.Id == layer.VideoAudioDestinationId);
                     break;
             }
 
@@ -735,6 +759,67 @@ public partial class EditorInspectorPanel : UserControl
         else if (tb == BaselineBox)         OnBaselineLostFocus(tb, null!);
         else if (tb == KerningBox)          OnKerningLostFocus(tb, null!);
         e.Handled = true;
+    }
+
+    // ── Video ─────────────────────────────────────────────────────────────────
+
+    async void OnVideoBrowse(object? sender, RoutedEventArgs e)
+    {
+        if (VM?.SelectedLayer is not { Type: LayerType.Video } layer) return;
+        var tl = TopLevel.GetTopLevel(this);
+        if (tl is null) return;
+
+        var files = await tl.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title          = "Select Video File",
+            AllowMultiple  = false,
+            FileTypeFilter = new[]
+            {
+                new FilePickerFileType("Video Files")
+                {
+                    Patterns = new[] { "*.mp4", "*.mov", "*.avi", "*.mkv", "*.wmv", "*.webm", "*.m4v", "*.av1" }
+                },
+                new FilePickerFileType("All Files") { Patterns = new[] { "*.*" } }
+            }
+        });
+
+        var path = files.FirstOrDefault()?.Path.LocalPath;
+        if (string.IsNullOrEmpty(path)) return;
+
+        var dest = System.IO.Path.Combine(ShowCast.Core.AppFolders.Video, System.IO.Path.GetFileName(path));
+        if (!System.IO.File.Exists(dest))
+            System.IO.File.Copy(path, dest);
+
+        VM.BeginLayerEdit();
+        layer.AssetPath   = System.IO.Path.GetFileName(path);
+        VideoPathBox.Text = layer.AssetPath;
+        ShowCast.Engine.PageRenderer.InvalidateVideoThumbnail(layer.AssetPath);
+        VM.NotifySlideChanged();
+    }
+
+    void OnVideoLoopModeChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || VM?.SelectedLayer is not { Type: LayerType.Video } layer) return;
+        layer.VideoLoopMode = (VideoLoopMode)VideoLoopModeBox.SelectedIndex;
+        VM.NotifySlideChanged();
+    }
+
+    void OnVideoVolumeChanged(object? sender, Avalonia.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+    {
+        if (_loading || VM?.SelectedLayer is not { Type: LayerType.Video } layer) return;
+        layer.VideoVolume     = (float)(VideoVolumeSlider.Value / 100.0);
+        VideoVolumeLabel.Text = $"{(int)VideoVolumeSlider.Value}%";
+        VM.NotifySlideChanged();
+    }
+
+    void OnVideoAudioOutputChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || VM?.SelectedLayer is not { Type: LayerType.Video } layer) return;
+        if (VideoAudioOutputBox.SelectedItem is VideoAudioOption opt)
+        {
+            layer.VideoAudioDestinationId = opt.Id;
+            VM.NotifySlideChanged();
+        }
     }
 
 }

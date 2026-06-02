@@ -279,4 +279,47 @@ public class ShowFileSerializerTests
         Assert.Equal(playlistId, loadedPage.TriggerAudioPlaylistId);
         Assert.Equal(trackId,    loadedPage.TriggerAudioTrackId);
     }
+
+    [Fact]
+    public async Task SlideLayer_VideoProperties_RoundTripThroughShowFile()
+    {
+        // Arrange
+        var destId = Guid.NewGuid();
+        var layer = new SlideLayer
+        {
+            Type                    = LayerType.Video,
+            AssetPath               = "clip.mp4",
+            VideoLoopMode           = VideoLoopMode.HoldLastFrame,
+            VideoVolume             = 0.75f,
+            VideoAudioDestinationId = destId,
+        };
+        var file = new ShowFile();
+        var show = file.AddShow("TestShow");
+        var pkg  = show.AddPackage("TestPackage");
+        var page = new Page { Name = "TestPage" };
+        page.AddLayer(layer);
+        pkg.AddPage(page);
+
+        var path = Path.GetTempFileName();
+        try
+        {
+            // Act
+            await ShowFileSerializer.SaveAsync(file, path);
+            var result = await ShowFileSerializer.LoadAsync(path);
+
+            // Assert
+            Assert.NotNull(result);
+            var loaded = result.File.Shows[0].Packages[0].Pages[0].Layers[0];
+            Assert.Equal(LayerType.Video,            loaded.Type);
+            Assert.Equal("clip.mp4",                 loaded.AssetPath);
+            Assert.Equal(VideoLoopMode.HoldLastFrame, loaded.VideoLoopMode);
+            Assert.Equal(0.75f,                       loaded.VideoVolume, precision: 4);
+            Assert.Equal(destId,                      loaded.VideoAudioDestinationId);
+        }
+        finally
+        {
+            File.Delete(path);
+            if (File.Exists(path + ".tmp")) File.Delete(path + ".tmp");
+        }
+    }
 }

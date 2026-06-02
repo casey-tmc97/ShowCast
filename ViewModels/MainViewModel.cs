@@ -111,6 +111,7 @@ public class MainViewModel : ViewModelBase
         }
 
         PageRenderer.ClearImageCache();
+        PageRenderer.ClearVideoThumbnailCache();
         _showFile = loadResult.File;
         MigratePageNames(_showFile);
         RebuildFromShowFile();
@@ -150,6 +151,7 @@ public class MainViewModel : ViewModelBase
     public void NewFile()
     {
         PageRenderer.ClearImageCache();
+        PageRenderer.ClearVideoThumbnailCache();
         _showFile = new ShowFile();
         RebuildFromShowFile();
         SeedDemoContent();
@@ -292,7 +294,7 @@ public class MainViewModel : ViewModelBase
     {
         if (o.Config.Type != OutputType.NDI || !o.Config.Enabled) return;
         if (!NewTek.NDIlib.IsAvailable) return;
-        _ndiSenders[o.Config.Id] = new ShowCast.Core.NdiSender(o);
+        _ndiSenders[o.Config.Id] = new ShowCast.Core.NdiSender(o, _showFile.Settings.AudioDestinations, FindNdiSender);
     }
 
     void StopNdiFor(OutputState o)
@@ -306,6 +308,8 @@ public class MainViewModel : ViewModelBase
         foreach (var s in _ndiSenders.Values) s.Dispose();
         _ndiSenders.Clear();
     }
+
+    public Func<string, ShowCast.Core.NdiSender?> NdiSenderLookup => FindNdiSender;
 
     ShowCast.Core.NdiSender? FindNdiSender(string streamName)
     {
@@ -1388,6 +1392,22 @@ public class MainViewModel : ViewModelBase
         NotifySlideChanged();
     }
 
+    public void AddVideoLayer()
+    {
+        if (EditingPage is null) return;
+        int maxZ = EditingPage.Layers.Count > 0 ? EditingPage.Layers.Max(l => l.ZOrder) : 0;
+        var layer = new SlideLayer
+        {
+            Type   = LayerType.Video, Name = "Video",
+            X      = 0f, Y = 0f, Width = 1f, Height = 1f,
+            ZOrder = maxZ + 1, Roles = LayerRole.All
+        };
+        EditingPage.AddLayer(layer);
+        RefreshEditorLayers();
+        SelectedLayer = layer;
+        NotifySlideChanged();
+    }
+
     public void AddShapeLayer()
     {
         if (EditingPage is null) return;
@@ -1831,7 +1851,31 @@ public class MainViewModel : ViewModelBase
 
     // ── Init ──────────────────────────────────────────────────────────────────
 
-    public MainViewModel() { SeedDemoContent(); StartSchedulerTimer(); }
+    public MainViewModel()
+    {
+        SeedDemoContent();
+        StartSchedulerTimer();
+        PageRenderer.VideoThumbnailCached += OnVideoThumbnailCached;
+    }
+
+    void OnVideoThumbnailCached()
+        => Avalonia.Threading.Dispatcher.UIThread.Post(RebuildVideoLayerThumbnails);
+
+    void RebuildVideoLayerThumbnails()
+    {
+        foreach (var pvm in Pages.Where(p => HasVideoLayers(p.Model)))
+            pvm.RebuildThumbnail();
+        foreach (var group in PageGroups)
+            foreach (var pvm in group.Pages.Where(p => HasVideoLayers(p.Model)))
+                pvm.RebuildThumbnail();
+        foreach (var pvm in EditorPages.Where(p => HasVideoLayers(p.Model)))
+            pvm.RebuildThumbnail();
+        if (_editingPageVm is not null && HasVideoLayers(_editingPageVm.Model))
+            _editingPageVm.RebuildThumbnail();
+    }
+
+    static bool HasVideoLayers(Page page) =>
+        page.Layers.Any(l => l.Type == LayerType.Video && !string.IsNullOrEmpty(l.AssetPath));
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 

@@ -151,7 +151,7 @@ public partial class MainWindow : Window
         }
         else
         {
-            var win = new OutputWindow(output);
+            var win = new OutputWindow(output, VM?.ShowFileDestinations ?? new List<ShowCast.Core.AudioDestination>(), VM?.NdiSenderLookup);
             _outputWindows[output] = win;
             output.IsOutputWindowOpen = true;
             win.Closed += (_, _) => { _outputWindows.Remove(output); output.IsOutputWindowOpen = false; };
@@ -182,7 +182,7 @@ public partial class MainWindow : Window
         }
         else
         {
-            var win = new OutputWindow(output);
+            var win = new OutputWindow(output, VM?.ShowFileDestinations ?? new List<ShowCast.Core.AudioDestination>(), VM?.NdiSenderLookup);
             _outputWindows[output] = win;
             output.IsOutputWindowOpen = true;
             win.Closed += (_, _) => { _outputWindows.Remove(output); output.IsOutputWindowOpen = false; };

@@ -83,6 +83,43 @@ public partial class PageEditorOverlay : UserControl
             VM.AddImageLayer(path);
     }
 
+    async void OnAddVideo(object? sender, RoutedEventArgs e)
+    {
+        if (VM is null) return;
+        var tl = TopLevel.GetTopLevel(this);
+        if (tl is null) return;
+
+        var files = await tl.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title          = "Select Video File",
+            AllowMultiple  = false,
+            FileTypeFilter = new[]
+            {
+                new FilePickerFileType("Video Files")
+                {
+                    Patterns = new[] { "*.mp4", "*.mov", "*.avi", "*.mkv", "*.wmv", "*.webm", "*.m4v", "*.av1" }
+                },
+                new FilePickerFileType("All Files") { Patterns = new[] { "*.*" } }
+            }
+        });
+
+        var path = files.FirstOrDefault()?.Path.LocalPath;
+        if (string.IsNullOrEmpty(path)) return;
+
+        var dest = System.IO.Path.Combine(ShowCast.Core.AppFolders.Video,
+                                           System.IO.Path.GetFileName(path));
+        if (!System.IO.File.Exists(dest))
+            System.IO.File.Copy(path, dest);
+
+        VM.AddVideoLayer();
+        if (VM.SelectedLayer is { Type: ShowCast.Core.LayerType.Video } layer)
+        {
+            layer.AssetPath = System.IO.Path.GetFileName(path);
+            ShowCast.Engine.PageRenderer.InvalidateVideoThumbnail(layer.AssetPath);
+            VM.NotifySlideChanged();
+        }
+    }
+
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
