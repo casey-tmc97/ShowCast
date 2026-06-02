@@ -13,7 +13,7 @@ file sealed class FakePlayer : IVideoLayerPlayer
     public bool   Stopped      { get; private set; }
     public bool   Disposed     { get; private set; }
     public string? StartedPath { get; private set; }
-    public SKBitmap? CurrentFrame { get; set; }
+    public SKImage? CurrentFrame { get; set; }
 
     public void Start(string filePath, VideoLoopMode loopMode, float volume, string? audioDeviceId)
     {

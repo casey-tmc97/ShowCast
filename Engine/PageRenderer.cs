@@ -19,7 +19,7 @@ public static class PageRenderer
                               double elapsedMs        = -1.0,
                               double exitElapsedMs    = -1.0,
                               bool useLiveTimers      = true,
-                              Func<Guid, SKBitmap?>? getVideoFrame = null)
+                              Func<Guid, SKImage?>? getVideoFrame = null)
     {
         canvas.Clear(SKColors.Black);
 
@@ -92,7 +92,36 @@ public static class PageRenderer
                 {
                     var frame = getVideoFrame?.Invoke(layer.Id);
                     if (frame is not null)
-                        DrawBitmapInRect(canvas, frame, rect, layer);
+                    {
+                        byte alpha = (byte)(layer.Opacity * 255);
+                        using var paint = new SKPaint
+                        {
+                            IsAntialias = true,
+                            Color       = SKColors.White.WithAlpha(alpha),
+                            BlendMode   = ToSkia(layer.BlendMode)
+                        };
+                        var src = new SKRect(0, 0, frame.Width, frame.Height);
+                        switch (layer.ImageFit)
+                        {
+                            case ImageFit.Stretch:
+                                canvas.DrawImage(frame, src, rect, paint);
+                                break;
+                            case ImageFit.Fill:
+                                float scaleF = Math.Max(rect.Width / frame.Width, rect.Height / frame.Height);
+                                float cw = rect.Width / scaleF, ch = rect.Height / scaleF;
+                                src = new SKRect((frame.Width - cw) / 2, (frame.Height - ch) / 2,
+                                                 (frame.Width + cw) / 2, (frame.Height + ch) / 2);
+                                canvas.DrawImage(frame, src, rect, paint);
+                                break;
+                            default: // Fit — letterbox
+                                float scaleL = Math.Min(rect.Width / frame.Width, rect.Height / frame.Height);
+                                float fw = frame.Width * scaleL, fh = frame.Height * scaleL;
+                                var dst = new SKRect(rect.MidX - fw / 2, rect.MidY - fh / 2,
+                                                     rect.MidX + fw / 2, rect.MidY + fh / 2);
+                                canvas.DrawImage(frame, src, dst, paint);
+                                break;
+                        }
+                    }
                     else
                     {
                         using var bg = new SKPaint { Color = new SKColor(20, 20, 40, (byte)(layer.Opacity * 255)), BlendMode = ToSkia(layer.BlendMode) };

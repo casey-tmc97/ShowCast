@@ -58,7 +58,7 @@ public sealed class VideoFrameRegistry : IDisposable
     }
 
     /// <summary>Returns the most recently decoded frame for a layer, or null if unavailable.</summary>
-    public SKBitmap? TryGetFrame(Guid layerId) =>
+    public SKImage? TryGetFrame(Guid layerId) =>
         _players.TryGetValue(layerId, out var p) ? p.CurrentFrame : null;
 
     public void Dispose()

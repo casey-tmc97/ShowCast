@@ -6,9 +6,12 @@ using SkiaSharp;
 namespace ShowCast.Core;
 
 /// <summary>
-/// Decodes one video file into a continuously-updated <see cref="CurrentFrame"/> SKBitmap
-/// using LibVLC's software callback API. Thread-safe: frame is read on the render thread,
-/// written on LibVLC's decode thread.
+/// Decodes one video file into a continuously-updated <see cref="CurrentFrame"/> SKImage
+/// using LibVLC's software callback API.
+///
+/// Thread-safety: <see cref="CurrentFrame"/> is a volatile reference — the render thread
+/// reads it lock-free and holds a GC-rooted reference through its stack, so the old image
+/// stays alive until all readers are done (GC collects it; no explicit Dispose race).
 /// </summary>
 public sealed class VideoLayerPlayer : IVideoLayerPlayer
 {
@@ -20,10 +23,10 @@ public sealed class VideoLayerPlayer : IVideoLayerPlayer
     uint     _frameWidth;
     uint     _frameHeight;
 
-    readonly object _frameLock = new();
-    SKBitmap?       _currentFrame;
-    VideoLoopMode   _loopMode;
-    Media?          _media;
+    // Volatile: render thread reads lock-free; old SKImage released to GC on swap (not disposed).
+    volatile SKImage? _currentFrame;
+    VideoLoopMode     _loopMode;
+    Media?            _media;
 
     // Managed delegate fields — must stay rooted while VLC holds unmanaged pointers.
     readonly MediaPlayer.LibVLCVideoFormatCb  _fmtCb;
@@ -32,10 +35,7 @@ public sealed class VideoLayerPlayer : IVideoLayerPlayer
     readonly MediaPlayer.LibVLCVideoUnlockCb  _unlockCb;
     readonly MediaPlayer.LibVLCVideoDisplayCb _displayCb;
 
-    public SKBitmap? CurrentFrame
-    {
-        get { lock (_frameLock) return _currentFrame; }
-    }
+    public SKImage? CurrentFrame => _currentFrame;
 
     public VideoLayerPlayer()
     {
@@ -83,34 +83,32 @@ public sealed class VideoLayerPlayer : IVideoLayerPlayer
 
     IntPtr OnVideoLock(IntPtr opaque, IntPtr planes)
     {
-        // planes is a pointer to an array of plane pointers; write our buffer address into slot 0.
+        // planes points to an array of plane pointers; write our buffer address into slot 0.
         if (_pin.IsAllocated)
             Marshal.WriteIntPtr(planes, 0, _pin.AddrOfPinnedObject());
-        return IntPtr.Zero; // picture handle (unused by VLC when opaque is null)
+        return IntPtr.Zero;
     }
 
     void OnVideoUnlock(IntPtr opaque, IntPtr picture, IntPtr planes)
     {
         if (_frameBuffer is null || !_pin.IsAllocated) return;
 
-        var info   = new SKImageInfo((int)_frameWidth, (int)_frameHeight,
-                                     SKColorType.Bgra8888, SKAlphaType.Unpremul);
-        var newBmp = new SKBitmap(info);
-        Marshal.Copy(_frameBuffer, 0, newBmp.GetPixels(), _frameBuffer.Length);
-
-        lock (_frameLock)
-        {
-            _currentFrame?.Dispose();
-            _currentFrame = newBmp;
-        }
+        // Copy decoded BGRA pixels into a temporary SKBitmap, then snapshot to SKImage.
+        // SKImage.FromBitmap copies pixel data — disposing the bitmap below is safe.
+        // Volatile write: render thread holds a live reference via its stack while drawing;
+        // GC collects the old SKImage only after all readers drop their references.
+        var info = new SKImageInfo((int)_frameWidth, (int)_frameHeight,
+                                   SKColorType.Bgra8888, SKAlphaType.Unpremul);
+        using var bmp = new SKBitmap(info);
+        Marshal.Copy(_frameBuffer, 0, bmp.GetPixels(), _frameBuffer.Length);
+        _currentFrame = SKImage.FromBitmap(bmp);
     }
 
     void OnVideoDisplay(IntPtr opaque, IntPtr picture) { }
 
     void OnEndReached(object? sender, EventArgs e)
     {
-        // Calling Stop/Play directly on the VLC event thread causes a deadlock.
-        // Queue to thread pool so we return from the event handler first.
+        // Queue to thread pool — calling Stop/Play on the VLC event thread deadlocks.
         var capturedMode = _loopMode;
         System.Threading.ThreadPool.QueueUserWorkItem(_ =>
         {
@@ -121,13 +119,9 @@ public sealed class VideoLayerPlayer : IVideoLayerPlayer
                     _player.Play();
                     break;
                 case VideoLoopMode.GoBlack:
-                    lock (_frameLock)
-                    {
-                        _currentFrame?.Dispose();
-                        _currentFrame = null;
-                    }
+                    _currentFrame = null;
                     break;
-                // HoldLastFrame: do nothing — last decoded frame stays in _currentFrame.
+                // HoldLastFrame: do nothing.
             }
         });
     }
@@ -148,11 +142,7 @@ public sealed class VideoLayerPlayer : IVideoLayerPlayer
     public void Stop()
     {
         _player.Stop();
-        lock (_frameLock)
-        {
-            _currentFrame?.Dispose();
-            _currentFrame = null;
-        }
+        _currentFrame = null;
     }
 
     public void Dispose()
@@ -162,12 +152,8 @@ public sealed class VideoLayerPlayer : IVideoLayerPlayer
         _player.Dispose();
         _libVlc.Dispose();
         _media?.Dispose();
-        _media = null;
-        lock (_frameLock)
-        {
-            if (_pin.IsAllocated) _pin.Free();
-            _currentFrame?.Dispose();
-            _currentFrame = null;
-        }
+        _media        = null;
+        _currentFrame = null;
+        if (_pin.IsAllocated) _pin.Free();
     }
 }
