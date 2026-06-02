@@ -101,13 +101,16 @@ public partial class OutputWindow : Window
             l.EntryAnim != LayerAnimation.None ||
             (l.ExitAnim != LayerExitAnimation.None && l.HoldDurationMs > 0)) == true;
 
-        if (hasAnims || HasTimerBoundLayers(_output.LivePage))
+        if (hasAnims || HasTimerBoundLayers(_output.LivePage) || HasVideoLayers(_output.LivePage))
             { if (!_timer.IsEnabled) _timer.Start(); }
         else Redraw();
     }
 
     static bool HasTimerBoundLayers(Page? page) =>
         page?.Layers.Any(l => l.Type == LayerType.Text && l.TimerBinding is not null) == true;
+
+    static bool HasVideoLayers(Page? page) =>
+        page?.Layers.Any(l => l.Type == LayerType.Video && !string.IsNullOrEmpty(l.AssetPath)) == true;
 
     void OnTick(object? sender, EventArgs e)
     {
@@ -139,7 +142,7 @@ public partial class OutputWindow : Window
             return false;
         });
 
-        if (animating || HasTimerBoundLayers(_output.LivePage))
+        if (animating || HasTimerBoundLayers(_output.LivePage) || HasVideoLayers(_output.LivePage))
             { RenderLayerAnimFrame(elapsed); return; }
 
         _timer.Stop();
