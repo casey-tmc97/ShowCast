@@ -173,6 +173,9 @@ public sealed class VideoLayerPlayer : IVideoLayerPlayer
     void OnAudioPlay(IntPtr data, IntPtr samples, uint count, long pts)
         => _ndiSender?.SubmitAudio(samples, count, 48000, 2);
 
+    /// <summary>Seek to a position in milliseconds. Only call after Start().</summary>
+    public void SeekMs(long ms) => _player.Time = ms;
+
     public void Stop()
     {
         _player.Stop();

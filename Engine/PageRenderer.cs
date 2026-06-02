@@ -274,13 +274,29 @@ public static class PageRenderer
         {
             using var player = new VideoLayerPlayer();
             player.Start(fullPath, VideoLoopMode.HoldLastFrame, 0f, null);
+
+            // Wait for VLC to start outputting frames, then seek to 100ms for a
+            // representative thumbnail (avoids black frames at the very start).
             var deadline = DateTime.UtcNow.AddSeconds(5);
-            while (DateTime.UtcNow < deadline)
+            while (DateTime.UtcNow < deadline && player.CurrentFrame is null)
+                Thread.Sleep(20);
+
+            player.SeekMs(100);
+
+            // Wait for the post-seek frame (new SKImage reference = new decoded frame).
+            var prevFrame = player.CurrentFrame;
+            var seekDeadline = DateTime.UtcNow.AddSeconds(3);
+            while (DateTime.UtcNow < seekDeadline)
             {
-                frame = player.CurrentFrame;
-                if (frame is not null) break;
-                Thread.Sleep(50);
+                var current = player.CurrentFrame;
+                if (current is not null && !ReferenceEquals(current, prevFrame))
+                {
+                    frame = current;
+                    break;
+                }
+                Thread.Sleep(20);
             }
+            frame ??= player.CurrentFrame; // fallback: use whatever frame we have
         }
         catch { }
 
