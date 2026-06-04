@@ -65,8 +65,11 @@ public partial class EditorLayerPanel : UserControl
 
     void OnEyeClick(object? sender, RoutedEventArgs e)
     {
-        if ((sender as Button)?.Tag is SlideLayer layer)
-            VM?.ToggleLayerVisibility(layer);
+        if ((sender as Button)?.Tag is not SlideLayer layer || VM is null) return;
+        if (VM.SelectedLayers.Count > 1 && VM.SelectedLayers.Contains(layer))
+            VM.ToggleVisibilityForSelected();
+        else
+            VM.ToggleLayerVisibility(layer);
     }
 
     void OnLockClick(object? sender, RoutedEventArgs e)
