@@ -119,6 +119,7 @@ public class EditorCanvas : UserControl, IDisposable
     float      _origX, _origY, _origW, _origH;
     double     _rotDragAngle0;
     float      _rotDragOrigDeg;
+    Dictionary<SlideLayer, (float X, float Y)>? _origPositions;
     bool  _rubberPotential;
     bool  _rubberBanding;
     Point _rubberOrigin;
@@ -746,8 +747,19 @@ public class EditorCanvas : UserControl, IDisposable
                 layer.RotationDegrees = (float)(_rotDragOrigDeg + angle - _rotDragAngle0);
                 break;
             case HandleKind.Move:
-                layer.X = Math.Clamp(SnapX(_origX + dx), 0f, Math.Max(0f, 1f - layer.Width));
-                layer.Y = Math.Clamp(SnapY(_origY + dy), 0f, Math.Max(0f, 1f - layer.Height));
+                if (_origPositions is { Count: > 1 })
+                {
+                    foreach (var (sl, orig) in _origPositions)
+                    {
+                        sl.X = Math.Clamp(SnapX(orig.X + dx), 0f, Math.Max(0f, 1f - sl.Width));
+                        sl.Y = Math.Clamp(SnapY(orig.Y + dy), 0f, Math.Max(0f, 1f - sl.Height));
+                    }
+                }
+                else
+                {
+                    layer.X = Math.Clamp(SnapX(_origX + dx), 0f, Math.Max(0f, 1f - layer.Width));
+                    layer.Y = Math.Clamp(SnapY(_origY + dy), 0f, Math.Max(0f, 1f - layer.Height));
+                }
                 break;
             case HandleKind.SE:
                 layer.Width  = Math.Max(0.05f, _origW + dx);
@@ -837,6 +849,7 @@ public class EditorCanvas : UserControl, IDisposable
         if (_dragging)
         {
             _dragging = false;
+            _origPositions = null;
             HideCrosshairs();
             e.Pointer.Capture(null);
             RebuildSlide();
@@ -874,6 +887,11 @@ public class EditorCanvas : UserControl, IDisposable
             _rotDragAngle0  = Math.Atan2(pt.Y - cy, pt.X - cx) * 180.0 / Math.PI;
             _rotDragOrigDeg = l.RotationDegrees;
         }
+
+        if (kind == HandleKind.Move && _vm.SelectedLayers.Count > 1)
+            _origPositions = _vm.SelectedLayers.ToDictionary(sl => sl, sl => (sl.X, sl.Y));
+        else
+            _origPositions = null;
     }
 
     HandleKind HitTestHandle(Point pt)
