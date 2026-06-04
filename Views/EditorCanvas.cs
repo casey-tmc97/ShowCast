@@ -184,6 +184,9 @@ public class EditorCanvas : UserControl, IDisposable
         _overlay.DoubleTapped    += OnDoubleTapped;
 
         _animTimer.Tick += OnAnimTick;
+
+        this.Focusable = true;
+        this.KeyDown += OnKeyDown;
     }
 
     // ── Animation preview ─────────────────────────────────────────────────────
@@ -601,6 +604,7 @@ public class EditorCanvas : UserControl, IDisposable
 
     void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
+        this.Focus();
         if (_vm is null) return;
         // Forward click into active text editor (cursor placement or commit on outside click)
         if (_textEditor is not null)
@@ -755,6 +759,16 @@ public class EditorCanvas : UserControl, IDisposable
             e.Pointer.Capture(null);
             RebuildSlide();
             _vm?.NotifySlideChanged();
+            e.Handled = true;
+        }
+    }
+
+    void OnKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (_textEditor is not null) return;
+        if (e.Key is Key.Delete or Key.Back && _vm?.SelectedLayers.Count > 0)
+        {
+            _vm.DeleteSelectedLayers();
             e.Handled = true;
         }
     }
