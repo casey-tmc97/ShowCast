@@ -643,10 +643,16 @@ public class MainViewModel : ViewModelBase
     System.Timers.Timer? _pageTimer;
     bool _skipNextAnimations;
 
-    void StartPageTimer(int durationMs, bool loopToStart = false)
+    // sourcePackage: the package whose first page should be the loop target.
+    // GoLiveFromGroup passes group.Package explicitly because group.SelectedOutput may differ
+    // from the main SelectedOutput, so SelectedOutput.ActivePackage would be the wrong package.
+    void StartPageTimer(int durationMs, bool loopToStart = false, Package? sourcePackage = null)
     {
         StopPageTimer();
         if (durationMs <= 0) return;
+        // Prefer the explicitly supplied package; fall back to SelectedOutput's active package
+        // only for GoLive() (flat-view path), which always has the right package loaded.
+        var loopPackage = loopToStart ? (sourcePackage ?? SelectedOutput?.ActivePackage) : null;
         _pageTimer = new System.Timers.Timer(durationMs) { AutoReset = false };
         _pageTimer.Elapsed += (_, _) =>
             Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
@@ -656,11 +662,10 @@ public class MainViewModel : ViewModelBase
                 {
                     if (ShowingRundown)
                     {
-                        // In rundown view, use the group for the active package so the loop
+                        // In rundown view, use the group for the captured package so the loop
                         // fires correctly (Pages is empty when no flat-view package is loaded).
-                        var livePackage = SelectedOutput?.ActivePackage;
-                        var group = livePackage is not null
-                            ? PageGroups.FirstOrDefault(g => g.Package == livePackage)
+                        var group = loopPackage is not null
+                            ? PageGroups.FirstOrDefault(g => g.Package == loopPackage)
                             : null;
                         if (group?.Pages.Count > 0)
                         {
@@ -668,7 +673,9 @@ public class MainViewModel : ViewModelBase
                             return;
                         }
                     }
-                    // Flat view fallback.
+                    // Flat view fallback: restore the original package if the user switched away.
+                    if (loopPackage is not null && SelectedOutput?.ActivePackage != loopPackage)
+                        LoadPackageToSelectedOutput(loopPackage);
                     if (Pages.Count > 0)
                     {
                         SelectedPage = Pages[0];
@@ -696,9 +703,11 @@ public class MainViewModel : ViewModelBase
         if (pvm is null) return;
         pvm.DurationMs    = durationMs;
         pvm.LoopToStart   = loopToStart;
-        // If this page is currently live, restart the timer immediately
+        // If this page is currently live, restart the timer immediately.
+        // Pass pvm.Owner so the loop target is always this page's package regardless
+        // of which package SelectedOutput currently points at.
         if (pvm.Model == SelectedOutput?.LivePage)
-            StartPageTimer(durationMs, loopToStart);
+            StartPageTimer(durationMs, loopToStart, pvm.Owner);
     }
 
     // Keep old name as alias
@@ -1104,11 +1113,60 @@ public class MainViewModel : ViewModelBase
         set => EditingPageName = value;
     }
 
+    private System.Collections.Generic.HashSet<SlideLayer> _selectedLayers = new();
+    public System.Collections.Generic.HashSet<SlideLayer> SelectedLayers
+    {
+        get => _selectedLayers;
+        private set => this.RaiseAndSetIfChanged(ref _selectedLayers, value);
+    }
+
     private SlideLayer? _selectedLayer;
     public SlideLayer? SelectedLayer
     {
         get => _selectedLayer;
-        set => this.RaiseAndSetIfChanged(ref _selectedLayer, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _selectedLayer, value);
+            SelectedLayers = value is null
+                ? new System.Collections.Generic.HashSet<SlideLayer>()
+                : new System.Collections.Generic.HashSet<SlideLayer> { value };
+        }
+    }
+
+    public void SetMultiSelection(System.Collections.Generic.IEnumerable<SlideLayer> layers)
+    {
+        var set = new System.Collections.Generic.HashSet<SlideLayer>(layers);
+        SelectedLayers = set;
+        // Set primary without re-triggering the SelectedLayer setter (which would clear the set)
+        _selectedLayer = set.OrderByDescending(l => l.ZOrder).FirstOrDefault();
+        this.RaisePropertyChanged(nameof(SelectedLayer));
+    }
+
+    public void DeleteSelectedLayers()
+    {
+        if (EditingPage is null || SelectedLayers.Count == 0) return;
+        foreach (var layer in SelectedLayers.ToList())
+            EditingPage.RemoveLayer(layer.Id);
+        _selectedLayer = null;
+        this.RaisePropertyChanged(nameof(SelectedLayer));
+        SelectedLayers = new System.Collections.Generic.HashSet<SlideLayer>();
+        RefreshEditorLayers();
+        NotifySlideChanged();
+    }
+
+    public void ToggleVisibilityForSelected()
+    {
+        if (SelectedLayers.Count == 0) return;
+        var savedSet     = new System.Collections.Generic.HashSet<SlideLayer>(SelectedLayers);
+        var savedPrimary = _selectedLayer;
+        foreach (var layer in savedSet)
+            layer.Visible = !layer.Visible;
+        RefreshEditorLayers();
+        // Restore multi-selection bypassing the SelectedLayer setter
+        SelectedLayers  = savedSet;
+        _selectedLayer  = savedPrimary;
+        this.RaisePropertyChanged(nameof(SelectedLayer));
+        NotifySlideChanged();
     }
 
     // ── Editor display toggles ────────────────────────────────────────────────
@@ -2067,7 +2125,7 @@ public class MainViewModel : ViewModelBase
         output.GoLive(pvm.Model, index, group.DefaultTransitionType, group.DefaultTransitionDuration,
                       pvm.Model.Transition.Easing);
         UpdateIsLiveFlags();
-        StartPageTimer(pvm.Model.DurationMs, pvm.Model.LoopToStart);
+        StartPageTimer(pvm.Model.DurationMs, pvm.Model.LoopToStart, group.Package);
         FirePageTriggerTimers(pvm.Model);
         FirePageAudioTrigger(pvm.Model);
     }
