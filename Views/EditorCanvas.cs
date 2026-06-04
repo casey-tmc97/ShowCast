@@ -54,6 +54,8 @@ public class EditorCanvas : UserControl, IDisposable
         new(Avalonia.Media.Color.FromArgb(100, 120, 120, 160));
     static readonly Avalonia.Collections.AvaloniaList<double> s_boundsDash =
         new() { 4, 3 };
+    static readonly Avalonia.Media.SolidColorBrush s_selBrush =
+        new(Avalonia.Media.Color.FromRgb(59, 130, 246));
 
     // Rotation handle (red circle above selection)
     readonly Ellipse _rotHandle = new()
@@ -527,9 +529,7 @@ public class EditorCanvas : UserControl, IDisposable
                 double h = layer.Height * ir.Height;
                 var box = new Rectangle
                 {
-                    Stroke          = inSel
-                        ? new SolidColorBrush(Color.FromRgb(59, 130, 246))
-                        : s_boundsBrush,
+                    Stroke          = inSel ? s_selBrush : s_boundsBrush,
                     StrokeThickness = inSel ? 1.5 : 0.75,
                     StrokeDashArray = inSel ? null : s_boundsDash,
                     Fill            = Brushes.Transparent,
