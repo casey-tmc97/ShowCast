@@ -119,6 +119,17 @@ public class EditorCanvas : UserControl, IDisposable
     float      _origX, _origY, _origW, _origH;
     double     _rotDragAngle0;
     float      _rotDragOrigDeg;
+    bool  _rubberPotential;
+    bool  _rubberBanding;
+    Point _rubberOrigin;
+    readonly Rectangle _rubberRect = new()
+    {
+        Fill             = new SolidColorBrush(Color.FromArgb(38, 59, 130, 246)),
+        Stroke           = new SolidColorBrush(Color.FromRgb(59, 130, 246)),
+        StrokeThickness  = 1,
+        IsHitTestVisible = false,
+        IsVisible        = false
+    };
 
     // ── Animation preview ─────────────────────────────────────────────────────
     readonly DispatcherTimer _animTimer = new() { Interval = TimeSpan.FromMilliseconds(16) };
@@ -150,6 +161,7 @@ public class EditorCanvas : UserControl, IDisposable
         _overlay.Children.Add(_rotHandle);
         _overlay.Children.Add(_crossH);
         _overlay.Children.Add(_crossV);
+        _overlay.Children.Add(_rubberRect);
 
         _hRulerCanvas.Children.Add(_hRulerImg);
         _hRulerCanvas.Children.Add(_hRulerLine);
@@ -663,7 +675,7 @@ public class EditorCanvas : UserControl, IDisposable
             }
         }
 
-        // 4. Click to select layer
+        // 4. Click to select layer, or start potential rubber-band on empty space
         var (nx, ny) = ToNorm(pt);
         SlideLayer? hit = null;
         if (_vm.EditingSlide is { } slide)
@@ -674,7 +686,16 @@ public class EditorCanvas : UserControl, IDisposable
                 { hit = l; break; }
             }
         }
-        _vm.SelectedLayer = hit;
+        if (hit is not null)
+        {
+            _vm.SelectedLayer = hit;
+        }
+        else
+        {
+            _rubberPotential = true;
+            _rubberOrigin    = pt;
+            e.Pointer.Capture(_overlay);
+        }
         e.Handled = true;
     }
 
@@ -687,6 +708,29 @@ public class EditorCanvas : UserControl, IDisposable
             return;
         }
         UpdateRulerPointers(pt);
+
+        if (_rubberPotential)
+        {
+            var delta = pt - _rubberOrigin;
+            if (Math.Abs(delta.X) > 4 || Math.Abs(delta.Y) > 4)
+            {
+                _rubberPotential = false;
+                _rubberBanding   = true;
+            }
+        }
+
+        if (_rubberBanding)
+        {
+            double rx = Math.Min(pt.X, _rubberOrigin.X);
+            double ry = Math.Min(pt.Y, _rubberOrigin.Y);
+            Canvas.SetLeft(_rubberRect, rx);
+            Canvas.SetTop (_rubberRect, ry);
+            _rubberRect.Width    = Math.Abs(pt.X - _rubberOrigin.X);
+            _rubberRect.Height   = Math.Abs(pt.Y - _rubberOrigin.Y);
+            _rubberRect.IsVisible = true;
+            e.Handled = true;
+            return;
+        }
 
         if (!_dragging || _vm?.SelectedLayer is not { } layer) return;
         var ir = GetImageRect();
@@ -751,6 +795,44 @@ public class EditorCanvas : UserControl, IDisposable
 
     void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        if (_rubberPotential)
+        {
+            _rubberPotential = false;
+            if (_vm is not null) _vm.SelectedLayer = null;
+            e.Pointer.Capture(null);
+            e.Handled = true;
+            return;
+        }
+
+        if (_rubberBanding)
+        {
+            _rubberBanding        = false;
+            _rubberRect.IsVisible = false;
+            e.Pointer.Capture(null);
+
+            if (_vm?.EditingSlide is { } slide)
+            {
+                double rx = Canvas.GetLeft(_rubberRect);
+                double ry = Canvas.GetTop (_rubberRect);
+                var (nx1, ny1) = ToNorm(new Point(rx,                  ry));
+                var (nx2, ny2) = ToNorm(new Point(rx + _rubberRect.Width, ry + _rubberRect.Height));
+                float minX = Math.Min(nx1, nx2), maxX = Math.Max(nx1, nx2);
+                float minY = Math.Min(ny1, ny2), maxY = Math.Max(ny1, ny2);
+
+                var hits = slide.Layers
+                    .Where(l => !l.Locked)
+                    .Where(l => l.X < maxX && l.X + l.Width  > minX
+                             && l.Y < maxY && l.Y + l.Height > minY)
+                    .ToList();
+
+                _vm.SetMultiSelection(hits);
+            }
+
+            UpdateHandles();
+            e.Handled = true;
+            return;
+        }
+
         _textEditor?.OnPointerReleased();
         if (_dragging)
         {
