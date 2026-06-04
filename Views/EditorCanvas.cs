@@ -255,6 +255,7 @@ public class EditorCanvas : UserControl, IDisposable
         _vm.SlideContentChanged += OnSlideContentChanged;
         _subs.Add(_vm.WhenAnyValue(x => x.EditingSlide).Subscribe(_ => RebuildSlide()));
         _subs.Add(_vm.WhenAnyValue(x => x.SelectedLayer).Subscribe(_ => UpdateHandles()));
+        _subs.Add(_vm.WhenAnyValue(x => x.SelectedLayers).Subscribe(_ => UpdateHandles()));
         _subs.Add(_vm.WhenAnyValue(x => x.ShowGrid)            .Subscribe(v => { _gridCanvas.IsVisible = v; RebuildGrid(); }));
         _subs.Add(_vm.WhenAnyValue(x => x.ShowSafeBoundaries)  .Subscribe(v => { _safeCanvas.IsVisible = v; RebuildSafeBoundaries(); }));
         _subs.Add(_vm.WhenAnyValue(x => x.ShowRulers)          .Subscribe(v =>
@@ -519,16 +520,19 @@ public class EditorCanvas : UserControl, IDisposable
             foreach (var layer in slide.Layers)
             {
                 if (layer == sel) continue;
+                bool inSel = _vm?.SelectedLayers.Contains(layer) == true;
                 double x = ir.X + layer.X * ir.Width;
                 double y = ir.Y + layer.Y * ir.Height;
                 double w = layer.Width  * ir.Width;
                 double h = layer.Height * ir.Height;
                 var box = new Rectangle
                 {
-                    Stroke           = s_boundsBrush,
-                    StrokeThickness  = 0.75,
-                    StrokeDashArray  = s_boundsDash,
-                    Fill             = Brushes.Transparent,
+                    Stroke          = inSel
+                        ? new SolidColorBrush(Color.FromRgb(59, 130, 246))
+                        : s_boundsBrush,
+                    StrokeThickness = inSel ? 1.5 : 0.75,
+                    StrokeDashArray = inSel ? null : s_boundsDash,
+                    Fill            = Brushes.Transparent,
                     IsHitTestVisible = false
                 };
                 Canvas.SetLeft(box, x); Canvas.SetTop(box, y);
