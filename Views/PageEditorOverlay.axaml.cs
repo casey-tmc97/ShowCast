@@ -55,7 +55,7 @@ public partial class PageEditorOverlay : UserControl
     void OnAddShape(object? sender, RoutedEventArgs e)       => VM?.AddShapeLayer();
     void OnUndo(object? sender, RoutedEventArgs e)           => VM?.Undo();
     void OnRedo(object? sender, RoutedEventArgs e)           => VM?.Redo();
-    void OnDeleteLayer(object? sender, RoutedEventArgs e)    => VM?.DeleteLayer(VM.SelectedLayer!);
+    void OnDeleteLayer(object? sender, RoutedEventArgs e)    => VM?.DeleteSelectedLayers();
     void OnPreviewAnimation(object? sender, RoutedEventArgs e) => TheCanvas.PreviewAnimation();
 
     async void OnAddImage(object? sender, RoutedEventArgs e)
@@ -135,7 +135,7 @@ public partial class PageEditorOverlay : UserControl
 
         if (e.Key == Key.Delete || e.Key == Key.Back)
         {
-            if (VM?.SelectedLayer is { } layer) VM.DeleteLayer(layer);
+            VM?.DeleteSelectedLayers();
             e.Handled = true;
         }
         else if (e.Key == Key.Escape)

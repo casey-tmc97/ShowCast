@@ -1146,6 +1146,7 @@ public class MainViewModel : ViewModelBase
     public void DeleteSelectedLayers()
     {
         if (EditingPage is null || SelectedLayers.Count == 0) return;
+        BeginLayerEdit();
         foreach (var layer in SelectedLayers.ToList())
             EditingPage.RemoveLayer(layer.Id);
         _selectedLayer = null;
