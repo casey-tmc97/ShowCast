@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive.Linq;
@@ -1113,8 +1114,8 @@ public class MainViewModel : ViewModelBase
         set => EditingPageName = value;
     }
 
-    private System.Collections.Generic.HashSet<SlideLayer> _selectedLayers = new();
-    public System.Collections.Generic.HashSet<SlideLayer> SelectedLayers
+    private HashSet<SlideLayer> _selectedLayers = new();
+    public HashSet<SlideLayer> SelectedLayers
     {
         get => _selectedLayers;
         private set => this.RaiseAndSetIfChanged(ref _selectedLayers, value);
@@ -1128,18 +1129,18 @@ public class MainViewModel : ViewModelBase
         {
             this.RaiseAndSetIfChanged(ref _selectedLayer, value);
             SelectedLayers = value is null
-                ? new System.Collections.Generic.HashSet<SlideLayer>()
-                : new System.Collections.Generic.HashSet<SlideLayer> { value };
+                ? new HashSet<SlideLayer>()
+                : new HashSet<SlideLayer> { value };
         }
     }
 
-    public void SetMultiSelection(System.Collections.Generic.IEnumerable<SlideLayer> layers)
+    public void SetMultiSelection(IEnumerable<SlideLayer> layers)
     {
-        var set = new System.Collections.Generic.HashSet<SlideLayer>(layers);
-        SelectedLayers = set;
+        var set = new HashSet<SlideLayer>(layers);
         // Set primary without re-triggering the SelectedLayer setter (which would clear the set)
         _selectedLayer = set.OrderByDescending(l => l.ZOrder).FirstOrDefault();
         this.RaisePropertyChanged(nameof(SelectedLayer));
+        SelectedLayers = set;
     }
 
     public void DeleteSelectedLayers()
@@ -1148,8 +1149,8 @@ public class MainViewModel : ViewModelBase
         foreach (var layer in SelectedLayers.ToList())
             EditingPage.RemoveLayer(layer.Id);
         _selectedLayer = null;
+        SelectedLayers = new HashSet<SlideLayer>();
         this.RaisePropertyChanged(nameof(SelectedLayer));
-        SelectedLayers = new System.Collections.Generic.HashSet<SlideLayer>();
         RefreshEditorLayers();
         NotifySlideChanged();
     }
@@ -1157,7 +1158,7 @@ public class MainViewModel : ViewModelBase
     public void ToggleVisibilityForSelected()
     {
         if (SelectedLayers.Count == 0) return;
-        var savedSet     = new System.Collections.Generic.HashSet<SlideLayer>(SelectedLayers);
+        var savedSet     = new HashSet<SlideLayer>(SelectedLayers);
         var savedPrimary = _selectedLayer;
         foreach (var layer in savedSet)
             layer.Visible = !layer.Visible;
