@@ -10,10 +10,10 @@ public class OutputEditViewModel : ViewModelBase
 {
     // ── Static option lists (used as ItemsSource in the dialog XAML) ─────────
 
-    public static readonly string[] TypeLabels       = { "Display", "NDI", "Preview" };
+    public static readonly string[] TypeLabels       = { "Display", "NDI", "Blackmagic", "AJA", "Preview" };
     public static readonly string[] FrameRateLabels  = { "23.976", "24", "25", "29.97", "30", "50", "59.94", "60" };
     public static readonly double[] FrameRateValues  = { 23.976,   24.0, 25.0, 29.97,  30.0, 50.0, 59.94,  60.0 };
-    static readonly OutputType[]    TypeValues       = { OutputType.Display, OutputType.NDI, OutputType.Preview };
+    static readonly OutputType[]    TypeValues       = { OutputType.Display, OutputType.NDI, OutputType.Blackmagic, OutputType.AJA, OutputType.Preview };
 
     // ── Name ─────────────────────────────────────────────────────────────────
 
@@ -45,14 +45,18 @@ public class OutputEditViewModel : ViewModelBase
             this.RaiseAndSetIfChanged(ref _typeIndex, value);
             this.RaisePropertyChanged(nameof(IsDisplay));
             this.RaisePropertyChanged(nameof(IsNDI));
+            this.RaisePropertyChanged(nameof(IsBlackmagic));
+            this.RaisePropertyChanged(nameof(IsAja));
             // Auto-populate stream name when switching to NDI
             if (IsNDI && string.IsNullOrWhiteSpace(NdiStreamName))
                 NdiStreamName = AutoNdiName(Name);
         }
     }
 
-    public bool IsDisplay => TypeIndex == 0;
-    public bool IsNDI     => TypeIndex == 1;
+    public bool IsDisplay    => TypeIndex == 0;
+    public bool IsNDI        => TypeIndex == 1;
+    public bool IsBlackmagic => TypeIndex == 2;
+    public bool IsAja        => TypeIndex == 3;
 
     // ── Monitor ───────────────────────────────────────────────────────────────
 
@@ -70,6 +74,22 @@ public class OutputEditViewModel : ViewModelBase
 
     private string _ndiStreamName = "";
     public string NdiStreamName { get => _ndiStreamName; set => this.RaiseAndSetIfChanged(ref _ndiStreamName, value); }
+
+    // ── Hardware device (Blackmagic / AJA) ───────────────────────────────────
+
+    private List<string> _availableHardwareDevices = new();
+    public List<string> AvailableHardwareDevices
+    {
+        get => _availableHardwareDevices;
+        set => this.RaiseAndSetIfChanged(ref _availableHardwareDevices, value);
+    }
+
+    private int _hardwareDeviceIndex;
+    public int HardwareDeviceIndex
+    {
+        get => _hardwareDeviceIndex;
+        set => this.RaiseAndSetIfChanged(ref _hardwareDeviceIndex, value);
+    }
 
     // ── Resolution ────────────────────────────────────────────────────────────
 
@@ -125,6 +145,12 @@ public class OutputEditViewModel : ViewModelBase
 
         Fullscreen = cfg.Fullscreen;
         Enabled    = cfg.Enabled;
+
+        if (cfg.Type == OutputType.Blackmagic || cfg.Type == OutputType.AJA)
+        {
+            int devIdx = AvailableHardwareDevices.IndexOf(cfg.DeviceSerial);
+            HardwareDeviceIndex = devIdx >= 0 ? devIdx : 0;
+        }
     }
 
     public void WriteTo(OutputConfig cfg)
@@ -141,6 +167,10 @@ public class OutputEditViewModel : ViewModelBase
         cfg.RoleFilter    = BuildRoles();
         cfg.Fullscreen    = Fullscreen;
         cfg.Enabled       = Enabled;
+
+        if ((cfg.Type == OutputType.Blackmagic || cfg.Type == OutputType.AJA)
+            && HardwareDeviceIndex >= 0 && HardwareDeviceIndex < AvailableHardwareDevices.Count)
+            cfg.DeviceSerial = AvailableHardwareDevices[HardwareDeviceIndex];
     }
 
     LayerRole BuildRoles()
