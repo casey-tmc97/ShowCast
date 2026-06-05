@@ -32,6 +32,7 @@ public partial class OutputWindow : Window
         InitializeComponent();
         _output = output;
         _videoRegistry = new ShowCast.Core.VideoFrameRegistry(audioDestinations, ndiLookup: ndiLookup);
+        output.VideoRegistry = _videoRegistry;   // publish to shared state
         Title   = $"ShowCast — {output.Name}";
 
         _timer.Interval = TimeSpan.FromMilliseconds(16);
@@ -197,6 +198,7 @@ public partial class OutputWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         _timer.Stop();
+        _output.VideoRegistry = null;      // clear before dispose — prevents use-after-free in preview
         _videoRegistry?.Dispose();
         foreach (var s in _subs) s.Dispose();
         base.OnClosed(e);
