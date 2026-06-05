@@ -8,6 +8,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using ShowCast.Blackmagic;
 using ShowCast.Core;
 using ShowCast.ViewModels;
 
@@ -75,6 +76,28 @@ public partial class ScreenConfigDialog : Window
             OutputList.SelectedIndex = 0;
     }
 
+    // ── Hardware device enumeration ───────────────────────────────────────────
+
+    void RefreshHardwareDevicesFor(OutputType type)
+    {
+        if (type == OutputType.Blackmagic)
+        {
+            var devices = DeckLinkApi.EnumerateDevices();
+            _editVm.AvailableHardwareDevices = devices.Count > 0
+                ? devices
+                : new System.Collections.Generic.List<string> { "No DeckLink devices found" };
+        }
+        else if (type == OutputType.AJA)
+        {
+            _editVm.AvailableHardwareDevices =
+                new System.Collections.Generic.List<string> { "AJA not available" };
+        }
+        else
+        {
+            _editVm.AvailableHardwareDevices = new System.Collections.Generic.List<string>();
+        }
+    }
+
     // ── Monitor layout diagram ────────────────────────────────────────────────
 
     void OnEditVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -99,6 +122,10 @@ public partial class ScreenConfigDialog : Window
         }
         else if (e.PropertyName == nameof(OutputEditViewModel.IsDisplay) && _editVm.IsDisplay)
             Dispatcher.UIThread.Post(BuildMonitorLayout);
+        else if (e.PropertyName == nameof(OutputEditViewModel.IsBlackmagic) && _editVm.IsBlackmagic)
+            RefreshHardwareDevicesFor(OutputType.Blackmagic);
+        else if (e.PropertyName == nameof(OutputEditViewModel.IsAja) && _editVm.IsAja)
+            RefreshHardwareDevicesFor(OutputType.AJA);
     }
 
     void BuildMonitorLayout()
@@ -214,12 +241,12 @@ public partial class ScreenConfigDialog : Window
 
     void OnOutputSelected(object? sender, SelectionChangedEventArgs e)
     {
-        // Commit edits to the previously selected output.
         CommitCurrent();
 
         _current = OutputList.SelectedItem as OutputState;
         if (_current is null) return;
 
+        RefreshHardwareDevicesFor(_current.Config.Type);
         _editVm.LoadFrom(_current.Config, _editVm.AvailableMonitors.Count);
     }
 

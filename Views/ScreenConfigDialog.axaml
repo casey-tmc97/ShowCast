@@ -103,6 +103,8 @@
                                   Background="#3a3a3a" Foreground="White">
                             <ComboBoxItem Content="Display"/>
                             <ComboBoxItem Content="NDI"/>
+                            <ComboBoxItem Content="Blackmagic"/>
+                            <ComboBoxItem Content="AJA"/>
                             <ComboBoxItem Content="Preview"/>
                         </ComboBox>
                     </StackPanel>
@@ -132,6 +134,22 @@
                                  Background="#3a3a3a" Foreground="White"
                                  BorderBrush="#555555" FontSize="13" Height="34"
                                  VerticalContentAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- ── Hardware Device (Blackmagic / AJA only) ── -->
+                    <StackPanel Spacing="4">
+                        <StackPanel.IsVisible>
+                            <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                                <Binding Path="IsBlackmagic"/>
+                                <Binding Path="IsAja"/>
+                            </MultiBinding>
+                        </StackPanel.IsVisible>
+                        <TextBlock Text="DEVICE" FontSize="10" FontWeight="Bold"
+                                   Foreground="#888888" LetterSpacing="1"/>
+                        <ComboBox ItemsSource="{Binding AvailableHardwareDevices}"
+                                  SelectedIndex="{Binding HardwareDeviceIndex}"
+                                  HorizontalAlignment="Stretch"
+                                  Background="#3a3a3a" Foreground="White"/>
                     </StackPanel>
 
                     <!-- ── Resolution ── -->
