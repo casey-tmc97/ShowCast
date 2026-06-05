@@ -164,6 +164,8 @@ public class MainViewModel : ViewModelBase
         StopPageTimer();
         StartSchedulerTimer();
         StopAllNdiSenders();
+        StopAllBlackmagicSenders();
+        StopAllAjaSenders();
         foreach (var t in Timers) t.Dispose();
         Timers.Clear();
         foreach (var o in OutputStates) o.Clear();
@@ -245,6 +247,9 @@ public class MainViewModel : ViewModelBase
         foreach (var o in OutputStates)
             StartNdiFor(o);
 
+        foreach (var o in OutputStates)
+            StartBlackmagicFor(o);
+
         // Restore audio routing after NdiSenders are started so NDI lookups succeed.
         foreach (var ch in AudioChannels)
         {
@@ -289,7 +294,9 @@ public class MainViewModel : ViewModelBase
 
     // ── NDI senders ───────────────────────────────────────────────────────────
 
-    readonly Dictionary<Guid, ShowCast.Core.NdiSender> _ndiSenders = new();
+    readonly Dictionary<Guid, ShowCast.Core.NdiSender>         _ndiSenders         = new();
+    readonly Dictionary<Guid, ShowCast.Core.BlackmagicSender>   _blackmagicSenders  = new();
+    readonly Dictionary<Guid, ShowCast.Core.AjaSender>          _ajaSenders         = new();
 
     void StartNdiFor(OutputState o)
     {
@@ -308,6 +315,44 @@ public class MainViewModel : ViewModelBase
     {
         foreach (var s in _ndiSenders.Values) s.Dispose();
         _ndiSenders.Clear();
+    }
+
+    void StartBlackmagicFor(OutputState o)
+    {
+        if (o.Config.Type != OutputType.Blackmagic || !o.Config.Enabled) return;
+        if (!ShowCast.Blackmagic.DeckLinkApi.IsAvailable) return;
+        _blackmagicSenders[o.Config.Id] = new ShowCast.Core.BlackmagicSender(
+            o, _showFile.Settings.AudioDestinations, FindNdiSender);
+    }
+
+    void StopBlackmagicFor(OutputState o)
+    {
+        if (_blackmagicSenders.Remove(o.Config.Id, out var sender))
+            sender.Dispose();
+    }
+
+    void StopAllBlackmagicSenders()
+    {
+        foreach (var s in _blackmagicSenders.Values) s.Dispose();
+        _blackmagicSenders.Clear();
+    }
+
+    void StartAjaFor(OutputState o)
+    {
+        if (o.Config.Type != OutputType.AJA || !o.Config.Enabled) return;
+        if (!ShowCast.Core.AjaApi.IsAvailable) return;
+    }
+
+    void StopAjaFor(OutputState o)
+    {
+        if (_ajaSenders.Remove(o.Config.Id, out var sender))
+            sender.Dispose();
+    }
+
+    void StopAllAjaSenders()
+    {
+        foreach (var s in _ajaSenders.Values) s.Dispose();
+        _ajaSenders.Clear();
     }
 
     public Func<string, ShowCast.Core.NdiSender?> NdiSenderLookup => FindNdiSender;
@@ -1221,6 +1266,27 @@ public class MainViewModel : ViewModelBase
             else if ((o.Config.Type != OutputType.NDI || !o.Config.Enabled) && hasSender)
                 StopNdiFor(o);
         }
+
+        // Reconcile Blackmagic senders.
+        foreach (var o in OutputStates)
+        {
+            bool hasSender = _blackmagicSenders.ContainsKey(o.Config.Id);
+            if (o.Config.Type == OutputType.Blackmagic && o.Config.Enabled && !hasSender)
+                StartBlackmagicFor(o);
+            else if ((o.Config.Type != OutputType.Blackmagic || !o.Config.Enabled) && hasSender)
+                StopBlackmagicFor(o);
+        }
+
+        // Reconcile AJA senders (always no-op while AjaApi.IsAvailable == false).
+        foreach (var o in OutputStates)
+        {
+            bool hasSender = _ajaSenders.ContainsKey(o.Config.Id);
+            if (o.Config.Type == OutputType.AJA && o.Config.Enabled && !hasSender)
+                StartAjaFor(o);
+            else if ((o.Config.Type != OutputType.AJA || !o.Config.Enabled) && hasSender)
+                StopAjaFor(o);
+        }
+
         OutputConfigsChanged?.Invoke();
     }
 
