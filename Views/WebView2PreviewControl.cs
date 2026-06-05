@@ -86,6 +86,8 @@ public sealed class WebView2PreviewControl : UserControl, IDisposable
                     OnLivePageChanged(_currentOutput, prev, page);
                     prev = page;
                 }));
+                _subs.Add(_currentOutput.WhenAnyValue(o => o.VideoRegistry).Subscribe(_ =>
+                    StartTimerIfNeeded(_currentPage)));
             }
             else
             {
@@ -142,8 +144,9 @@ public sealed class WebView2PreviewControl : UserControl, IDisposable
         bool hasAnims = page?.Layers.Any(l =>
             l.EntryAnim != LayerAnimation.None ||
             (l.ExitAnim != LayerExitAnimation.None && l.HoldDurationMs > 0)) == true;
+        bool hasVideo = _currentOutput?.VideoRegistry is not null && HasVideoLayers(page);
 
-        if (hasAnims)
+        if (hasAnims || hasVideo)
             { if (!_timer.IsEnabled) _timer.Start(); }
         else
             RenderStatic(page);
@@ -185,7 +188,9 @@ public sealed class WebView2PreviewControl : UserControl, IDisposable
             return false;
         });
 
-        if (animating)
+        bool hasVideo = _currentOutput?.VideoRegistry is not null && HasVideoLayers(_currentPage);
+
+        if (animating || hasVideo)
             { RenderAnimFrame(elapsed); return; }
 
         _timer.Stop();
@@ -193,6 +198,9 @@ public sealed class WebView2PreviewControl : UserControl, IDisposable
     }
 
     // ── Render helpers ────────────────────────────────────────────────────────
+
+    static bool HasVideoLayers(Page? page) =>
+        page?.Layers.Any(l => l.Type == LayerType.Video && !string.IsNullOrEmpty(l.AssetPath)) == true;
 
     void RenderTransition(OutputState output, float prog, double exitElapsed)
     {
@@ -207,7 +215,11 @@ public sealed class WebView2PreviewControl : UserControl, IDisposable
     {
         using var surface = SKSurface.Create(new SKImageInfo(W, H, SKColorType.Rgba8888));
         if (_currentPage is not null)
-            PageRenderer.Render(surface.Canvas, _currentPage, Roles, W, H, elapsed);
+        {
+            var reg = _currentOutput?.VideoRegistry;
+            PageRenderer.Render(surface.Canvas, _currentPage, Roles, W, H, elapsed,
+                                getVideoFrame: reg is null ? null : reg.TryGetFrame);
+        }
         else
             surface.Canvas.Clear(SKColors.Black);
         _img.Source = ToWriteableBitmap(surface);
@@ -217,7 +229,11 @@ public sealed class WebView2PreviewControl : UserControl, IDisposable
     {
         using var surface = SKSurface.Create(new SKImageInfo(W, H, SKColorType.Rgba8888));
         if (page is not null)
-            PageRenderer.Render(surface.Canvas, page, Roles, W, H);
+        {
+            var reg = _currentOutput?.VideoRegistry;
+            PageRenderer.Render(surface.Canvas, page, Roles, W, H,
+                                getVideoFrame: reg is null ? null : reg.TryGetFrame);
+        }
         else
             surface.Canvas.Clear(SKColors.Black);
         _img.Source = ToWriteableBitmap(surface);
