@@ -130,7 +130,7 @@ public sealed class WebView2PreviewControl : UserControl, IDisposable
             if (skipAnims)
             {
                 _timer.Stop();
-                RenderStatic(to);
+                StartTimerIfNeeded(to);
             }
             else
             {
