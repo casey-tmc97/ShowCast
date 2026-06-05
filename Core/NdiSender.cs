@@ -42,6 +42,7 @@ public sealed class NdiSender : IDisposable
         _buffer = new byte[_stride * _h];
         _pin    = GCHandle.Alloc(_buffer, GCHandleType.Pinned);
         _videoRegistry = new VideoFrameRegistry(audioDestinations, ndiLookup: ndiLookup);
+        output.VideoRegistry = _videoRegistry;
 
         string streamName = string.IsNullOrWhiteSpace(output.Config.NdiStreamName)
             ? output.Config.Name
@@ -237,6 +238,7 @@ public sealed class NdiSender : IDisposable
         _thread.Join(250);
         if (_sender != IntPtr.Zero)
             NewTek.NDIlib.send_destroy(_sender);
+        _output.VideoRegistry = null;
         _videoRegistry.Dispose();
         _pin.Free();
     }

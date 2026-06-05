@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -15,7 +16,7 @@ public sealed class VideoFrameRegistry : IDisposable
     readonly IReadOnlyList<AudioDestination> _destinations;
     readonly Func<IVideoLayerPlayer>         _playerFactory;
     readonly Func<string, NdiSender?>?       _ndiLookup;
-    readonly Dictionary<Guid, IVideoLayerPlayer> _players = new();
+    readonly ConcurrentDictionary<Guid, IVideoLayerPlayer> _players = new();
 
     public VideoFrameRegistry(IReadOnlyList<AudioDestination> destinations,
                               Func<IVideoLayerPlayer>? playerFactory = null,
@@ -43,7 +44,7 @@ public sealed class VideoFrameRegistry : IDisposable
         {
             _players[id].Stop();
             _players[id].Dispose();
-            _players.Remove(id);
+            _players.TryRemove(id, out _);
         }
 
         // Start players for new layers.
