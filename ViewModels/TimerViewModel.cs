@@ -62,11 +62,9 @@ public class TimerViewModel : ReactiveObject, IDisposable
         get
         {
             int secs = Def.Type == TimerType.Clock ? ClockSecondsRemaining() : _currentSeconds;
-            bool neg = secs < 0;
             int abs = Math.Abs(secs);
             int h = abs / 3600, m = (abs % 3600) / 60, s = abs % 60;
-            string sign = neg ? "−" : string.Empty;
-            return h > 0 ? $"{sign}{h}:{m:00}:{s:00}" : $"{sign}{m}:{s:00}";
+            return h > 0 ? $"{h}:{m:00}:{s:00}" : $"{m}:{s:00}";
         }
     }
 
@@ -109,6 +107,13 @@ public class TimerViewModel : ReactiveObject, IDisposable
     public void Play()
     {
         if (IsRunning) return;
+        // If a non-overflow counter is at or past its end, restart from the beginning.
+        if (Def.Type == TimerType.Counter && !Def.OverflowEnabled)
+        {
+            bool countDown = Def.StartSeconds >= Def.EndSeconds;
+            if (countDown ? _currentSeconds <= Def.EndSeconds : _currentSeconds >= Def.EndSeconds)
+                CurrentSeconds = Def.StartSeconds;
+        }
         IsRunning       = true;
         _startedAt      = DateTime.Now;
         _secondsAtStart = _currentSeconds;
@@ -192,6 +197,7 @@ public class TimerViewModel : ReactiveObject, IDisposable
             return 0;
         var now    = DateTime.Now;
         var target = new DateTime(now.Year, now.Month, now.Day, h, m, 0);
+        if (target <= now) target = target.AddDays(1);
         return (int)(target - now).TotalSeconds;
     }
 
