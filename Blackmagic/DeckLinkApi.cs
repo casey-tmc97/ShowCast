@@ -1,6 +1,21 @@
-// IMPORTANT: COM interface GUIDs are from DeckLink SDK 12 DeckLinkAPI_i.c.
-// Verify against the installed SDK headers before testing with hardware.
-// Method vtable order must match the SDK IDL exactly.
+// ══════════════════════════════════════════════════════════════════════════════
+// CRITICAL: ALL GUIDs AND VTABLE ORDERINGS BELOW MUST BE VERIFIED AGAINST THE
+// INSTALLED DECKLINK SDK BEFORE ANY HARDWARE TESTING.
+//
+// Known uncertainty (no SDK available at time of writing):
+//   • IDeckLink IID — two values cited in different sources:
+//       C418FBDD-0587-48ED-8FE5-640F0A14AF91  (older SDK / training data)
+//       9C48B5D9-41A4-47EB-B940-C6ED5F41FA43  (possibly SDK 12)
+//     A wrong GUID causes QueryInterface to fail silently.
+//
+//   • IDeckLinkOutput vtable order — SDK 12 may insert additional methods
+//     (e.g. SetVideoOutputFrameMemoryAllocator) between DisableAudioOutput and
+//     CreateVideoFrame, and scheduling methods between CreateAncillaryData and
+//     DisplayVideoFrameSync. Wrong order means calls land on wrong slots.
+//
+// To verify: install DeckLink SDK 12, open DeckLinkAPI_i.c and DeckLinkAPI.idl,
+// check IID_IDeckLink and confirm IDeckLinkOutput method order.
+// ══════════════════════════════════════════════════════════════════════════════
 
 using System;
 using System.Collections.Generic;
@@ -87,6 +102,7 @@ interface IDeckLinkOutput
 
 // ── Static API ───────────────────────────────────────────────────────────────
 
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public static class DeckLinkApi
 {
     public const int PixelFormat_8BitBGRA = 0x42475241; // 'BGRA'
@@ -144,13 +160,19 @@ public static class DeckLinkApi
         try
         {
             var iter = (IDeckLinkIterator)new CDeckLinkIteratorClass();
-            while (iter.Next(out var device) == 0)
+            try
             {
-                device.GetDisplayName(out string name);
-                result.Add(name);
-                Marshal.ReleaseComObject(device);
+                while (iter.Next(out var device) == 0)
+                {
+                    device.GetDisplayName(out string name);
+                    result.Add(name);
+                    Marshal.ReleaseComObject(device);
+                }
             }
-            Marshal.ReleaseComObject(iter);
+            finally
+            {
+                Marshal.ReleaseComObject(iter);
+            }
         }
         catch (Exception ex)
         {
