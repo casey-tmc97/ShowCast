@@ -48,9 +48,13 @@ public class OutputStateVideoRegistryTests
         var registry = new VideoFrameRegistry(new List<AudioDestination>());
         state.VideoRegistry = registry;
 
+        string? changedProp = null;
+        state.PropertyChanged += (_, e) => changedProp = e.PropertyName;
+
         state.VideoRegistry = null;
 
         Assert.Null(state.VideoRegistry);
+        Assert.Equal(nameof(OutputState.VideoRegistry), changedProp);
         registry.Dispose();
     }
 }
