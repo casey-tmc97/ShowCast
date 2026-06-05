@@ -30,8 +30,6 @@
                             <MenuItem Header="Screens"  Click="OnScreenConfig"/>
                             <MenuItem Header="Audio"    Click="OnAudioSettings"/>
                             <MenuItem Header="Schedule" Click="OnScheduler"/>
-                            <MenuItem Header="Network"/>
-                            <MenuItem Header="Advanced"/>
                         </MenuItem>
                     </MenuItem>
                 </Menu>
