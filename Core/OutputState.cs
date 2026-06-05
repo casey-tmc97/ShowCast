@@ -57,6 +57,13 @@ public class OutputState : ReactiveObject
         set => this.RaiseAndSetIfChanged(ref _isOutputWindowOpen, value);
     }
 
+    private VideoFrameRegistry? _videoRegistry;
+    public VideoFrameRegistry? VideoRegistry
+    {
+        get => _videoRegistry;
+        set => this.RaiseAndSetIfChanged(ref _videoRegistry, value);
+    }
+
     public void GoLive(Page page, int index,
                         TransitionType transType   = TransitionType.Cut,
                         int  durationMs            = 500,
