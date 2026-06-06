@@ -1,5 +1,5 @@
 #define AppName      "ShowCast"
-#define AppVersion   "0.1.0"
+#define AppVersion   "0.2.0"
 #define AppPublisher "Texas Music Cafe"
 #define AppExeName   "ShowCast.exe"
 #define PublishDir   "..\publish\win-x64"
