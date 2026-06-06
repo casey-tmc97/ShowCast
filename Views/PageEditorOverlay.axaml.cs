@@ -127,6 +127,17 @@ public partial class PageEditorOverlay : UserControl
         // While the inline canvas text editor is active, let it handle all keys.
         if (TheCanvas.IsInlineEditing) return;
 
+        // Don't steal keys when a text input field has keyboard focus.
+        // Check e.Handled first (TextBox marks Backspace/Delete/arrows as handled).
+        if (e.Handled) return;
+        // Also guard for the case where the event fires before the TextBox handles it:
+        // walk up the parent chain from the focused element to see if any ancestor is a TextBox.
+        {
+            var focused = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement();
+            for (var p = focused as Avalonia.StyledElement; p is not null; p = p.Parent)
+                if (p is TextBox) return;
+        }
+
         bool ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
 
         if (ctrl && e.Key == Key.Z)         { VM?.Undo();  e.Handled = true; return; }

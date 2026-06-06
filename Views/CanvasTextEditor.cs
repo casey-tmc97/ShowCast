@@ -112,8 +112,8 @@ public sealed class CanvasTextEditor
         };
         Canvas.SetLeft(_imeBox, -200);
         Canvas.SetTop (_imeBox, -200);
-        _imeBox.AddHandler(InputElement.KeyDownEvent,   OnImeKeyDown,   RoutingStrategies.Tunnel);
-        _imeBox.AddHandler(InputElement.TextInputEvent, OnImeTextInput, RoutingStrategies.Tunnel);
+        _imeBox.AddHandler(InputElement.KeyDownEvent,   OnImeKeyDown,   RoutingStrategies.Bubble, handledEventsToo: true);
+        _imeBox.AddHandler(InputElement.TextInputEvent, OnImeTextInput, RoutingStrategies.Bubble, handledEventsToo: true);
         _overlay.Children.Add(_imeBox);
         Dispatcher.UIThread.Post(() => _imeBox?.Focus());
 

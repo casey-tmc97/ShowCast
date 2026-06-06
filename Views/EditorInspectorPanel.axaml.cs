@@ -6,6 +6,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using ReactiveUI;
 using ShowCast.Core;
 using ShowCast.Engine;
@@ -47,6 +48,18 @@ public partial class EditorInspectorPanel : UserControl
     {
         InitializeComponent();
         FontFamilyBox.ItemsSource = _systemFonts;
+
+        // Ensure TextBox fields get (and keep) keyboard focus when clicked.
+        // Some parent controls can inadvertently steal focus during pointer handling;
+        // this deferred re-focus guarantees the TextBox wins after all event processing.
+        this.AddHandler(PointerPressedEvent, (object? _, PointerPressedEventArgs ev) =>
+        {
+            var src = ev.Source as Avalonia.StyledElement;
+            while (src is not null && src is not TextBox)
+                src = src.Parent;
+            if (src is TextBox tb)
+                Dispatcher.UIThread.Post(() => tb.Focus());
+        }, RoutingStrategies.Tunnel);
     }
 
     MainViewModel? VM => DataContext as MainViewModel;

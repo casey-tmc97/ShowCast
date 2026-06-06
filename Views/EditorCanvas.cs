@@ -621,7 +621,6 @@ public class EditorCanvas : UserControl, IDisposable
 
     void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        this.Focus();
         if (_vm is null) return;
         // Forward click into active text editor (cursor placement or commit on outside click)
         if (_textEditor is not null)
@@ -633,13 +632,16 @@ public class EditorCanvas : UserControl, IDisposable
                 && eny >= sel2.Y && eny <= sel2.Y + sel2.Height;
             if (insideLayer)
             {
+                // Keep _imeBox focused — do NOT call this.Focus() here
                 _textEditor.OnPointerPressed(edPt);
                 e.Handled = true;
                 return;
             }
             EndCustomEdit();
+            this.Focus();
             return;
         }
+        this.Focus();
         var pt = e.GetPosition(_overlay);
 
         // 1. Rotation handle
@@ -865,6 +867,7 @@ public class EditorCanvas : UserControl, IDisposable
     void OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (_textEditor is not null) return;
+        if (e.Handled) return;
         if (e.Key is Key.Delete or Key.Back && _vm?.SelectedLayers.Count > 0)
         {
             _vm.DeleteSelectedLayers();
