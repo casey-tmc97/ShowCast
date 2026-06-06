@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -48,7 +48,7 @@
     <PackageReference Include="SkiaSharp"                   Version="2.88.9" />
 
     <!-- Serialization (show file save/load) -->
-    <PackageReference Include="System.Text.Json"            Version="9.0.0" />
+    <PackageReference Include="System.Text.Json"            Version="8.0.5" />
 
     <!-- Audio playback -->
     <PackageReference Include="LibVLCSharp"             Version="3.9.0" />
