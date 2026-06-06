@@ -73,10 +73,12 @@ public sealed class BlackmagicSender : IDisposable
         }
 
         _deckLinkOutput = card as IDeckLinkOutput;
-        Marshal.ReleaseComObject(card);
 
+        // card and _deckLinkOutput share the same RCW — releasing card would destroy
+        // _deckLinkOutput. Only release card when QI failed (we won't use it again).
         if (_deckLinkOutput is null)
         {
+            Marshal.ReleaseComObject(card);
             Console.Error.WriteLine($"[DeckLink:{output.Config.Name}] Device has no output capability.");
             return;
         }

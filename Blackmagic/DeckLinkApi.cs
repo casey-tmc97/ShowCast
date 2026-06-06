@@ -6,9 +6,9 @@
 //   IDeckLinkIterator IID:        7DBBBB11 → 50FB36CD  (old IID repurposed as Video Conversion CLSID)
 //   IDeckLink IID:                C418FBDD              (unchanged)
 //
-// IDeckLinkOutput vtable ordering below was NOT independently verified against the
-// installed SDK. If EnableVideoOutput or CreateVideoFrame fail (hr < 0), the vtable
-// slots may need adjusting to match the current IDL.
+// IDeckLinkOutput vtable ordering verified by raw vtable probing against Desktop Video 15.3.1:
+//   GetDisplayMode is NOT between DisableAudioOutput and CreateVideoFrame (it's at slot ~26).
+//   Having it there shifted CreateVideoFrame to the CreateAncillaryData slot → AccessViolationException.
 
 using System;
 using System.Collections.Generic;
@@ -80,7 +80,9 @@ interface IDeckLinkMutableVideoFrame
  InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 interface IDeckLinkOutput
 {
-    // Vtable order matches IDeckLinkOutput in DeckLink SDK 12 IDL.
+    // Vtable order verified against Desktop Video 15.3.1 by raw vtable probing.
+    // GetDisplayMode is NOT at this position — it is much later in the IDL (slot ~26).
+    // Placing it here shifts CreateVideoFrame by one, calling CreateAncillaryData instead → AV.
     [PreserveSig] int DoesSupportVideoMode(int connection, int requestedMode, int pixelFormat, int conversionMode, int flags, out int actualMode, [MarshalAs(UnmanagedType.Bool)] out bool isSupported);
     [PreserveSig] int GetDisplayModeIterator(out IntPtr iterator);
     [PreserveSig] int SetScreenPreviewCallback(IntPtr previewCallback);
@@ -88,7 +90,6 @@ interface IDeckLinkOutput
     [PreserveSig] int EnableAudioOutput(int audioSampleRate, int audioSampleType, uint audioChannelCount, int streamType);
     [PreserveSig] int DisableVideoOutput();
     [PreserveSig] int DisableAudioOutput();
-    [PreserveSig] int GetDisplayMode(int displayMode, out IntPtr iterator);
     [PreserveSig] int CreateVideoFrame(int width, int height, int rowBytes, int pixelFormat, int flags,
         [MarshalAs(UnmanagedType.Interface)] out IDeckLinkMutableVideoFrame outFrame);
     [PreserveSig] int CreateAncillaryData(int pixelFormat, out IntPtr outBuffer);
