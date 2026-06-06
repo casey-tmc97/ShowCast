@@ -250,6 +250,9 @@ public class MainViewModel : ViewModelBase
         foreach (var o in OutputStates)
             StartBlackmagicFor(o);
 
+        foreach (var o in OutputStates)
+            StartAjaFor(o);
+
         // Restore audio routing after NdiSenders are started so NDI lookups succeed.
         foreach (var ch in AudioChannels)
         {
@@ -341,6 +344,8 @@ public class MainViewModel : ViewModelBase
     {
         if (o.Config.Type != OutputType.AJA || !o.Config.Enabled) return;
         if (!ShowCast.Core.AjaApi.IsAvailable) return;
+        _ajaSenders[o.Config.Id] = new ShowCast.Core.AjaSender(
+            o, _showFile.Settings.AudioDestinations, FindNdiSender);
     }
 
     void StopAjaFor(OutputState o)
@@ -1277,7 +1282,7 @@ public class MainViewModel : ViewModelBase
                 StopBlackmagicFor(o);
         }
 
-        // Reconcile AJA senders (always no-op while AjaApi.IsAvailable == false).
+        // Reconcile AJA senders.
         foreach (var o in OutputStates)
         {
             bool hasSender = _ajaSenders.ContainsKey(o.Config.Id);
