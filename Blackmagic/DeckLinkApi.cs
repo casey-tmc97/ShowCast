@@ -1,21 +1,14 @@
-// ══════════════════════════════════════════════════════════════════════════════
-// CRITICAL: ALL GUIDs AND VTABLE ORDERINGS BELOW MUST BE VERIFIED AGAINST THE
-// INSTALLED DECKLINK SDK BEFORE ANY HARDWARE TESTING.
+// GUIDs verified against Desktop Video 15.3.1 (DeckLinkAPI64.dll) by binary
+// inspection and live COM QI probing — no SDK header needed.
 //
-// Known uncertainty (no SDK available at time of writing):
-//   • IDeckLink IID — two values cited in different sources:
-//       C418FBDD-0587-48ED-8FE5-640F0A14AF91  (older SDK / training data)
-//       9C48B5D9-41A4-47EB-B940-C6ED5F41FA43  (possibly SDK 12)
-//     A wrong GUID causes QueryInterface to fail silently.
+// Changed from original (SDK ≤ 10.x) values:
+//   CDeckLinkIteratorClass CLSID: 36A5F770 → BA6C6F44  (old CLSID no longer registered)
+//   IDeckLinkIterator IID:        7DBBBB11 → 50FB36CD  (old IID repurposed as Video Conversion CLSID)
+//   IDeckLink IID:                C418FBDD              (unchanged)
 //
-//   • IDeckLinkOutput vtable order — SDK 12 may insert additional methods
-//     (e.g. SetVideoOutputFrameMemoryAllocator) between DisableAudioOutput and
-//     CreateVideoFrame, and scheduling methods between CreateAncillaryData and
-//     DisplayVideoFrameSync. Wrong order means calls land on wrong slots.
-//
-// To verify: install DeckLink SDK 12, open DeckLinkAPI_i.c and DeckLinkAPI.idl,
-// check IID_IDeckLink and confirm IDeckLinkOutput method order.
-// ══════════════════════════════════════════════════════════════════════════════
+// IDeckLinkOutput vtable ordering below was NOT independently verified against the
+// installed SDK. If EnableVideoOutput or CreateVideoFrame fail (hr < 0), the vtable
+// slots may need adjusting to match the current IDL.
 
 using System;
 using System.Collections.Generic;
@@ -25,12 +18,14 @@ namespace ShowCast.Blackmagic;
 
 // ── CoClass ──────────────────────────────────────────────────────────────────
 
-[ComImport, Guid("36A5F770-004C-11D5-A0E8-00A024CA8EB1")]
+// CLSID for CDeckLinkIterator in Desktop Video 12+ / SDK 15.x
+[ComImport, Guid("BA6C6F44-6DA5-4DCE-94AA-EE2D1372A676")]
 class CDeckLinkIteratorClass { }
 
 // ── COM Interfaces ───────────────────────────────────────────────────────────
 
-[ComImport, Guid("7DBBBB11-5B7B-467D-AEA4-CEA468FD368C"),
+// IDeckLinkIterator IID changed in Desktop Video 12+ (old 7DBBBB11 is now a Video Conversion CLSID)
+[ComImport, Guid("50FB36CD-3063-4B73-BDBB-958087F2D8BA"),
  InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 interface IDeckLinkIterator
 {
