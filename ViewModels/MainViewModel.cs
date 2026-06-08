@@ -570,17 +570,23 @@ public class MainViewModel : ViewModelBase
             ? EscapeJson(PackageItems[pos].Name) : "";
         string rundownSection = $"{{\"pos\":{pos},\"total\":{total},\"currentName\":\"{rdName}\"}}";
 
-        string audioSection = "{\"playing\":false,\"trackName\":\"\"}";
+        bool anyPlaying = false;
+        string playingTrackName = "";
         foreach (var ch in AudioChannels)
         {
-            if (ch.Player.State == PlaybackState.Playing)
+            if (!anyPlaying && ch.Player.State == PlaybackState.Playing)
             {
                 var track = ch.Player.CurrentTrack;
-                string name = track is not null ? EscapeJson(track.Title) : "";
-                audioSection = $"{{\"playing\":true,\"trackName\":\"{name}\"}}";
-                break;
+                anyPlaying = true;
+                playingTrackName = track is not null ? EscapeJson(track.Title) : "";
             }
         }
+        var allPlaylists = AudioChannels
+            .SelectMany(ch => ch.Player.Playlists)
+            .Select(p => $"{{\"id\":\"{p.Id}\",\"name\":\"{EscapeJson(p.Name)}\"}}");
+        string playlistsJson = "[" + string.Join(",", allPlaylists) + "]";
+        string audioSection = $"{{\"playing\":{(anyPlaying ? "true" : "false")}," +
+                              $"\"trackName\":\"{playingTrackName}\",\"playlists\":{playlistsJson}}}";
 
         bool schedulerRunning = _schedulerTimer is not null;
         string schedulerSection = $"{{\"running\":{(schedulerRunning ? "true" : "false")}}}";
