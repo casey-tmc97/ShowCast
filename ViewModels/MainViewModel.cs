@@ -410,7 +410,7 @@ public class MainViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            ack = $"{{\"type\":\"ack\",\"cmd\":\"{cmd.Type}\",\"status\":\"error\",\"message\":\"{ex.Message}\"}}";
+            ack = $"{{\"type\":\"ack\",\"cmd\":\"{EscapeJson(cmd.Type)}\",\"status\":\"error\",\"message\":\"{EscapeJson(ex.Message)}\"}}";
         }
         _companion?.PushState(ack);
         _companion?.PushState(BuildCompanionState());
@@ -418,8 +418,8 @@ public class MainViewModel : ViewModelBase
 
     string ExecuteCompanionCommand(CompanionCommand cmd)
     {
-        string Ok()        => $"{{\"type\":\"ack\",\"cmd\":\"{cmd.Type}\",\"status\":\"ok\"}}";
-        string Err(string msg) => $"{{\"type\":\"ack\",\"cmd\":\"{cmd.Type}\",\"status\":\"error\",\"message\":\"{msg}\"}}";
+        string Ok()        => $"{{\"type\":\"ack\",\"cmd\":\"{EscapeJson(cmd.Type)}\",\"status\":\"ok\"}}";
+        string Err(string msg) => $"{{\"type\":\"ack\",\"cmd\":\"{EscapeJson(cmd.Type)}\",\"status\":\"error\",\"message\":\"{EscapeJson(msg)}\"}}";
 
         switch (cmd.Type)
         {
@@ -588,7 +588,8 @@ public class MainViewModel : ViewModelBase
     }
 
     static string EscapeJson(string? s) =>
-        (s ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n");
+        (s ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"")
+                 .Replace("\n", "\\n").Replace("\r", "\\r").Replace("\t", "\\t");
 
     public Func<string, ShowCast.Core.NdiSender?> NdiSenderLookup => FindNdiSender;
 
