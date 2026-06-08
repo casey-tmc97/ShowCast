@@ -473,10 +473,14 @@ public class MainViewModel : ViewModelBase
                     .FirstOrDefault(p => p.Pages.Contains(page));
                 if (pkg is null || SelectedOutput is null) return Err("Output unavailable");
 
-                SelectedOutput.ActivePackage = pkg;
                 int idx = pkg.Pages.IndexOf(page);
                 SelectedOutput.GoLive(page, idx, NextTransitionType, NextTransitionDuration, 0.5f);
-                UpdateIsLiveFlags();
+                LoadPackageToSelectedOutput(pkg);
+                var pvm = Pages.FirstOrDefault(p => p.Model == page);
+                if (pvm is not null) SelectedPage = pvm;
+                StartPageTimer(page.DurationMs, page.LoopToStart);
+                FirePageTriggerTimers(page);
+                FirePageAudioTrigger(page);
                 return Ok();
             }
 
