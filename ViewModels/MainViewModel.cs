@@ -166,6 +166,7 @@ public class MainViewModel : ViewModelBase
         StopAllNdiSenders();
         StopAllBlackmagicSenders();
         StopAllAjaSenders();
+        StopCompanionServer();
         foreach (var t in Timers) t.Dispose();
         Timers.Clear();
         foreach (var o in OutputStates) o.Clear();
@@ -252,6 +253,8 @@ public class MainViewModel : ViewModelBase
 
         foreach (var o in OutputStates)
             StartAjaFor(o);
+
+        StartCompanionServer();
 
         // Restore audio routing after NdiSenders are started so NDI lookups succeed.
         foreach (var ch in AudioChannels)
@@ -359,6 +362,233 @@ public class MainViewModel : ViewModelBase
         foreach (var s in _ajaSenders.Values) s.Dispose();
         _ajaSenders.Clear();
     }
+
+    public void StartCompanionServer()
+    {
+        var settings = _showFile.Settings.Network;
+        if (!settings.TcpEnabled) return;
+
+        _companion ??= new CompanionServer();
+        _companion.CommandReceived -= OnCompanionCommand;
+        _companion.CommandReceived += OnCompanionCommand;
+        _companion.Start(settings);
+    }
+
+    public void StopCompanionServer()
+    {
+        _companion?.Stop();
+    }
+
+    public void RestartCompanionServer()
+    {
+        if (_companion is null)
+        {
+            StartCompanionServer();
+            return;
+        }
+        _companion.CommandReceived -= OnCompanionCommand;
+        _companion.CommandReceived += OnCompanionCommand;
+
+        var settings = _showFile.Settings.Network;
+        if (settings.TcpEnabled)
+            _companion.Restart(settings);
+        else
+            _companion.Stop();
+    }
+
+    void OnCompanionCommand(object? sender, CompanionCommand cmd)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => DispatchCompanionCommand(cmd));
+    }
+
+    void DispatchCompanionCommand(CompanionCommand cmd)
+    {
+        string ack;
+        try
+        {
+            ack = ExecuteCompanionCommand(cmd);
+        }
+        catch (Exception ex)
+        {
+            ack = $"{{\"type\":\"ack\",\"cmd\":\"{cmd.Type}\",\"status\":\"error\",\"message\":\"{ex.Message}\"}}";
+        }
+        _companion?.PushState(ack);
+        _companion?.PushState(BuildCompanionState());
+    }
+
+    string ExecuteCompanionCommand(CompanionCommand cmd)
+    {
+        string Ok()        => $"{{\"type\":\"ack\",\"cmd\":\"{cmd.Type}\",\"status\":\"ok\"}}";
+        string Err(string msg) => $"{{\"type\":\"ack\",\"cmd\":\"{cmd.Type}\",\"status\":\"error\",\"message\":\"{msg}\"}}";
+
+        switch (cmd.Type)
+        {
+            case "page_advance":
+                GoLiveAndAdvance();
+                return Ok();
+
+            case "page_back":
+            {
+                if (SelectedOutput is null) return Err("No output selected");
+                var pkg = SelectedOutput.ActivePackage;
+                if (pkg is null) return Err("No active package");
+                int idx = SelectedOutput.LivePageIndex - 1;
+                if (idx < 0) return Err("Already at first page");
+                var page = pkg.Pages[idx];
+                SelectedOutput.GoLive(page, idx, NextTransitionType, NextTransitionDuration, 0.5f);
+                UpdateIsLiveFlags();
+                return Ok();
+            }
+
+            case "page_clear":
+                ClearLive();
+                return Ok();
+
+            case "page_live":
+            {
+                if (!cmd.Raw.TryGetProperty("pageId", out var pidEl) ||
+                    !Guid.TryParse(pidEl.GetString(), out var pageId))
+                    return Err("Missing or invalid pageId");
+
+                var page = _showFile.Shows
+                    .SelectMany(s => s.Packages)
+                    .SelectMany(p => p.Pages)
+                    .FirstOrDefault(p => p.Id == pageId);
+                if (page is null) return Err("Page not found");
+
+                var pkg = _showFile.Shows
+                    .SelectMany(s => s.Packages)
+                    .FirstOrDefault(p => p.Pages.Contains(page));
+                if (pkg is null || SelectedOutput is null) return Err("Output unavailable");
+
+                SelectedOutput.ActivePackage = pkg;
+                int idx = pkg.Pages.IndexOf(page);
+                SelectedOutput.GoLive(page, idx, NextTransitionType, NextTransitionDuration, 0.5f);
+                UpdateIsLiveFlags();
+                return Ok();
+            }
+
+            case "rundown_next":
+            {
+                int next = SelectedPackageItemIndex + 1;
+                if (next >= PackageItems.Count) return Err("Already at last rundown item");
+                SelectedPackageItemIndex = next;
+                return Ok();
+            }
+
+            case "rundown_goto":
+            {
+                if (!cmd.Raw.TryGetProperty("index", out var idxEl))
+                    return Err("Missing index");
+                int idx = idxEl.GetInt32();
+                if (idx < 0 || idx >= PackageItems.Count) return Err("Index out of range");
+                SelectedPackageItemIndex = idx;
+                return Ok();
+            }
+
+            case "audio_play":
+            {
+                if (!cmd.Raw.TryGetProperty("id", out var idEl) ||
+                    !Guid.TryParse(idEl.GetString(), out var playlistId))
+                    return Err("Missing or invalid id");
+
+                foreach (var ch in AudioChannels)
+                {
+                    var playlist = ch.Player.Playlists.FirstOrDefault(p => p.Id == playlistId);
+                    if (playlist is not null)
+                    {
+                        ch.Player.SelectedPlaylist = playlist;
+                        ch.Player.Play();
+                        return Ok();
+                    }
+                }
+                return Err("Playlist not found");
+            }
+
+            case "audio_stop":
+                foreach (var ch in AudioChannels) ch.Player.Stop();
+                return Ok();
+
+            case "scheduler_start":
+                StartSchedulerTimer();
+                return Ok();
+
+            case "scheduler_stop":
+                _schedulerTimer?.Stop();
+                _schedulerTimer?.Dispose();
+                _schedulerTimer = null;
+                return Ok();
+
+            case "output_blank":
+            {
+                if (!cmd.Raw.TryGetProperty("outputId", out var oidEl) ||
+                    !Guid.TryParse(oidEl.GetString(), out var outputId))
+                    return Err("Missing or invalid outputId");
+                var output = OutputStates.FirstOrDefault(o => o.Config.Id == outputId);
+                if (output is null) return Err("Output not found");
+                output.Blank();
+                UpdateIsLiveFlags();
+                return Ok();
+            }
+
+            case "output_unblank":
+            {
+                if (!cmd.Raw.TryGetProperty("outputId", out var oidEl) ||
+                    !Guid.TryParse(oidEl.GetString(), out var outputId))
+                    return Err("Missing or invalid outputId");
+                var output = OutputStates.FirstOrDefault(o => o.Config.Id == outputId);
+                if (output is null) return Err("Output not found");
+                output.Unblank();
+                UpdateIsLiveFlags();
+                return Ok();
+            }
+
+            case "get_state":
+                return Ok(); // state is always broadcast after ack by DispatchCompanionCommand
+
+            default:
+                return Err($"Unknown command: {cmd.Type}");
+        }
+    }
+
+    public string BuildCompanionState()
+    {
+        var livePage = SelectedOutput?.LivePage;
+        string pageSection = livePage is not null
+            ? $"{{\"id\":\"{livePage.Id}\",\"name\":\"{EscapeJson(livePage.Name)}\"}}"
+            : "null";
+
+        int pos   = SelectedPackageItemIndex;
+        int total = PackageItems.Count;
+        string rdName = (pos >= 0 && pos < PackageItems.Count)
+            ? EscapeJson(PackageItems[pos].Name) : "";
+        string rundownSection = $"{{\"pos\":{pos},\"total\":{total},\"currentName\":\"{rdName}\"}}";
+
+        string audioSection = "{\"playing\":false,\"trackName\":\"\"}";
+        foreach (var ch in AudioChannels)
+        {
+            if (ch.Player.State == PlaybackState.Playing)
+            {
+                var track = ch.Player.CurrentTrack;
+                string name = track is not null ? EscapeJson(track.Title) : "";
+                audioSection = $"{{\"playing\":true,\"trackName\":\"{name}\"}}";
+                break;
+            }
+        }
+
+        bool schedulerRunning = _schedulerTimer is not null;
+        string schedulerSection = $"{{\"running\":{(schedulerRunning ? "true" : "false")}}}";
+
+        var outputParts = OutputStates.Select(o =>
+            $"{{\"id\":\"{o.Config.Id}\",\"name\":\"{EscapeJson(o.Config.Name)}\",\"blanked\":{(o.LivePage == null ? "true" : "false")}}}");
+        string outputsSection = "[" + string.Join(",", outputParts) + "]";
+
+        return $"{{\"type\":\"state\",\"page\":{pageSection},\"rundown\":{rundownSection}," +
+               $"\"audio\":{audioSection},\"scheduler\":{schedulerSection},\"outputs\":{outputsSection}}}\n";
+    }
+
+    static string EscapeJson(string? s) =>
+        (s ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n");
 
     public Func<string, ShowCast.Core.NdiSender?> NdiSenderLookup => FindNdiSender;
 
@@ -786,6 +1016,11 @@ public class MainViewModel : ViewModelBase
     // ── Rundown scheduler (auto-fire) ─────────────────────────────────────────
 
     System.Timers.Timer? _schedulerTimer;
+
+    // ── Companion TCP server ──────────────────────────────────────────────────
+
+    CompanionServer? _companion;
+    public CompanionServer? Companion => _companion;
 
     // Arm a one-shot timer to fire at the exact moment of the next pending event.
     public void StartSchedulerTimer()
@@ -2006,6 +2241,7 @@ public class MainViewModel : ViewModelBase
     {
         SeedDemoContent();
         StartSchedulerTimer();
+        StartCompanionServer();
         PageRenderer.VideoThumbnailCached += OnVideoThumbnailCached;
     }
 
