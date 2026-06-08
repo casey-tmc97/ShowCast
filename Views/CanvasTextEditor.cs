@@ -323,6 +323,9 @@ public sealed class CanvasTextEditor
         ResetBlink();
         UpdateOverlayVisuals();
         FireSpanFormatChanged();
+        // Re-focus the IME box after cursor repositioning — Avalonia may have moved
+        // focus to the canvas (which is Focusable=true) as part of pointer handling.
+        Dispatcher.UIThread.Post(() => _imeBox?.Focus());
     }
 
     public void OnPointerMoved(Point pt, bool isDown)

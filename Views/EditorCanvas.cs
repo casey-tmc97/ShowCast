@@ -667,7 +667,7 @@ public class EditorCanvas : UserControl, IDisposable
             return;
         }
 
-        // 3. Move (inside selection)
+        // 3. Move (inside selection) — or enter inline text editor for text layers
         var sel = _vm.SelectedLayer;
         if (sel is not null)
         {
@@ -675,6 +675,12 @@ public class EditorCanvas : UserControl, IDisposable
             var r  = new Rect(ir.X + sel.X * ir.Width, ir.Y + sel.Y * ir.Height, sel.Width * ir.Width, sel.Height * ir.Height);
             if (r.Contains(pt))
             {
+                if (sel.Type == LayerType.Text)
+                {
+                    BeginCustomEdit(sel, pt);
+                    e.Handled = true;
+                    return;
+                }
                 StartDrag(HandleKind.Move, pt);
                 e.Pointer.Capture(_overlay);
                 e.Handled = true;
@@ -696,6 +702,10 @@ public class EditorCanvas : UserControl, IDisposable
         if (hit is not null)
         {
             _vm.SelectedLayer = hit;
+            if (hit.Type == LayerType.Text)
+            {
+                BeginCustomEdit(hit, pt);
+            }
         }
         else
         {

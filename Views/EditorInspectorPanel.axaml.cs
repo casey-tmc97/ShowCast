@@ -49,16 +49,16 @@ public partial class EditorInspectorPanel : UserControl
         InitializeComponent();
         FontFamilyBox.ItemsSource = _systemFonts;
 
-        // Ensure TextBox fields get (and keep) keyboard focus when clicked.
-        // Some parent controls can inadvertently steal focus during pointer handling;
-        // this deferred re-focus guarantees the TextBox wins after all event processing.
+        // Restore keyboard focus to a TextBox when clicked, and select all text so
+        // the user can immediately overtype.  Background priority runs after any
+        // parent control that may claim focus during the same pointer-event cycle.
         this.AddHandler(PointerPressedEvent, (object? _, PointerPressedEventArgs ev) =>
         {
             var src = ev.Source as Avalonia.StyledElement;
             while (src is not null && src is not TextBox)
                 src = src.Parent;
             if (src is TextBox tb)
-                Dispatcher.UIThread.Post(() => tb.Focus());
+                Dispatcher.UIThread.Post(() => { tb.Focus(); tb.SelectAll(); }, DispatcherPriority.Background);
         }, RoutingStrategies.Tunnel);
     }
 
