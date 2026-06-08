@@ -43,4 +43,19 @@ public class CompanionServerTests
 
         Assert.Null(state.LivePage);
     }
+
+    [Fact]
+    public void OutputState_Blank_WhenAlreadyBlank_DoesNotOverwriteSavedState()
+    {
+        var cfg   = new OutputConfig();
+        var state = new OutputState(cfg);
+        var page  = new Page();
+        state.GoLive(page, 0);
+        state.Blank(); // first blank saves page
+
+        state.Blank(); // second blank should be a no-op
+
+        state.Unblank();
+        Assert.Equal(page, state.LivePage); // original page still restored
+    }
 }
