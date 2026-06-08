@@ -369,8 +369,10 @@ public class MainViewModel : ViewModelBase
         if (!settings.TcpEnabled) return;
 
         _companion ??= new CompanionServer();
-        _companion.CommandReceived -= OnCompanionCommand;
-        _companion.CommandReceived += OnCompanionCommand;
+        _companion.CommandReceived     -= OnCompanionCommand;
+        _companion.CommandReceived     += OnCompanionCommand;
+        _companion.ClientAuthenticated -= OnCompanionClientAuthenticated;
+        _companion.ClientAuthenticated += OnCompanionClientAuthenticated;
         _companion.Start(settings);
         foreach (var d in _audioStateSubscriptions) d.Dispose();
         _audioStateSubscriptions.Clear();
@@ -392,8 +394,10 @@ public class MainViewModel : ViewModelBase
             StartCompanionServer();
             return;
         }
-        _companion.CommandReceived -= OnCompanionCommand;
-        _companion.CommandReceived += OnCompanionCommand;
+        _companion.CommandReceived     -= OnCompanionCommand;
+        _companion.CommandReceived     += OnCompanionCommand;
+        _companion.ClientAuthenticated -= OnCompanionClientAuthenticated;
+        _companion.ClientAuthenticated += OnCompanionClientAuthenticated;
 
         var settings = _showFile.Settings.Network;
         if (settings.TcpEnabled)
@@ -401,6 +405,8 @@ public class MainViewModel : ViewModelBase
         else
             _companion.Stop();
     }
+
+    void OnCompanionClientAuthenticated(object? sender, EventArgs e) => PushStateToCompanion();
 
     void OnCompanionCommand(object? sender, CompanionCommand cmd)
     {

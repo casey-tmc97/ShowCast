@@ -22,6 +22,7 @@ public class CompanionServer : IDisposable
 
     public event EventHandler<ServerStatus>?     StatusChanged;
     public event EventHandler<CompanionCommand>? CommandReceived;
+    public event EventHandler?                   ClientAuthenticated;
 
     readonly object        _clientsLock = new();
     readonly List<Session> _clients     = new();
@@ -161,6 +162,7 @@ public class CompanionServer : IDisposable
                     {
                         session.IsAuthenticated = true;
                         session.Send("{\"type\":\"auth_ok\"}\n");
+                        ClientAuthenticated?.Invoke(this, EventArgs.Empty);
                     }
                     else
                     {
