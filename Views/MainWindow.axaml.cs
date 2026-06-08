@@ -218,6 +218,13 @@ public partial class MainWindow : Window
         VM.StartSchedulerTimer();
     }
 
+    async void OnNetworkSettings(object? sender, RoutedEventArgs e)
+    {
+        if (VM is null) return;
+        var dialog = new NetworkSettingsDialog(VM);
+        await dialog.ShowDialog(this);
+    }
+
     // ── Edit menu ─────────────────────────────────────────────────────────────
 
     void OnUndo(object? sender, RoutedEventArgs e) => VM?.Undo();
