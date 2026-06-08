@@ -85,4 +85,23 @@ public class OutputState : ReactiveObject
         LivePage      = null;
         LivePageIndex = -1;
     }
+
+    Page? _preBlankPage;
+    int   _preBlankPageIndex;
+
+    public void Blank()
+    {
+        _preBlankPage      = LivePage;
+        _preBlankPageIndex = LivePageIndex;
+        LivePage           = null;
+        LivePageIndex      = -1;
+    }
+
+    public void Unblank()
+    {
+        if (_preBlankPage is null) return;
+        LivePage           = _preBlankPage;
+        LivePageIndex      = _preBlankPageIndex;
+        _preBlankPage      = null;
+    }
 }
