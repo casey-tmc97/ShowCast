@@ -733,6 +733,24 @@ public class MainViewModel : ViewModelBase
                         GoLive();
                     }
                 }
+                else if (ShowingRundown && sourcePackage is not null)
+                {
+                    // In rundown view, advance only within the group that owns sourcePackage.
+                    // GoLiveAndAdvance() uses the flat Pages collection which is scoped to a
+                    // single package and not updated by GoLiveFromGroup — so it would resolve
+                    // liveIdx=-1 and fire Pages[0] from a different rundown entry.
+                    var group = PageGroups.FirstOrDefault(g => g.Package == sourcePackage);
+                    if (group is null) return;
+                    var groupLive = group.SelectedOutput?.LivePage;
+                    var liveVm = groupLive is not null
+                        ? group.Pages.FirstOrDefault(p => p.Model == groupLive)
+                        : null;
+                    int liveIdx = liveVm is not null ? group.Pages.IndexOf(liveVm) : -1;
+                    int nextIdx = liveIdx + 1;
+                    if (nextIdx < group.Pages.Count)
+                        GoLiveFromGroup(group.Pages[nextIdx]);
+                    // At last page with no loop — stop; don't cross into another rundown entry.
+                }
                 else
                 {
                     GoLiveAndAdvance();
