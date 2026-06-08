@@ -1,0 +1,97 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ShowCast.Views.NetworkSettingsDialog"
+        Title="Network Settings"
+        Width="420" Height="320"
+        MinWidth="360" MinHeight="280"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="#2d2d2d">
+
+    <DockPanel>
+
+        <!-- Footer -->
+        <Border DockPanel.Dock="Bottom" Background="#1e1e1e" Padding="12,8"
+                BorderBrush="#555555" BorderThickness="0,1,0,0">
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                <Button Content="Cancel" Click="OnCancel"
+                        Classes="btn-secondary" Width="80"/>
+                <Button Content="Apply"  Click="OnApply"
+                        Classes="btn-primary"    Width="80"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Status bar -->
+        <Border DockPanel.Dock="Bottom" Background="#1a1a1a" Padding="16,6"
+                BorderBrush="#444444" BorderThickness="0,1,0,0">
+            <TextBlock x:Name="StatusText"
+                       FontSize="12" Foreground="#aaaaaa"/>
+        </Border>
+
+        <!-- Body -->
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+            <Border Padding="20,16">
+                <StackPanel Spacing="16">
+
+                    <!-- Section header -->
+                    <TextBlock Text="TCP REMOTE CONTROL" FontSize="10" FontWeight="Bold"
+                               Foreground="#888888" LetterSpacing="1"/>
+
+                    <!-- Enabled -->
+                    <Grid ColumnDefinitions="140,*">
+                        <TextBlock Grid.Column="0" Text="Enabled"
+                                   VerticalAlignment="Center" Foreground="White" FontSize="13"/>
+                        <ToggleSwitch Grid.Column="1"
+                                      IsChecked="{Binding TcpEnabled}"
+                                      OnContent="" OffContent=""
+                                      VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <!-- Adapter -->
+                    <Grid ColumnDefinitions="140,*">
+                        <TextBlock Grid.Column="0" Text="Adapter"
+                                   VerticalAlignment="Center" Foreground="White" FontSize="13"/>
+                        <ComboBox Grid.Column="1"
+                                  x:Name="AdapterCombo"
+                                  SelectedIndex="{Binding SelectedAdapterIndex}"
+                                  HorizontalAlignment="Stretch"
+                                  Background="#3a3a3a" Foreground="White"/>
+                    </Grid>
+
+                    <!-- Port -->
+                    <StackPanel Spacing="4">
+                        <Grid ColumnDefinitions="140,*">
+                            <TextBlock Grid.Column="0" Text="Port"
+                                       VerticalAlignment="Center" Foreground="White" FontSize="13"/>
+                            <NumericUpDown Grid.Column="1"
+                                          Value="{Binding TcpPort}"
+                                          Minimum="1024" Maximum="65535"
+                                          Increment="1" FormatString="0"
+                                          Height="34"
+                                          Background="#3a3a3a" Foreground="White"/>
+                        </Grid>
+                        <TextBlock Text="{Binding PortError}"
+                                   Foreground="#ff6666" FontSize="11"
+                                   IsVisible="{Binding PortError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                    </StackPanel>
+
+                    <!-- Password -->
+                    <Grid ColumnDefinitions="140,*">
+                        <TextBlock Grid.Column="0" Text="Password"
+                                   VerticalAlignment="Center" Foreground="White" FontSize="13"/>
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding TcpPassword}"
+                                 PasswordChar="●"
+                                 Watermark="Leave blank for no auth"
+                                 Background="#3a3a3a" Foreground="White"
+                                 BorderBrush="#555555" FontSize="13" Height="34"
+                                 VerticalContentAlignment="Center"/>
+                    </Grid>
+
+                </StackPanel>
+            </Border>
+        </ScrollViewer>
+
+    </DockPanel>
+</Window>
