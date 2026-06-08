@@ -372,6 +372,8 @@ public class MainViewModel : ViewModelBase
         _companion.CommandReceived -= OnCompanionCommand;
         _companion.CommandReceived += OnCompanionCommand;
         _companion.Start(settings);
+        foreach (var ch in AudioChannels)
+            ch.Player.WhenAnyValue(p => p.State).Subscribe(_ => PushStateToCompanion());
     }
 
     public void StopCompanionServer()
@@ -587,6 +589,8 @@ public class MainViewModel : ViewModelBase
                $"\"audio\":{audioSection},\"scheduler\":{schedulerSection},\"outputs\":{outputsSection}}}\n";
     }
 
+    void PushStateToCompanion() => _companion?.PushState(BuildCompanionState());
+
     static string EscapeJson(string? s) =>
         (s ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"")
                  .Replace("\n", "\\n").Replace("\r", "\\r").Replace("\t", "\\t");
@@ -787,6 +791,7 @@ public class MainViewModel : ViewModelBase
         StartPageTimer(SelectedPage.Model.DurationMs, SelectedPage.Model.LoopToStart);
         FirePageTriggerTimers(SelectedPage.Model);
         FirePageAudioTrigger(SelectedPage.Model);
+        PushStateToCompanion();
     }
 
     void FirePageTriggerTimers(Page page)
@@ -917,7 +922,7 @@ public class MainViewModel : ViewModelBase
         if (idx < Pages.Count - 1) SelectedPage = Pages[idx + 1];
     }
 
-    public void ClearLive()                    { StopPageTimer(); SelectedOutput?.Clear(); UpdateIsLiveFlags(); }
+    public void ClearLive()                    { StopPageTimer(); SelectedOutput?.Clear(); UpdateIsLiveFlags(); PushStateToCompanion(); }
     public void ClearOutput(OutputState output) { StopPageTimer(); output.Clear(); UpdateIsLiveFlags(); }
 
     // ── Page timer (auto-advance) ──────────────────────────────────────────────
