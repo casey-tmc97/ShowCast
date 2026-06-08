@@ -209,7 +209,8 @@ public class CompanionServer : IDisposable
         readonly TcpClient    _tcp;
         readonly Stream       _stream;
         readonly StreamWriter _writer;
-        bool _closed;
+        readonly object       _writeLock = new();
+        int _closed; // 0 = open, 1 = closed; use Interlocked for atomic close
 
         public bool IsAuthenticated { get; set; }
 
@@ -217,22 +218,25 @@ public class CompanionServer : IDisposable
         {
             _tcp    = tcp;
             _stream = tcp.GetStream();
-            _writer = new StreamWriter(_stream, Encoding.UTF8, leaveOpen: true) { AutoFlush = true };
+            _writer = new StreamWriter(_stream, Encoding.UTF8, bufferSize: -1, leaveOpen: true) { AutoFlush = true };
         }
 
         public Stream GetStream() => _stream;
 
         public void Send(string line)
         {
-            if (_closed) return;
-            try { _writer.Write(line); }
-            catch { }
+            if (_closed != 0) return;
+            lock (_writeLock)
+            {
+                if (_closed != 0) return;
+                try { _writer.Write(line); }
+                catch { }
+            }
         }
 
         public void Close()
         {
-            if (_closed) return;
-            _closed = true;
+            if (Interlocked.Exchange(ref _closed, 1) != 0) return;
             try { _writer.Dispose(); } catch { }
             try { _tcp.Close(); }     catch { }
         }
