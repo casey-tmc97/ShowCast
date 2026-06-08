@@ -111,7 +111,7 @@ public class NetworkSettingsViewModel : ReactiveObject
                 Adapters.Add(new AdapterEntry(nic.Name, ip.ToString()));
         }
         if (Adapters.Count == 0)
-            Adapters.Add(new AdapterEntry("", "No adapters found"));
+            Adapters.Add(new AdapterEntry("No adapters found", ""));
     }
 }
 
