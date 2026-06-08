@@ -43,4 +43,7 @@ public class AppSettings
     // Audio routing
     public List<AudioChannel>     AudioChannels     { get; set; } = new();
     public List<AudioDestination> AudioDestinations { get; set; } = new();
+
+    // Network / remote control
+    public NetworkSettings Network { get; set; } = new();
 }
