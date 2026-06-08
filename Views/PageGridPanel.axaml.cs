@@ -396,6 +396,14 @@ public partial class PageGridPanel : UserControl
         var goLiveItem = new MenuItem { Header = "Go Live" };
         goLiveItem.Click += (_, _) => { if (VM is { } vm) { vm.SelectedPage = pvm; vm.GoLive(); } };
 
+        var copyUuidItem = new MenuItem { Header = "Copy UUID" };
+        copyUuidItem.Click += async (_, _) =>
+        {
+            var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+            if (clipboard is not null)
+                await clipboard.SetTextAsync(pvm.Model.Id.ToString());
+        };
+
         var copyItem = new MenuItem { Header = "Copy", InputGesture = new KeyGesture(Key.C, KeyModifiers.Control) };
         copyItem.Click += (_, _) => VM?.CopyPage(pvm);
 
@@ -583,6 +591,7 @@ public partial class PageGridPanel : UserControl
         var menu = new ContextMenu();
         menu.Items.Add(editItem);
         menu.Items.Add(goLiveItem);
+        menu.Items.Add(copyUuidItem);
         menu.Items.Add(new Separator());
         menu.Items.Add(copyItem);
         menu.Items.Add(cutItem);
