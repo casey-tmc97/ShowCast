@@ -837,6 +837,8 @@ public class MainViewModel : ViewModelBase
                                      ?? pkg.Pages[0];
                     int targetIdx = pkg.Pages.IndexOf(targetPage);
                     output.GoLive(targetPage, targetIdx, TransitionType.Cut, 0, 0.5f);
+                    FirePageTriggerTimers(targetPage);
+                    FirePageAudioTrigger(targetPage);
                 }
             }
 
