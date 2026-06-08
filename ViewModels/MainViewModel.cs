@@ -250,6 +250,9 @@ public class MainViewModel : ViewModelBase
         foreach (var o in OutputStates)
             StartBlackmagicFor(o);
 
+        foreach (var o in OutputStates)
+            StartAjaFor(o);
+
         // Restore audio routing after NdiSenders are started so NDI lookups succeed.
         foreach (var ch in AudioChannels)
         {
@@ -341,6 +344,8 @@ public class MainViewModel : ViewModelBase
     {
         if (o.Config.Type != OutputType.AJA || !o.Config.Enabled) return;
         if (!ShowCast.Core.AjaApi.IsAvailable) return;
+        _ajaSenders[o.Config.Id] = new ShowCast.Core.AjaSender(
+            o, _showFile.Settings.AudioDestinations, FindNdiSender);
     }
 
     void StopAjaFor(OutputState o)
@@ -727,6 +732,24 @@ public class MainViewModel : ViewModelBase
                         SelectedPage = Pages[0];
                         GoLive();
                     }
+                }
+                else if (ShowingRundown && sourcePackage is not null)
+                {
+                    // In rundown view, advance only within the group that owns sourcePackage.
+                    // GoLiveAndAdvance() uses the flat Pages collection which is scoped to a
+                    // single package and not updated by GoLiveFromGroup — so it would resolve
+                    // liveIdx=-1 and fire Pages[0] from a different rundown entry.
+                    var group = PageGroups.FirstOrDefault(g => g.Package == sourcePackage);
+                    if (group is null) return;
+                    var groupLive = group.SelectedOutput?.LivePage;
+                    var liveVm = groupLive is not null
+                        ? group.Pages.FirstOrDefault(p => p.Model == groupLive)
+                        : null;
+                    int liveIdx = liveVm is not null ? group.Pages.IndexOf(liveVm) : -1;
+                    int nextIdx = liveIdx + 1;
+                    if (nextIdx < group.Pages.Count)
+                        GoLiveFromGroup(group.Pages[nextIdx]);
+                    // At last page with no loop — stop; don't cross into another rundown entry.
                 }
                 else
                 {
@@ -1277,7 +1300,7 @@ public class MainViewModel : ViewModelBase
                 StopBlackmagicFor(o);
         }
 
-        // Reconcile AJA senders (always no-op while AjaApi.IsAvailable == false).
+        // Reconcile AJA senders.
         foreach (var o in OutputStates)
         {
             bool hasSender = _ajaSenders.ContainsKey(o.Config.Id);
