@@ -1,10 +1,9 @@
-using System.Text.Json;
 using ShowCast.Core;
 using Xunit;
 
 namespace ShowCast.Tests.Core;
 
-public class CompanionServerTests
+public class NetworkSettingsTests
 {
     [Fact]
     public void NetworkSettings_Defaults_AreCorrect()
