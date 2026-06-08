@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -185,14 +184,8 @@ public class CompanionServer : IDisposable
     static IPAddress ResolveBindAddress(string adapterName)
     {
         if (string.IsNullOrEmpty(adapterName)) return IPAddress.Any;
-
-        var adapter = NetworkInterface.GetAllNetworkInterfaces()
-            .Where(n => n.OperationalStatus == OperationalStatus.Up)
-            .FirstOrDefault(n => n.Name == adapterName);
-
-        return adapter?.GetIPProperties().UnicastAddresses
-            .FirstOrDefault(a => a.Address.AddressFamily == AddressFamily.InterNetwork)
-            ?.Address ?? IPAddress.Any;
+        if (IPAddress.TryParse(adapterName, out var parsed)) return parsed;
+        return IPAddress.Any;
     }
 
     void SetStatus(ServerStatus s, string? msg = null)

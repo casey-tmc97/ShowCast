@@ -22,8 +22,8 @@ public class NetworkSettingsViewModel : ReactiveObject
 
         RefreshAdapters();
 
-        // Select stored adapter by name; fall back to first
-        int stored = Adapters.IndexOf(Adapters.FirstOrDefault(a => a.Name == net.BindAdapterName) ?? Adapters.FirstOrDefault()!);
+        // Select stored adapter by IP; fall back to first
+        int stored = Adapters.IndexOf(Adapters.FirstOrDefault(a => a.IpAddress == net.BindAdapterName) ?? Adapters.FirstOrDefault()!);
         SelectedAdapterIndex = stored >= 0 ? stored : 0;
     }
 
@@ -91,7 +91,7 @@ public class NetworkSettingsViewModel : ReactiveObject
         net.TcpEnabled      = TcpEnabled;
         net.TcpPort         = TcpPort;
         net.TcpPassword     = TcpPassword;
-        net.BindAdapterName = SelectedAdapter?.Name ?? "";
+        net.BindAdapterName = SelectedAdapter?.IpAddress ?? "";
 
         _main.RestartCompanionServer();
     }
@@ -101,6 +101,7 @@ public class NetworkSettingsViewModel : ReactiveObject
     void RefreshAdapters()
     {
         Adapters.Clear();
+        Adapters.Add(new AdapterEntry("Localhost", "127.0.0.1"));
         foreach (var nic in NetworkInterface.GetAllNetworkInterfaces()
             .Where(n => n.OperationalStatus == OperationalStatus.Up &&
                         n.NetworkInterfaceType != NetworkInterfaceType.Loopback))
@@ -110,8 +111,6 @@ public class NetworkSettingsViewModel : ReactiveObject
             if (ip is not null)
                 Adapters.Add(new AdapterEntry(nic.Name, ip.ToString()));
         }
-        if (Adapters.Count == 0)
-            Adapters.Add(new AdapterEntry("No adapters found", ""));
     }
 }
 
