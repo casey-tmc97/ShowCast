@@ -16,12 +16,13 @@ public partial class NetworkSettingsDialog : Window
     {
         InitializeComponent();
 
-        _main        = main;
-        _vm          = new NetworkSettingsViewModel(main);
-        DataContext  = _vm;
+        _main = main;
+        _vm   = new NetworkSettingsViewModel(main);
 
-        // Populate adapter combo display strings
+        // ItemsSource must be set before DataContext so the SelectedIndex binding
+        // fires with items already present, otherwise the initial selection is lost.
         AdapterCombo.ItemsSource = _vm.Adapters.Select(a => a.Display).ToList();
+        DataContext = _vm;
 
         // Subscribe to CompanionServer status changes and show current state
         if (main.Companion is not null)
