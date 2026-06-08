@@ -21,13 +21,40 @@ public class CompanionStateTests
     public void BuildCompanionState_AudioSection_PlaylistsHaveIdAndName()
     {
         var vm = new MainViewModel();
+        // Clear existing playlists and add a known test playlist
+        vm.AudioChannels[0].Player.Playlists.Clear();
+        vm.AudioChannels[0].Player.CreatePlaylist("Test Playlist");
+
         var json = vm.BuildCompanionState();
         var doc = JsonDocument.Parse(json);
         var playlists = doc.RootElement.GetProperty("audio").GetProperty("playlists");
-        Assert.True(playlists.GetArrayLength() > 0);
+
+        // Verify we have at least one playlist
+        Assert.Equal(1, playlists.GetArrayLength());
+
         var first = playlists[0];
         Assert.Equal(JsonValueKind.String, first.GetProperty("id").ValueKind);
         Assert.Equal(JsonValueKind.String, first.GetProperty("name").ValueKind);
+        Assert.Equal("Test Playlist", first.GetProperty("name").GetString());
+    }
+
+    [Fact]
+    public void BuildCompanionState_AudioSection_EmptyPlaylistsWhenNone()
+    {
+        var vm = new MainViewModel();
+        // Clear all playlists from all audio channels
+        foreach (var channel in vm.AudioChannels)
+        {
+            channel.Player.Playlists.Clear();
+        }
+
+        var json = vm.BuildCompanionState();
+        var doc = JsonDocument.Parse(json);
+        var playlists = doc.RootElement.GetProperty("audio").GetProperty("playlists");
+
+        // Verify the playlists array is empty
+        Assert.Equal(JsonValueKind.Array, playlists.ValueKind);
+        Assert.Equal(0, playlists.GetArrayLength());
     }
 
     [Fact]
