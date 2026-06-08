@@ -104,5 +104,6 @@ public class OutputState : ReactiveObject
         LivePage           = _preBlankPage;
         LivePageIndex      = _preBlankPageIndex;
         _preBlankPage      = null;
+        _preBlankPageIndex = -1;
     }
 }

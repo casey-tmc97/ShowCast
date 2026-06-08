@@ -372,12 +372,16 @@ public class MainViewModel : ViewModelBase
         _companion.CommandReceived -= OnCompanionCommand;
         _companion.CommandReceived += OnCompanionCommand;
         _companion.Start(settings);
+        foreach (var d in _audioStateSubscriptions) d.Dispose();
+        _audioStateSubscriptions.Clear();
         foreach (var ch in AudioChannels)
-            ch.Player.WhenAnyValue(p => p.State).Subscribe(_ => PushStateToCompanion());
+            _audioStateSubscriptions.Add(ch.Player.WhenAnyValue(p => p.State).Subscribe(_ => PushStateToCompanion()));
     }
 
     public void StopCompanionServer()
     {
+        foreach (var d in _audioStateSubscriptions) d.Dispose();
+        _audioStateSubscriptions.Clear();
         _companion?.Stop();
     }
 
@@ -1025,7 +1029,8 @@ public class MainViewModel : ViewModelBase
 
     // ── Companion TCP server ──────────────────────────────────────────────────
 
-    CompanionServer? _companion;
+    CompanionServer?      _companion;
+    List<IDisposable>     _audioStateSubscriptions = new();
     public CompanionServer? Companion => _companion;
 
     // Arm a one-shot timer to fire at the exact moment of the next pending event.
@@ -1119,6 +1124,7 @@ public class MainViewModel : ViewModelBase
 
         UpdateIsLiveFlags();
         RefreshPageList();
+        PushStateToCompanion();
         StartSchedulerTimer();
     }
 
@@ -2463,6 +2469,7 @@ public class MainViewModel : ViewModelBase
         StartPageTimer(pvm.Model.DurationMs, pvm.Model.LoopToStart, group.Package);
         FirePageTriggerTimers(pvm.Model);
         FirePageAudioTrigger(pvm.Model);
+        PushStateToCompanion();
     }
 
     void SeedDemoContent()

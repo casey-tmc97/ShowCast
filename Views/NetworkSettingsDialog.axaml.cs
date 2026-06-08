@@ -51,7 +51,7 @@ public partial class NetworkSettingsDialog : Window
         };
     }
 
-    void OnApply(object? sender, RoutedEventArgs e) => _vm.Apply();
+    void OnApply(object? sender, RoutedEventArgs e) { _vm.Apply(); Close(); }
 
     void OnCancel(object? sender, RoutedEventArgs e) => Close();
 
