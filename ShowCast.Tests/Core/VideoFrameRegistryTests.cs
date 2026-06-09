@@ -128,8 +128,6 @@ public class VideoFrameRegistryTests
     [Fact]
     public void UpdateSlide_WiresVideoEndedCallbackToNewPlayer()
     {
-        // FakePlayer needs to expose VideoEnded so we can check it was set.
-        // (After this test is added, FakePlayer must implement the new interface member.)
         bool callbackFired = false;
         var players = new List<FakePlayer>();
         var registry = new VideoFrameRegistry(

@@ -65,9 +65,9 @@ public sealed class VideoFrameRegistry : IDisposable
                 ? _ndiLookup?.Invoke(dest.DeviceId)
                 : null;
 
-            player.Start(filePath, layer.VideoLoopMode, layer.VideoVolume, deviceId, ndiSender);
             if (layer.VideoLoopMode == VideoLoopMode.AdvanceOnEnd)
                 player.VideoEnded = OnVideoEnded;
+            player.Start(filePath, layer.VideoLoopMode, layer.VideoVolume, deviceId, ndiSender);
             _players[layer.Id] = player;
         }
     }
