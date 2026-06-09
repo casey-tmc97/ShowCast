@@ -32,6 +32,7 @@ public class PageViewModel : ViewModelBase
             this.RaisePropertyChanged(nameof(DurationMs));
             this.RaisePropertyChanged(nameof(TimerLabel));
             this.RaisePropertyChanged(nameof(HasTimer));
+            this.RaisePropertyChanged(nameof(LiveTimerLabel));
         }
     }
 
