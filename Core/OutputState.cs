@@ -61,8 +61,18 @@ public class OutputState : ReactiveObject
     public VideoFrameRegistry? VideoRegistry
     {
         get => _videoRegistry;
-        set => this.RaiseAndSetIfChanged(ref _videoRegistry, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _videoRegistry, value);
+            if (value is not null) value.OnVideoEnded = VideoEndedCallback;
+        }
     }
+
+    /// <summary>
+    /// Set by MainViewModel immediately after creating this OutputState.
+    /// Propagated into VideoRegistry whenever a new registry is assigned.
+    /// </summary>
+    public Action? VideoEndedCallback { get; set; }
 
     public void GoLive(Page page, int index,
                         TransitionType transType   = TransitionType.Cut,
