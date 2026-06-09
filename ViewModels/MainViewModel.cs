@@ -629,15 +629,12 @@ public class MainViewModel : ViewModelBase
         string audioSection = $"{{\"playing\":{(anyPlaying ? "true" : "false")}," +
                               $"\"trackName\":\"{playingTrackName}\",\"playlists\":{playlistsJson}}}";
 
-        bool schedulerRunning = _schedulerTimer is not null;
-        string schedulerSection = $"{{\"running\":{(schedulerRunning ? "true" : "false")}}}";
-
         var outputParts = OutputStates.Select(o =>
             $"{{\"id\":\"{o.Config.Id}\",\"name\":\"{EscapeJson(o.Config.Name)}\",\"blanked\":{(o.LivePage == null ? "true" : "false")}}}");
         string outputsSection = "[" + string.Join(",", outputParts) + "]";
 
         return $"{{\"type\":\"state\",\"page\":{pageSection},\"rundown\":{rundownSection}," +
-               $"\"audio\":{audioSection},\"scheduler\":{schedulerSection},\"outputs\":{outputsSection}}}\n";
+               $"\"audio\":{audioSection},\"outputs\":{outputsSection}}}\n";
     }
 
     void PushStateToCompanion() => _companion?.PushState(BuildCompanionState());
