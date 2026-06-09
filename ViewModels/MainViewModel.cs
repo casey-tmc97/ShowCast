@@ -2326,14 +2326,13 @@ public class MainViewModel : ViewModelBase
         SelectedPage = null;
         var package = SelectedOutput?.ActivePackage;
         if (package is null) return;
-        var livePage = SelectedOutput?.LivePage;
         foreach (var page in package.Pages)
         {
             var pvm = new PageViewModel(page, package);
-            pvm.IsLive = page == livePage;
             Pages.Add(pvm);
         }
         if (Pages.Count > 0) SelectedPage = Pages[0];
+        UpdateIsLiveFlags();
     }
 
     // Keep Slides alias for AXAML bindings
