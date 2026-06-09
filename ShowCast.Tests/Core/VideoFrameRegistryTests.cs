@@ -14,6 +14,8 @@ file sealed class FakePlayer : IVideoLayerPlayer
     public bool   Disposed     { get; private set; }
     public string? StartedPath { get; private set; }
     public SKImage? CurrentFrame { get; set; }
+    public long TimeMs   { get; set; }
+    public long LengthMs { get; set; }
 
     public void Start(string filePath, VideoLoopMode loopMode, float volume, string? audioDeviceId,
                       NdiSender? ndiSender = null)

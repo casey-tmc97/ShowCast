@@ -54,6 +54,39 @@ public class PageViewModel : ViewModelBase
 
     public bool HasTimer => Model.DurationMs > 0;
 
+    private double _progressFraction;
+    public double ProgressFraction
+    {
+        get => _progressFraction;
+        private set => this.RaiseAndSetIfChanged(ref _progressFraction, value);
+    }
+
+    private bool _hasProgress;
+    public bool HasProgress
+    {
+        get => _hasProgress;
+        private set => this.RaiseAndSetIfChanged(ref _hasProgress, value);
+    }
+
+    private string? _liveCountdownLabel;
+    public string? LiveTimerLabel => _liveCountdownLabel ?? TimerLabel;
+
+    public void UpdateCountdown(double fraction, string label)
+    {
+        ProgressFraction = fraction;
+        _liveCountdownLabel = label;
+        HasProgress = true;
+        this.RaisePropertyChanged(nameof(LiveTimerLabel));
+    }
+
+    public void ClearCountdown()
+    {
+        ProgressFraction = 0;
+        _liveCountdownLabel = null;
+        HasProgress = false;
+        this.RaisePropertyChanged(nameof(LiveTimerLabel));
+    }
+
     private bool _isLive;
     public bool IsLive
     {
