@@ -633,8 +633,10 @@ public class MainViewModel : ViewModelBase
             $"{{\"id\":\"{o.Config.Id}\",\"name\":\"{EscapeJson(o.Config.Name)}\",\"blanked\":{(o.LivePage == null ? "true" : "false")}}}");
         string outputsSection = "[" + string.Join(",", outputParts) + "]";
 
+        string selectedOutputName = EscapeJson(SelectedOutput?.Config.Name);
+
         return $"{{\"type\":\"state\",\"page\":{pageSection},\"rundown\":{rundownSection}," +
-               $"\"audio\":{audioSection},\"outputs\":{outputsSection}}}\n";
+               $"\"audio\":{audioSection},\"outputs\":{outputsSection},\"selectedOutputName\":\"{selectedOutputName}\"}}\n";
     }
 
     void PushStateToCompanion() => _companion?.PushState(BuildCompanionState());
