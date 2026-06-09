@@ -503,6 +503,7 @@
                         <ComboBoxItem Content="Loop"/>
                         <ComboBoxItem Content="Hold Last Frame"/>
                         <ComboBoxItem Content="Go Black"/>
+                        <ComboBoxItem Content="Advance on End"/>
                     </ComboBox>
 
                     <Grid ColumnDefinitions="*,8,Auto">
