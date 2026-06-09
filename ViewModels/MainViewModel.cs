@@ -498,13 +498,15 @@ public class MainViewModel : ViewModelBase
                 if (flatOutput is null) return Err("No output selected");
                 int idx = pkg.Pages.IndexOf(page);
                 flatOutput.GoLive(page, idx, NextTransitionType, NextTransitionDuration, 0.5f);
+                PageViewModel? flatPvm = null;
                 if (flatOutput == SelectedOutput)
                 {
                     LoadPackageToSelectedOutput(pkg);
-                    var flatPvm = Pages.FirstOrDefault(p => p.Model == page);
+                    flatPvm = Pages.FirstOrDefault(p => p.Model == page);
                     if (flatPvm is not null) SelectedPage = flatPvm;
                 }
                 StartPageTimer(page.DurationMs, page.LoopToStart);
+                if (flatPvm is not null) StartCountdownTimer(flatPvm, flatOutput);
                 FirePageTriggerTimers(page);
                 FirePageAudioTrigger(page);
                 return Ok();
@@ -857,6 +859,7 @@ public class MainViewModel : ViewModelBase
             skip);
         UpdateIsLiveFlags();
         StartPageTimer(SelectedPage.Model.DurationMs, SelectedPage.Model.LoopToStart);
+        StartCountdownTimer(SelectedPage, SelectedOutput);
         FirePageTriggerTimers(SelectedPage.Model);
         FirePageAudioTrigger(SelectedPage.Model);
         PushStateToCompanion();
@@ -990,13 +993,31 @@ public class MainViewModel : ViewModelBase
         if (idx < Pages.Count - 1) SelectedPage = Pages[idx + 1];
     }
 
-    public void ClearLive()                    { StopPageTimer(); SelectedOutput?.Clear(); UpdateIsLiveFlags(); PushStateToCompanion(); }
-    public void ClearOutput(OutputState output) { StopPageTimer(); output.Clear(); UpdateIsLiveFlags(); }
+    public void ClearLive()
+    {
+        StopPageTimer();
+        StopCountdownTimer();
+        SelectedOutput?.Clear();
+        UpdateIsLiveFlags();
+        PushStateToCompanion();
+    }
+
+    public void ClearOutput(OutputState output)
+    {
+        StopPageTimer();
+        if (output == _liveOutputForCountdown) StopCountdownTimer();
+        output.Clear();
+        UpdateIsLiveFlags();
+    }
 
     // ── Page timer (auto-advance) ──────────────────────────────────────────────
 
     System.Timers.Timer? _pageTimer;
     bool _skipNextAnimations;
+    System.Timers.Timer? _countdownTimer;
+    PageViewModel?       _livePageVm;
+    OutputState?         _liveOutputForCountdown;
+    DateTime             _livePageStartTime;
 
     // sourcePackage: the package whose first page should be the loop target.
     // GoLiveFromGroup passes group.Package explicitly because group.SelectedOutput may differ
@@ -1070,6 +1091,68 @@ public class MainViewModel : ViewModelBase
         _pageTimer = null;
     }
 
+    void StartCountdownTimer(PageViewModel liveVm, OutputState? liveOutput)
+    {
+        _countdownTimer?.Stop();
+        _countdownTimer?.Dispose();
+        _countdownTimer = null;
+        _livePageVm = liveVm;
+        _liveOutputForCountdown = liveOutput;
+        _livePageStartTime = DateTime.UtcNow;
+
+        bool hasVideo = HasVideoLayers(liveVm.Model);
+        if (!hasVideo && liveVm.Model.DurationMs <= 0) return;
+
+        _countdownTimer = new System.Timers.Timer(100) { AutoReset = true };
+        _countdownTimer.Elapsed += (_, _) =>
+            Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(TickCountdown);
+        _countdownTimer.Start();
+    }
+
+    void StopCountdownTimer()
+    {
+        _countdownTimer?.Stop();
+        _countdownTimer?.Dispose();
+        _countdownTimer = null;
+        _livePageVm?.ClearCountdown();
+        _livePageVm = null;
+        _liveOutputForCountdown = null;
+    }
+
+    void TickCountdown()
+    {
+        if (_livePageVm is null) return;
+
+        if (HasVideoLayers(_livePageVm.Model))
+        {
+            var (timeMs, lengthMs) = _liveOutputForCountdown?.VideoRegistry?.GetPrimaryTime() ?? (0, 0);
+            if (lengthMs > 0)
+            {
+                double fraction    = 1.0 - (double)timeMs / lengthMs;
+                double remainSec   = (lengthMs - timeMs) / 1000.0;
+                _livePageVm.UpdateCountdown(fraction, FormatCountdown(remainSec));
+            }
+            // If lengthMs == 0, video not registered yet — skip tick, bar stays at last value
+            return;
+        }
+
+        int durationMs = _livePageVm.Model.DurationMs;
+        if (durationMs > 0)
+        {
+            double elapsed     = (DateTime.UtcNow - _livePageStartTime).TotalMilliseconds;
+            double fraction    = Math.Max(0.0, 1.0 - elapsed / durationMs);
+            double remainSec   = Math.Max(0.0, (durationMs - elapsed) / 1000.0);
+            _livePageVm.UpdateCountdown(fraction, FormatCountdown(remainSec));
+        }
+    }
+
+    static string FormatCountdown(double remainSec)
+    {
+        if (remainSec >= 10) return $"{(int)remainSec}s";
+        if (remainSec > 0)   return $"{remainSec:F1}s";
+        return "0s";
+    }
+
     /// <summary>Set or clear the auto-advance timer on a page.</summary>
     public void SetPageTimer(PageViewModel? pvm, int durationMs, bool loopToStart = false)
     {
@@ -1080,7 +1163,10 @@ public class MainViewModel : ViewModelBase
         // Pass pvm.Owner so the loop target is always this page's package regardless
         // of which package SelectedOutput currently points at.
         if (pvm.Model == SelectedOutput?.LivePage)
+        {
             StartPageTimer(durationMs, loopToStart, pvm.Owner);
+            StartCountdownTimer(pvm, SelectedOutput);
+        }
     }
 
     // Keep old name as alias
@@ -2553,6 +2639,7 @@ public class MainViewModel : ViewModelBase
                       pvm.Model.Transition.Easing);
         UpdateIsLiveFlags();
         StartPageTimer(pvm.Model.DurationMs, pvm.Model.LoopToStart, group.Package);
+        StartCountdownTimer(pvm, output);
         FirePageTriggerTimers(pvm.Model);
         FirePageAudioTrigger(pvm.Model);
         PushStateToCompanion();
