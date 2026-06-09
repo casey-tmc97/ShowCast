@@ -471,13 +471,26 @@ public class MainViewModel : ViewModelBase
                 var pkg = _showFile.Shows
                     .SelectMany(s => s.Packages)
                     .FirstOrDefault(p => p.Pages.Contains(page));
-                if (pkg is null || SelectedOutput is null) return Err("Output unavailable");
+                if (pkg is null) return Err("Package not found");
+
+                // Optional outputId — falls back to SelectedOutput
+                var output = SelectedOutput;
+                if (cmd.Raw.TryGetProperty("outputId", out var oidEl) &&
+                    Guid.TryParse(oidEl.GetString(), out var outputId))
+                    output = OutputStates.FirstOrDefault(o => o.Config.Id == outputId);
+                if (output is null) return Err("Output unavailable");
 
                 int idx = pkg.Pages.IndexOf(page);
-                SelectedOutput.GoLive(page, idx, NextTransitionType, NextTransitionDuration, 0.5f);
-                LoadPackageToSelectedOutput(pkg);
-                var pvm = Pages.FirstOrDefault(p => p.Model == page);
-                if (pvm is not null) SelectedPage = pvm;
+                output.GoLive(page, idx, NextTransitionType, NextTransitionDuration, 0.5f);
+
+                // Only refresh the center panel for the currently visible output
+                if (output == SelectedOutput)
+                {
+                    LoadPackageToSelectedOutput(pkg);
+                    var pvm = Pages.FirstOrDefault(p => p.Model == page);
+                    if (pvm is not null) SelectedPage = pvm;
+                }
+
                 StartPageTimer(page.DurationMs, page.LoopToStart);
                 FirePageTriggerTimers(page);
                 FirePageAudioTrigger(page);
