@@ -68,11 +68,16 @@ public class OutputState : ReactiveObject
         }
     }
 
-    /// <summary>
-    /// Set by MainViewModel immediately after creating this OutputState.
-    /// Propagated into VideoRegistry whenever a new registry is assigned.
-    /// </summary>
-    public Action? VideoEndedCallback { get; set; }
+    private Action? _videoEndedCallback;
+    public Action? VideoEndedCallback
+    {
+        get => _videoEndedCallback;
+        set
+        {
+            _videoEndedCallback = value;
+            if (_videoRegistry is not null) _videoRegistry.OnVideoEnded = value;
+        }
+    }
 
     public void GoLive(Page page, int index,
                         TransitionType transType   = TransitionType.Cut,
