@@ -578,6 +578,18 @@ public class MainViewModel : ViewModelBase
                 return Ok();
             }
 
+            case "output_clear":
+            {
+                if (!cmd.Raw.TryGetProperty("outputId", out var oidEl) ||
+                    !Guid.TryParse(oidEl.GetString(), out var outputId))
+                    return Err("Missing or invalid outputId");
+                var output = OutputStates.FirstOrDefault(o => o.Config.Id == outputId);
+                if (output is null) return Err("Output not found");
+                output.Clear();
+                UpdateIsLiveFlags();
+                return Ok();
+            }
+
             case "get_state":
                 return Ok(); // state is always broadcast after ack by DispatchCompanionCommand
 
