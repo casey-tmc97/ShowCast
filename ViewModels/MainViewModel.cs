@@ -484,13 +484,19 @@ public class MainViewModel : ViewModelBase
                     return Ok();
                 }
 
-                // Flat view: use whichever output is currently selected.
-                if (SelectedOutput is null) return Err("No output selected");
+                // Flat view: prefer the output that already has this package loaded,
+                // then fall back to whichever output is currently selected.
+                var flatOutput = OutputStates.FirstOrDefault(o => o.ActivePackage == pkg)
+                                 ?? SelectedOutput;
+                if (flatOutput is null) return Err("No output selected");
                 int idx = pkg.Pages.IndexOf(page);
-                SelectedOutput.GoLive(page, idx, NextTransitionType, NextTransitionDuration, 0.5f);
-                LoadPackageToSelectedOutput(pkg);
-                var flatPvm = Pages.FirstOrDefault(p => p.Model == page);
-                if (flatPvm is not null) SelectedPage = flatPvm;
+                flatOutput.GoLive(page, idx, NextTransitionType, NextTransitionDuration, 0.5f);
+                if (flatOutput == SelectedOutput)
+                {
+                    LoadPackageToSelectedOutput(pkg);
+                    var flatPvm = Pages.FirstOrDefault(p => p.Model == page);
+                    if (flatPvm is not null) SelectedPage = flatPvm;
+                }
                 StartPageTimer(page.DurationMs, page.LoopToStart);
                 FirePageTriggerTimers(page);
                 FirePageAudioTrigger(page);
