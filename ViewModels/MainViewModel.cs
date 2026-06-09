@@ -233,6 +233,8 @@ public class MainViewModel : ViewModelBase
         foreach (var cfg in _showFile.Outputs)
         {
             var state = new OutputState(cfg);
+            state.VideoEndedCallback = () =>
+                Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => HandleVideoEnded(state));
             if (cfg.ActivePackageId != Guid.Empty)
                 state.ActivePackage = _packageById.TryGetValue(cfg.ActivePackageId, out var activePkg) ? activePkg : null;
             OutputStates.Add(state);
@@ -1156,6 +1158,47 @@ public class MainViewModel : ViewModelBase
         return "0s";
     }
 
+    void HandleVideoEnded(OutputState output)
+    {
+        // Called on the UI thread via InvokeAsync from VideoEndedCallback.
+        if (ShowingRundown)
+        {
+            var group = PageGroups.FirstOrDefault(g => g.SelectedOutput == output);
+            if (group is null) return;
+
+            var groupLive = output.LivePage;
+            var liveVm    = groupLive is not null
+                ? group.Pages.FirstOrDefault(p => p.Model == groupLive)
+                : null;
+            int liveIdx = liveVm is not null ? group.Pages.IndexOf(liveVm) : -1;
+            int nextIdx = liveIdx + 1;
+
+            if (nextIdx < group.Pages.Count && nextIdx > 0)
+                GoLiveFromGroup(group.Pages[nextIdx]);
+            else
+            {
+                output.Clear();
+                UpdateIsLiveFlags();
+            }
+        }
+        else
+        {
+            var liveVm  = output.LivePage is not null
+                ? Pages.FirstOrDefault(p => p.Model == output.LivePage)
+                : null;
+            int liveIdx = liveVm is not null ? Pages.IndexOf(liveVm) : -1;
+            int nextIdx = liveIdx + 1;
+
+            if (nextIdx < Pages.Count && nextIdx > 0)
+            {
+                SelectedPage = Pages[nextIdx];
+                GoLive();
+            }
+            else
+                ClearLive();
+        }
+    }
+
     /// <summary>Set or clear the auto-advance timer on a page.</summary>
     public void SetPageTimer(PageViewModel? pvm, int durationMs, bool loopToStart = false)
     {
@@ -1361,6 +1404,8 @@ public class MainViewModel : ViewModelBase
         var cfg   = new OutputConfig { Name = name, RoleFilter = LayerRole.Program };
         ShowFile.AddOutput(cfg);
         var state = new OutputState(cfg);
+        state.VideoEndedCallback = () =>
+            Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => HandleVideoEnded(state));
         OutputStates.Add(state);
         SelectedOutput ??= state;
         if (ShowingRundown) RefreshPageGroups();
@@ -2658,6 +2703,8 @@ public class MainViewModel : ViewModelBase
         };
         ShowFile.AddOutput(progConfig);
         var progState = new OutputState(progConfig);
+        progState.VideoEndedCallback = () =>
+            Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => HandleVideoEnded(progState));
         OutputStates.Add(progState);
 
         var monitorConfig = new OutputConfig
@@ -2667,6 +2714,8 @@ public class MainViewModel : ViewModelBase
         };
         ShowFile.AddOutput(monitorConfig);
         var monitorState = new OutputState(monitorConfig);
+        monitorState.VideoEndedCallback = () =>
+            Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => HandleVideoEnded(monitorState));
         OutputStates.Add(monitorState);
 
         var ndiConfig = new OutputConfig
@@ -2676,6 +2725,8 @@ public class MainViewModel : ViewModelBase
         };
         ShowFile.AddOutput(ndiConfig);
         var ndiState = new OutputState(ndiConfig);
+        ndiState.VideoEndedCallback = () =>
+            Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => HandleVideoEnded(ndiState));
         OutputStates.Add(ndiState);
 
         // ── Default show ──────────────────────────────────────────────────────
