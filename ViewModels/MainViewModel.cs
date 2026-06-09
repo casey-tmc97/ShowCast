@@ -1177,12 +1177,21 @@ public class MainViewModel : ViewModelBase
                 GoLiveFromGroup(group.Pages[nextIdx]);
             else
             {
-                output.Clear();
-                UpdateIsLiveFlags();
+                ClearOutput(output);
+                PushStateToCompanion();
             }
         }
         else
         {
+            if (output != SelectedOutput)
+            {
+                // In flat view, Pages tracks SelectedOutput's package only.
+                // A non-selected output firing AdvanceOnEnd has no visible advance target.
+                ClearOutput(output);
+                PushStateToCompanion();
+                return;
+            }
+
             var liveVm  = output.LivePage is not null
                 ? Pages.FirstOrDefault(p => p.Model == output.LivePage)
                 : null;
