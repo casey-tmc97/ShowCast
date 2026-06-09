@@ -473,24 +473,24 @@ public class MainViewModel : ViewModelBase
                     .FirstOrDefault(p => p.Pages.Contains(page));
                 if (pkg is null) return Err("Package not found");
 
-                // Optional outputId — falls back to SelectedOutput
-                var output = SelectedOutput;
-                if (cmd.Raw.TryGetProperty("outputId", out var oidEl) &&
-                    Guid.TryParse(oidEl.GetString(), out var outputId))
-                    output = OutputStates.FirstOrDefault(o => o.Config.Id == outputId);
-                if (output is null) return Err("Output unavailable");
-
-                int idx = pkg.Pages.IndexOf(page);
-                output.GoLive(page, idx, NextTransitionType, NextTransitionDuration, 0.5f);
-
-                // Only refresh the center panel for the currently visible output
-                if (output == SelectedOutput)
+                // Rundown view: each package is already assigned to an output via its group.
+                // GoLiveFromGroup replicates the manual tap exactly.
+                var group = PageGroups.FirstOrDefault(g => g.Package == pkg);
+                if (group is not null)
                 {
-                    LoadPackageToSelectedOutput(pkg);
-                    var pvm = Pages.FirstOrDefault(p => p.Model == page);
-                    if (pvm is not null) SelectedPage = pvm;
+                    var pvm = group.Pages.FirstOrDefault(p => p.Model == page);
+                    if (pvm is null) return Err("Page not in group");
+                    GoLiveFromGroup(pvm);
+                    return Ok();
                 }
 
+                // Flat view: use whichever output is currently selected.
+                if (SelectedOutput is null) return Err("No output selected");
+                int idx = pkg.Pages.IndexOf(page);
+                SelectedOutput.GoLive(page, idx, NextTransitionType, NextTransitionDuration, 0.5f);
+                LoadPackageToSelectedOutput(pkg);
+                var flatPvm = Pages.FirstOrDefault(p => p.Model == page);
+                if (flatPvm is not null) SelectedPage = flatPvm;
                 StartPageTimer(page.DurationMs, page.LoopToStart);
                 FirePageTriggerTimers(page);
                 FirePageAudioTrigger(page);
