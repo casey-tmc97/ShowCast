@@ -33,6 +33,7 @@ public class PageViewModel : ViewModelBase
             this.RaisePropertyChanged(nameof(TimerLabel));
             this.RaisePropertyChanged(nameof(HasTimer));
             this.RaisePropertyChanged(nameof(LiveTimerLabel));
+            this.RaisePropertyChanged(nameof(ShowTimerBadge));
         }
     }
 
@@ -54,6 +55,8 @@ public class PageViewModel : ViewModelBase
         : null;
 
     public bool HasTimer => Model.DurationMs > 0;
+
+    public bool ShowTimerBadge => HasTimer || HasProgress;
 
     private double _progressFraction;
     public double ProgressFraction
@@ -78,6 +81,7 @@ public class PageViewModel : ViewModelBase
         _liveCountdownLabel = label;
         HasProgress = true;
         this.RaisePropertyChanged(nameof(LiveTimerLabel));
+        this.RaisePropertyChanged(nameof(ShowTimerBadge));
     }
 
     public void ClearCountdown()
@@ -86,6 +90,7 @@ public class PageViewModel : ViewModelBase
         _liveCountdownLabel = null;
         HasProgress = false;
         this.RaisePropertyChanged(nameof(LiveTimerLabel));
+        this.RaisePropertyChanged(nameof(ShowTimerBadge));
     }
 
     private bool _isLive;
