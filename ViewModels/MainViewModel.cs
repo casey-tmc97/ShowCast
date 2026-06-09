@@ -506,6 +506,7 @@ public class MainViewModel : ViewModelBase
                     if (flatPvm is not null) SelectedPage = flatPvm;
                 }
                 StartPageTimer(page.DurationMs, page.LoopToStart);
+                // flatPvm is only resolved when flatOutput == SelectedOutput (Pages reflects that output's package).
                 if (flatPvm is not null) StartCountdownTimer(flatPvm, flatOutput);
                 FirePageTriggerTimers(page);
                 FirePageAudioTrigger(page);
@@ -1121,6 +1122,8 @@ public class MainViewModel : ViewModelBase
 
     void TickCountdown()
     {
+        // _livePageVm may be null if StopCountdownTimer cleared it between
+        // the Elapsed event firing and this InvokeAsync callback executing on the UI thread.
         if (_livePageVm is null) return;
 
         if (HasVideoLayers(_livePageVm.Model))
