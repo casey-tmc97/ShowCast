@@ -3,7 +3,7 @@ using SkiaSharp;
 namespace ShowCast.Core;
 
 public enum LayerType      { Background, Text, Image, Shape, Clock, Feed, Video }
-public enum VideoLoopMode  { Loop, HoldLastFrame, GoBlack }
+public enum VideoLoopMode  { Loop, HoldLastFrame, GoBlack, AdvanceOnEnd }
 public enum BlendMode      { Normal, Multiply, Screen, Overlay, Add }
 public enum TextHAlign     { Left, Center, Right }
 public enum TextVAlign     { Top, Middle, Bottom }

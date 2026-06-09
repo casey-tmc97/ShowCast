@@ -28,6 +28,8 @@ public sealed class VideoLayerPlayer : IVideoLayerPlayer
     VideoLoopMode     _loopMode;
     Media?            _media;
 
+    public Action? VideoEnded { get; set; }
+
     // NDI audio routing — mirrors the approach in AudioPlayerViewModel.
     volatile NdiSender? _ndiSender;
     MediaPlayer.LibVLCAudioPlayCb? _audioPlayDelegate;
@@ -120,7 +122,8 @@ public sealed class VideoLayerPlayer : IVideoLayerPlayer
     void OnEndReached(object? sender, EventArgs e)
     {
         // Queue to thread pool — calling Stop/Play on the VLC event thread deadlocks.
-        var capturedMode = _loopMode;
+        var capturedMode  = _loopMode;
+        var capturedEnded = VideoEnded;
         System.Threading.ThreadPool.QueueUserWorkItem(_ =>
         {
             switch (capturedMode)
@@ -131,6 +134,10 @@ public sealed class VideoLayerPlayer : IVideoLayerPlayer
                     break;
                 case VideoLoopMode.GoBlack:
                     _currentFrame = null;
+                    break;
+                case VideoLoopMode.AdvanceOnEnd:
+                    _player.Stop();
+                    capturedEnded?.Invoke();
                     break;
                 // HoldLastFrame: do nothing.
             }

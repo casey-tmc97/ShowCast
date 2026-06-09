@@ -16,6 +16,7 @@ file sealed class FakePlayer : IVideoLayerPlayer
     public SKImage? CurrentFrame { get; set; }
     public long TimeMs   { get; set; }
     public long LengthMs { get; set; }
+    public Action? VideoEnded { get; set; }
 
     public void Start(string filePath, VideoLoopMode loopMode, float volume, string? audioDeviceId,
                       NdiSender? ndiSender = null)
@@ -122,5 +123,34 @@ public class VideoFrameRegistryTests
         registry.Dispose();
 
         Assert.All(players, p => Assert.True(p.Disposed));
+    }
+
+    [Fact]
+    public void UpdateSlide_WiresVideoEndedCallbackToNewPlayer()
+    {
+        // FakePlayer needs to expose VideoEnded so we can check it was set.
+        // (After this test is added, FakePlayer must implement the new interface member.)
+        bool callbackFired = false;
+        var players = new List<FakePlayer>();
+        var registry = new VideoFrameRegistry(
+            new List<AudioDestination>(),
+            () => { var p = new FakePlayer(); players.Add(p); return p; });
+
+        registry.OnVideoEnded = () => callbackFired = true;
+
+        var id = Guid.NewGuid();
+        var layer = new SlideLayer
+        {
+            Id = id, Type = LayerType.Video, AssetPath = "clip.mp4",
+            VideoLoopMode = VideoLoopMode.AdvanceOnEnd
+        };
+        var page = new Page();
+        page.AddLayer(layer);
+        registry.UpdateSlide(page);
+
+        // Simulate the player calling VideoEnded (as VLC would after video finishes).
+        players[0].VideoEnded?.Invoke();
+
+        Assert.True(callbackFired);
     }
 }

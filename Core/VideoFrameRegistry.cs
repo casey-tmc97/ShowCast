@@ -18,6 +18,9 @@ public sealed class VideoFrameRegistry : IDisposable
     readonly Func<string, NdiSender?>?       _ndiLookup;
     readonly ConcurrentDictionary<Guid, IVideoLayerPlayer> _players = new();
 
+    /// <summary>Invoked (on the threadpool) when a video with AdvanceOnEnd mode reaches its end.</summary>
+    public Action? OnVideoEnded { get; set; }
+
     public VideoFrameRegistry(IReadOnlyList<AudioDestination> destinations,
                               Func<IVideoLayerPlayer>? playerFactory = null,
                               Func<string, NdiSender?>? ndiLookup = null)
@@ -63,6 +66,8 @@ public sealed class VideoFrameRegistry : IDisposable
                 : null;
 
             player.Start(filePath, layer.VideoLoopMode, layer.VideoVolume, deviceId, ndiSender);
+            if (layer.VideoLoopMode == VideoLoopMode.AdvanceOnEnd)
+                player.VideoEnded = OnVideoEnded;
             _players[layer.Id] = player;
         }
     }
