@@ -45,6 +45,8 @@ public sealed class VideoLayerPlayer : IVideoLayerPlayer
     readonly MediaPlayer.LibVLCVideoDisplayCb _displayCb;
 
     public SKImage? CurrentFrame => _currentFrame;
+    public long TimeMs   => _player.Time;
+    public long LengthMs => _player.Length;
 
     public VideoLayerPlayer()
     {

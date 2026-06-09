@@ -71,6 +71,13 @@ public sealed class VideoFrameRegistry : IDisposable
     public SKImage? TryGetFrame(Guid layerId) =>
         _players.TryGetValue(layerId, out var p) ? p.CurrentFrame : null;
 
+    /// <summary>Returns position and duration of the first active video player, or zeros if none.</summary>
+    public (long timeMs, long lengthMs) GetPrimaryTime()
+    {
+        var player = _players.Values.FirstOrDefault();
+        return player is null ? (0, 0) : (Math.Max(0, player.TimeMs), Math.Max(0, player.LengthMs));
+    }
+
     public void Dispose()
     {
         foreach (var p in _players.Values)

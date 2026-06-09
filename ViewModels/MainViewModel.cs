@@ -377,13 +377,20 @@ public class MainViewModel : ViewModelBase
         foreach (var d in _audioStateSubscriptions) d.Dispose();
         _audioStateSubscriptions.Clear();
         foreach (var ch in AudioChannels)
-            _audioStateSubscriptions.Add(ch.Player.WhenAnyValue(p => p.State).Subscribe(_ => PushStateToCompanion()));
+            _audioStateSubscriptions.Add(ch.Player.WhenAnyValue(p => p.State).Subscribe(_ =>
+            {
+                PushStateToCompanion();
+                UpdateMediaTickTimer();
+            }));
     }
 
     public void StopCompanionServer()
     {
         foreach (var d in _audioStateSubscriptions) d.Dispose();
         _audioStateSubscriptions.Clear();
+        _mediaTickTimer?.Stop();
+        _mediaTickTimer?.Dispose();
+        _mediaTickTimer = null;
         _companion?.Stop();
     }
 
@@ -613,13 +620,16 @@ public class MainViewModel : ViewModelBase
 
         bool anyPlaying = false;
         string playingTrackName = "";
+        long audioPosMs = 0, audioDurMs = 0;
         foreach (var ch in AudioChannels)
         {
             if (!anyPlaying && ch.Player.State == PlaybackState.Playing)
             {
                 var track = ch.Player.CurrentTrack;
-                anyPlaying = true;
+                anyPlaying       = true;
                 playingTrackName = track is not null ? EscapeJson(track.Title) : "";
+                audioPosMs       = (long)ch.Player.Position.TotalMilliseconds;
+                audioDurMs       = (long)ch.Player.Duration.TotalMilliseconds;
             }
         }
         var allPlaylists = AudioChannels
@@ -627,7 +637,14 @@ public class MainViewModel : ViewModelBase
             .Select(p => $"{{\"id\":\"{p.Id}\",\"name\":\"{EscapeJson(p.Name)}\"}}");
         string playlistsJson = "[" + string.Join(",", allPlaylists) + "]";
         string audioSection = $"{{\"playing\":{(anyPlaying ? "true" : "false")}," +
-                              $"\"trackName\":\"{playingTrackName}\",\"playlists\":{playlistsJson}}}";
+                              $"\"trackName\":\"{playingTrackName}\"," +
+                              $"\"positionMs\":{audioPosMs},\"durationMs\":{audioDurMs}," +
+                              $"\"playlists\":{playlistsJson}}}";
+
+        var (videoPosMs, videoDurMs) = SelectedOutput?.VideoRegistry?.GetPrimaryTime() ?? (0, 0);
+        bool videoPlaying = videoDurMs > 0;
+        string videoSection = $"{{\"playing\":{(videoPlaying ? "true" : "false")}," +
+                              $"\"positionMs\":{videoPosMs},\"durationMs\":{videoDurMs}}}";
 
         var outputParts = OutputStates.Select(o =>
             $"{{\"id\":\"{o.Config.Id}\",\"name\":\"{EscapeJson(o.Config.Name)}\",\"blanked\":{(o.LivePage == null ? "true" : "false")}}}");
@@ -636,7 +653,8 @@ public class MainViewModel : ViewModelBase
         string selectedOutputName = EscapeJson(SelectedOutput?.Config.Name);
 
         return $"{{\"type\":\"state\",\"page\":{pageSection},\"rundown\":{rundownSection}," +
-               $"\"audio\":{audioSection},\"outputs\":{outputsSection},\"selectedOutputName\":\"{selectedOutputName}\"}}\n";
+               $"\"audio\":{audioSection},\"video\":{videoSection},\"outputs\":{outputsSection}," +
+               $"\"selectedOutputName\":\"{selectedOutputName}\"}}\n";
     }
 
     void PushStateToCompanion() => _companion?.PushState(BuildCompanionState());
@@ -1072,6 +1090,29 @@ public class MainViewModel : ViewModelBase
     // ── Rundown scheduler (auto-fire) ─────────────────────────────────────────
 
     System.Timers.Timer? _schedulerTimer;
+
+    // ── Media tick timer (1 Hz position updates for Companion) ────────────────
+
+    System.Timers.Timer? _mediaTickTimer;
+
+    void UpdateMediaTickTimer()
+    {
+        bool anyPlaying = AudioChannels.Any(ch => ch.Player.State == PlaybackState.Playing)
+                       || OutputStates.Any(o => o.VideoRegistry?.GetPrimaryTime().lengthMs > 0);
+
+        if (anyPlaying && _mediaTickTimer is null)
+        {
+            _mediaTickTimer = new System.Timers.Timer(1000) { AutoReset = true };
+            _mediaTickTimer.Elapsed += (_, _) => PushStateToCompanion();
+            _mediaTickTimer.Start();
+        }
+        else if (!anyPlaying && _mediaTickTimer is not null)
+        {
+            _mediaTickTimer.Stop();
+            _mediaTickTimer.Dispose();
+            _mediaTickTimer = null;
+        }
+    }
 
     // ── Companion TCP server ──────────────────────────────────────────────────
 
