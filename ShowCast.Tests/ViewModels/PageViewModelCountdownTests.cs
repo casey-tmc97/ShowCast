@@ -55,4 +55,53 @@ public class PageViewModelCountdownTests
 
         Assert.Null(vm.LiveTimerLabel);
     }
+
+    [Fact]
+    public void ShowTimerBadge_NoTimerNoCountdown_IsFalse()
+    {
+        var vm = new PageViewModel(new Page { Name = "Test" }); // DurationMs = 0
+
+        Assert.False(vm.ShowTimerBadge);
+    }
+
+    [Fact]
+    public void ShowTimerBadge_HasTimer_IsTrueBeforeGoingLive()
+    {
+        var vm = new PageViewModel(new Page { Name = "Test", DurationMs = 5000 });
+
+        Assert.True(vm.ShowTimerBadge);
+    }
+
+    [Fact]
+    public void ShowTimerBadge_VideoOnlyPage_TrueWhenCountdownActive()
+    {
+        // Video-only page: no DurationMs, no HasTimer
+        var vm = new PageViewModel(new Page { Name = "Test" }); // DurationMs = 0
+        Assert.False(vm.HasTimer); // sanity
+
+        vm.UpdateCountdown(0.8, "4.0s"); // MainViewModel calls this during video playback
+
+        Assert.True(vm.ShowTimerBadge);
+    }
+
+    [Fact]
+    public void ShowTimerBadge_AfterClearCountdown_NoTimer_IsFalse()
+    {
+        var vm = new PageViewModel(new Page { Name = "Test" }); // DurationMs = 0
+        vm.UpdateCountdown(0.5, "2.5s");
+        Assert.True(vm.ShowTimerBadge); // sanity
+
+        vm.ClearCountdown();
+
+        Assert.False(vm.ShowTimerBadge);
+    }
+
+    [Fact]
+    public void ShowTimerBadge_HasTimerAndCountdownActive_IsTrue()
+    {
+        var vm = new PageViewModel(new Page { Name = "Test", DurationMs = 5000 });
+        vm.UpdateCountdown(0.5, "2.5s");
+
+        Assert.True(vm.ShowTimerBadge);
+    }
 }
