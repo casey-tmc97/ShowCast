@@ -44,6 +44,7 @@ public partial class MainWindow : Window
         VM.OutputStates.CollectionChanged += (_, _) => UpdateRightGridLayout();
         RightGrid.SizeChanged += (_, _) => UpdateRightGridLayout();
         UpdateRightGridLayout();
+        _ = CheckForUpdatesAsync(silent: true);
 
         VM.WhenAnyValue(x => x.IsEditorOpen)
           .Subscribe(open => WorkspaceGrid.IsVisible = !open);
@@ -102,6 +103,7 @@ public partial class MainWindow : Window
     }
 
     bool _saving;
+    string? _launchInstallerPath;
     string? _currentShowPath;
 
     protected override async void OnClosing(WindowClosingEventArgs e)
@@ -127,6 +129,13 @@ public partial class MainWindow : Window
             }
             foreach (var win in _outputWindows.Values.ToList())
                 win.Close();
+            if (_launchInstallerPath is not null && System.IO.File.Exists(_launchInstallerPath))
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_launchInstallerPath)
+                {
+                    UseShellExecute = true
+                });
+            }
             Close();
         }
         base.OnClosing(e);
@@ -288,6 +297,75 @@ public partial class MainWindow : Window
         {
             UseShellExecute = true
         });
+    }
+
+    async void OnCheckForUpdates(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => await CheckForUpdatesAsync(silent: false);
+
+    async Task CheckForUpdatesAsync(bool silent)
+    {
+        Core.UpdateInfo? info;
+        try
+        {
+            info = await Core.UpdateChecker.CheckAsync();
+        }
+        catch (Exception ex)
+        {
+            if (!silent)
+                await AlertDialog.ShowError(this, "Check for Updates",
+                    $"Could not check for updates.\n\n{ex.Message}");
+            return;
+        }
+
+        if (info is null)
+        {
+            if (!silent)
+            {
+                var ver = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version!;
+                await AlertDialog.ShowError(this, "Check for Updates",
+                    $"You're up to date! ShowCast {ver.Major}.{ver.Minor}.{ver.Build} is the latest version.");
+            }
+            return;
+        }
+
+        var prefs = Core.UpdatePreferences.Load();
+        if (silent && !prefs.ShouldShow(info.Version)) return;
+
+        var current    = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version!;
+        var currentStr = $"{current.Major}.{current.Minor}.{current.Build}";
+
+        var choice = await UpdateAvailableDialog.ShowAsync(this, info.Version, currentStr);
+
+        switch (choice)
+        {
+            case UpdateAvailableDialog.UpdateChoice.OK:
+                var dlg = new UpdateDownloadDialog(info, async () =>
+                {
+                    if (VM is not null)
+                        await VM.SaveSessionAsync(AppFolders.SessionFile);
+                });
+                await dlg.ShowDialog(this);
+                if (dlg.Result == UpdateDownloadDialog.DownloadDialogResult.InstallAndRestart)
+                {
+                    _launchInstallerPath = info.InstallerPath;
+                    Close();
+                }
+                else if (dlg.Result == UpdateDownloadDialog.DownloadDialogResult.CloseApp)
+                {
+                    Close();
+                }
+                break;
+
+            case UpdateAvailableDialog.UpdateChoice.RemindLater:
+                prefs.RemindAfter = DateTime.UtcNow.AddDays(3);
+                prefs.Save();
+                break;
+
+            case UpdateAvailableDialog.UpdateChoice.SkipVersion:
+                prefs.SkippedVersion = info.Version;
+                prefs.Save();
+                break;
+        }
     }
 
     // ── File menu ─────────────────────────────────────────────────────────────
