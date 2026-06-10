@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 
@@ -23,7 +24,7 @@ public class UpdatePreferences
             return JsonSerializer.Deserialize<UpdatePreferences>(json)
                 ?? new UpdatePreferences();
         }
-        catch { return new UpdatePreferences(); }
+        catch (Exception ex) { Debug.WriteLine($"[UpdatePreferences] Failed to load: {ex.Message}"); return new UpdatePreferences(); }
     }
 
     public void Save(string? path = null)
