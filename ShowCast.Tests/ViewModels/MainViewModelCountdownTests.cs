@@ -45,24 +45,26 @@ public class MainViewModelCountdownTests
     // ── FormatCountdown ───────────────────────────────────────────────────────
 
     [Fact]
-    public void FormatCountdown_AboveTenSeconds_ReturnsWholeSecondsFloor()
+    public void FormatCountdown_UnderOneMinute_ReturnsZeroMinutes()
     {
-        Assert.Equal("14s", CallFormatCountdown(14.8));
-        Assert.Equal("10s", CallFormatCountdown(10.0));
+        Assert.Equal("0:14", CallFormatCountdown(14.8));
+        Assert.Equal("0:10", CallFormatCountdown(10.0));
+        Assert.Equal("0:04", CallFormatCountdown(4.2));
+        Assert.Equal("0:09", CallFormatCountdown(9.9));
     }
 
     [Fact]
-    public void FormatCountdown_BelowTenSeconds_ReturnsOneDecimal()
+    public void FormatCountdown_OverOneMinute_ReturnsMinutesAndSeconds()
     {
-        Assert.Equal("4.2s", CallFormatCountdown(4.2));
-        Assert.Equal("9.9s", CallFormatCountdown(9.9));
+        Assert.Equal("1:30", CallFormatCountdown(90.0));
+        Assert.Equal("2:05", CallFormatCountdown(125.7));
     }
 
     [Fact]
     public void FormatCountdown_Zero_ReturnsZeroLabel()
     {
-        Assert.Equal("0s", CallFormatCountdown(0.0));
-        Assert.Equal("0s", CallFormatCountdown(-1.0));
+        Assert.Equal("0:00", CallFormatCountdown(0.0));
+        Assert.Equal("0:00", CallFormatCountdown(-1.0));
     }
 
     // ── GoLive / TickCountdown ────────────────────────────────────────────────

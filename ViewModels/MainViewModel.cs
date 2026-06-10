@@ -1155,9 +1155,10 @@ public class MainViewModel : ViewModelBase
 
     static string FormatCountdown(double remainSec)
     {
-        if (remainSec >= 10) return $"{(int)remainSec}s";
-        if (remainSec > 0)   return $"{remainSec:F1}s";
-        return "0s";
+        int total = (int)Math.Max(0, remainSec);
+        int m = total / 60;
+        int s = total % 60;
+        return $"{m}:{s:D2}";
     }
 
     void HandleVideoEnded(OutputState output)
