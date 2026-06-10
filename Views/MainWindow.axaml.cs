@@ -304,6 +304,7 @@ public partial class MainWindow : Window
 
     async Task CheckForUpdatesAsync(bool silent)
     {
+        var currentAssemblyVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version!;
         Core.UpdateInfo? info;
         try
         {
@@ -321,9 +322,8 @@ public partial class MainWindow : Window
         {
             if (!silent)
             {
-                var ver = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version!;
                 await AlertDialog.ShowError(this, "Check for Updates",
-                    $"You're up to date! ShowCast {ver.Major}.{ver.Minor}.{ver.Build} is the latest version.");
+                    $"You're up to date! ShowCast {currentAssemblyVersion.Major}.{currentAssemblyVersion.Minor}.{currentAssemblyVersion.Build} is the latest version.");
             }
             return;
         }
@@ -331,19 +331,14 @@ public partial class MainWindow : Window
         var prefs = Core.UpdatePreferences.Load();
         if (silent && !prefs.ShouldShow(info.Version)) return;
 
-        var current    = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version!;
-        var currentStr = $"{current.Major}.{current.Minor}.{current.Build}";
+        var currentStr = $"{currentAssemblyVersion.Major}.{currentAssemblyVersion.Minor}.{currentAssemblyVersion.Build}";
 
         var choice = await UpdateAvailableDialog.ShowAsync(this, info.Version, currentStr);
 
         switch (choice)
         {
             case UpdateAvailableDialog.UpdateChoice.OK:
-                var dlg = new UpdateDownloadDialog(info, async () =>
-                {
-                    if (VM is not null)
-                        await VM.SaveSessionAsync(AppFolders.SessionFile);
-                });
+                var dlg = new UpdateDownloadDialog(info);
                 await dlg.ShowDialog(this);
                 if (dlg.Result == UpdateDownloadDialog.DownloadDialogResult.InstallAndRestart)
                 {

@@ -18,7 +18,6 @@ public class UpdateDownloadDialog : Window
     public DownloadDialogResult Result { get; private set; } = DownloadDialogResult.None;
 
     readonly UpdateInfo    _info;
-    readonly Func<Task>    _beforeClose;
     CancellationTokenSource _cts = new();
 
     readonly ProgressBar _progressBar;
@@ -28,10 +27,9 @@ public class UpdateDownloadDialog : Window
     readonly StackPanel  _errorButtons;
     readonly TextBlock   _errorText;
 
-    public UpdateDownloadDialog(UpdateInfo info, Func<Task> beforeClose)
+    public UpdateDownloadDialog(UpdateInfo info)
     {
-        _info        = info;
-        _beforeClose = beforeClose;
+        _info = info;
 
         Title                 = $"Downloading ShowCast {info.Version}";
         Width                 = 460;
@@ -50,11 +48,10 @@ public class UpdateDownloadDialog : Window
         var errorClose = MakeButton("Close",              "#3a3a3a",  80);
 
         cancelBtn.Click  += (_, _) => { _cts.Cancel(); };
-        installBtn.Click += async (_, _) =>
+        installBtn.Click += (_, _) =>
         {
             installBtn.IsEnabled = false;
             closeBtn.IsEnabled   = false;
-            await _beforeClose();
             Result = DownloadDialogResult.InstallAndRestart;
             Close();
         };
