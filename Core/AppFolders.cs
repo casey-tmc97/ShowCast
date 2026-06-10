@@ -16,6 +16,9 @@ public static class AppFolders
     /// <summary>Fixed path for the auto-saved session state.</summary>
     public static string SessionFile   => Path.Combine(Configuration, "session.scf");
 
+    /// <summary>Fixed path for the update preferences configuration file.</summary>
+    public static string UpdatePrefsFile => Path.Combine(Configuration, "update_prefs.json");
+
     public static void EnsureCreated()
     {
         Root          = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ShowCast");
