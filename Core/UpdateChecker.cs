@@ -4,12 +4,9 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-
-[assembly: InternalsVisibleTo("ShowCast.Tests")]
 
 namespace ShowCast.Core;
 
@@ -23,14 +20,16 @@ public static class UpdateChecker
     static readonly HttpClient _http = new();
     const string ApiUrl = "https://api.github.com/repos/casey-tmc97/ShowCast/releases/latest";
 
-    // Throws on network/HTTP failure; returns null when already up to date.
-    public static async Task<UpdateInfo?> CheckAsync()
+    static UpdateChecker()
     {
-        _http.DefaultRequestHeaders.UserAgent.Clear();
         _http.DefaultRequestHeaders.UserAgent.Add(
             new ProductInfoHeaderValue("ShowCast",
                 Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0"));
+    }
 
+    // Throws on network/HTTP failure; returns null when already up to date.
+    public static async Task<UpdateInfo?> CheckAsync()
+    {
         var json    = await _http.GetStringAsync(ApiUrl);
         var current = Assembly.GetExecutingAssembly().GetName().Version!;
         return ParseRelease(json, current);
@@ -80,14 +79,23 @@ public static class UpdateChecker
             info.InstallerPath, FileMode.Create, FileAccess.Write,
             FileShare.None, 81920, useAsync: true);
 
-        var buffer    = new byte[81920];
-        long received = 0;
-        int  read;
-        while ((read = await stream.ReadAsync(buffer, ct)) > 0)
+        try
         {
-            await file.WriteAsync(buffer.AsMemory(0, read), ct);
-            received += read;
-            if (total > 0) progress.Report((double)received / total);
+            var buffer    = new byte[81920];
+            long received = 0;
+            int  read;
+            while ((read = await stream.ReadAsync(buffer, ct)) > 0)
+            {
+                await file.WriteAsync(buffer.AsMemory(0, read), ct);
+                received += read;
+                if (total > 0) progress.Report((double)received / total);
+            }
+        }
+        catch
+        {
+            await file.DisposeAsync();
+            try { File.Delete(info.InstallerPath); } catch { /* ignore */ }
+            throw;
         }
     }
 }
