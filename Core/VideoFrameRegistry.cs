@@ -17,6 +17,7 @@ public sealed class VideoFrameRegistry : IDisposable
     readonly Func<IVideoLayerPlayer>         _playerFactory;
     readonly Func<string, NdiSender?>?       _ndiLookup;
     readonly ConcurrentDictionary<Guid, IVideoLayerPlayer> _players = new();
+    readonly ConcurrentDictionary<Guid, string> _assetNames = new();
 
     /// <summary>Invoked (on the threadpool) when a video with AdvanceOnEnd mode reaches its end.</summary>
     public Action? OnVideoEnded { get; set; }
@@ -48,6 +49,7 @@ public sealed class VideoFrameRegistry : IDisposable
             _players[id].Stop();
             _players[id].Dispose();
             _players.TryRemove(id, out _);
+            _assetNames.TryRemove(id, out _);
         }
 
         // Start players for new layers.
@@ -69,12 +71,20 @@ public sealed class VideoFrameRegistry : IDisposable
                 player.VideoEnded = OnVideoEnded;
             player.Start(filePath, layer.VideoLoopMode, layer.VideoVolume, deviceId, ndiSender);
             _players[layer.Id] = player;
+            _assetNames[layer.Id] = Path.GetFileNameWithoutExtension(layer.AssetPath);
         }
     }
 
     /// <summary>Returns the most recently decoded frame for a layer, or null if unavailable.</summary>
     public SKImage? TryGetFrame(Guid layerId) =>
         _players.TryGetValue(layerId, out var p) ? p.CurrentFrame : null;
+
+    /// <summary>Returns the filename (without extension) of the first active video layer, or empty string if none.</summary>
+    public string GetPrimaryName()
+    {
+        var id = _players.Keys.FirstOrDefault();
+        return id == default ? "" : (_assetNames.TryGetValue(id, out var name) ? name : "");
+    }
 
     /// <summary>Returns position and duration of the first active video player, or zeros if none.</summary>
     public (long timeMs, long lengthMs) GetPrimaryTime()

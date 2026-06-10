@@ -648,7 +648,9 @@ public class MainViewModel : ViewModelBase
 
         var (videoPosMs, videoDurMs) = SelectedOutput?.VideoRegistry?.GetPrimaryTime() ?? (0, 0);
         bool videoPlaying = videoDurMs > 0;
+        string videoTrackName = EscapeJson(SelectedOutput?.VideoRegistry?.GetPrimaryName() ?? "");
         string videoSection = $"{{\"playing\":{(videoPlaying ? "true" : "false")}," +
+                              $"\"trackName\":\"{videoTrackName}\"," +
                               $"\"positionMs\":{videoPosMs},\"durationMs\":{videoDurMs}}}";
 
         var outputParts = OutputStates.Select(o =>
