@@ -120,8 +120,15 @@ public class UpdateDownloadDialog : Window
         _ = StartDownloadAsync();
     }
 
+    protected override void OnClosed(EventArgs e)
+    {
+        base.OnClosed(e);
+        _cts.Dispose();
+    }
+
     async Task StartDownloadAsync()
     {
+        _cts.Dispose();
         _cts = new CancellationTokenSource();
         SetState(State.Downloading);
 

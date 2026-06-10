@@ -30,7 +30,14 @@ public class UpdatePreferences
     public void Save(string? path = null)
     {
         path ??= AppFolders.UpdatePrefsFile;
-        var json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
-        File.WriteAllText(path, json);
+        try
+        {
+            var json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(path, json);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[UpdatePreferences] Failed to save: {ex.Message}");
+        }
     }
 }
