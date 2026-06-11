@@ -158,30 +158,46 @@ public partial class EditorShowPanel : UserControl
         var pvm = FindPvm(e.Source as Control);
         if (pvm is null) return;
 
-        // Select the right-clicked page
-        if (SlideList.SelectedItem != pvm)
+        // If right-clicking outside the current selection, reset to just this page
+        if (!VM.SelectedEditorPages.Contains(pvm))
             SlideList.SelectedItem = pvm;
 
-        var renameItem = new MenuItem { Header = "Rename…" };
-        renameItem.Click += async (_, _) =>
-        {
-            var dlg = new TextInputDialog("Rename Page", "Page name", pvm.Model.Name);
-            var name = await dlg.ShowAsync(TopLevel.GetTopLevel(this) as Window);
-            if (!string.IsNullOrWhiteSpace(name))
-                VM.RenamePage(pvm, name.Trim());
-        };
-
-        var duplicateItem = new MenuItem { Header = "Duplicate" };
-        duplicateItem.Click += (_, _) => VM.DuplicatePage(pvm);
-
-        var deleteItem = new MenuItem { Header = "Delete" };
-        deleteItem.Click += (_, _) => VM.RemovePage(pvm);
+        bool isMulti = VM.SelectedEditorPages.Count > 1;
+        int n = VM.SelectedEditorPages.Count;
 
         var menu = new ContextMenu();
-        menu.Items.Add(renameItem);
+
+        if (!isMulti)
+        {
+            var renameItem = new MenuItem { Header = "Rename…" };
+            renameItem.Click += async (_, _) =>
+            {
+                var dlg = new TextInputDialog("Rename Page", "Page name", pvm.Model.Name);
+                var name = await dlg.ShowAsync(TopLevel.GetTopLevel(this) as Window);
+                if (!string.IsNullOrWhiteSpace(name))
+                    VM.RenamePage(pvm, name.Trim());
+            };
+            menu.Items.Add(renameItem);
+        }
+
+        var duplicateItem = new MenuItem { Header = isMulti ? $"Duplicate {n} Pages" : "Duplicate" };
+        duplicateItem.Click += (_, _) =>
+        {
+            if (isMulti) VM.DuplicateSelectedEditorPages();
+            else VM.DuplicatePage(pvm);
+        };
         menu.Items.Add(duplicateItem);
+
         menu.Items.Add(new Separator());
+
+        var deleteItem = new MenuItem { Header = isMulti ? $"Delete {n} Pages" : "Delete" };
+        deleteItem.Click += (_, _) =>
+        {
+            if (isMulti) VM.RemoveSelectedEditorPages();
+            else VM.RemovePage(pvm);
+        };
         menu.Items.Add(deleteItem);
+
         menu.Open(e.Source as Control ?? (Control)sender!);
         e.Handled = true;
     }
