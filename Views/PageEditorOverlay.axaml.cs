@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using ShowCast.ViewModels;
 using System;
 
@@ -70,7 +71,7 @@ public partial class PageEditorOverlay : UserControl
         PageNameText.IsVisible = false;
         PageNameBox.IsVisible  = true;
         PageNameBox.Focus();
-        PageNameBox.SelectAll();
+        Dispatcher.UIThread.Post(() => PageNameBox.SelectAll(), DispatcherPriority.Loaded);
         e.Handled = true;
     }
 
