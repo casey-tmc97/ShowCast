@@ -584,6 +584,19 @@ public class EditorCanvas : UserControl, IDisposable
 
     // ── Coordinate helpers ────────────────────────────────────────────────────
 
+    public static Rect ComputeZoomedRect(Rect baseRect, double zoomLevel, Point originNorm)
+    {
+        if (zoomLevel == 1.0) return baseRect;
+        double zw = baseRect.Width  * zoomLevel;
+        double zh = baseRect.Height * zoomLevel;
+        double originSX = baseRect.X + originNorm.X * baseRect.Width;
+        double originSY = baseRect.Y + originNorm.Y * baseRect.Height;
+        return new Rect(
+            originSX - originNorm.X * zw,
+            originSY - originNorm.Y * zh,
+            zw, zh);
+    }
+
     Rect GetImageRect()
     {
         double cw = _overlay.Bounds.Width, ch = _overlay.Bounds.Height;
