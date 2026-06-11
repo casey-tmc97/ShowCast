@@ -284,6 +284,7 @@ public class EditorCanvas : UserControl, IDisposable
         RebuildRulers();
         RebuildGrid();
         RebuildSafeBoundaries();
+        UpdateSlideLayout();
         UpdateHandles();
         _textEditor?.UpdateImageRect(GetImageRect());
     }
