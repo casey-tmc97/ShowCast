@@ -699,6 +699,13 @@ public class EditorCanvas : UserControl, IDisposable
                 && eny >= sel2.Y && eny <= sel2.Y + sel2.Height;
             if (insideLayer)
             {
+                if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
+                {
+                    EndCustomEdit();
+                    this.Focus();
+                    StartDrag(HandleKind.Move, edPt);
+                    return;
+                }
                 // Keep _imeBox focused — do NOT call this.Focus() here
                 _textEditor.OnPointerPressed(edPt);
                 e.Handled = true;
