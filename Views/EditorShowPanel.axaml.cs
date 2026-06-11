@@ -67,7 +67,8 @@ public partial class EditorShowPanel : UserControl
     void OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (VM is null) return;
-        VM.SetEditorPageSelection(SlideList.SelectedItems.Cast<PageViewModel>());
+        var items = SlideList.SelectedItems != null ? SlideList.SelectedItems.Cast<PageViewModel>() : Enumerable.Empty<PageViewModel>();
+        VM.SetEditorPageSelection(items);
         if (SlideList.SelectedItem is PageViewModel pvm)
             VM.SwitchEditingPage(pvm);
     }

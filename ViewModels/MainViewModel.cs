@@ -1991,6 +1991,7 @@ public class MainViewModel : ViewModelBase
         for (int i = 0; i < ordered.Count; i++)
             _editingPackage.InsertPage(targetIdx + i, ordered[i].Model);
         RebuildEditorPages(_editingPageVm?.Model ?? ordered[0].Model);
+        SelectedEditorPages = Array.Empty<PageViewModel>();
     }
 
     public void OpenEditor(PageViewModel? pvm)
@@ -2038,9 +2039,10 @@ public class MainViewModel : ViewModelBase
         _history.Clear();
         RaiseHistoryChanged();
         IsEditorOpen = false;
-        _editingPageVm     = null;
-        SelectedEditorPage = null;
-        EditingPage        = null;
+        _editingPageVm       = null;
+        SelectedEditorPage   = null;
+        SelectedEditorPages  = Array.Empty<PageViewModel>();
+        EditingPage          = null;
         _editingPackage    = null;
         EditorPages.Clear();
         SelectedLayer   = null;
