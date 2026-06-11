@@ -1577,6 +1577,11 @@ public class MainViewModel : ViewModelBase
 
     // ── Rundown content management (from Items panel) ─────────────────────────
 
+    public void AddPackageToRundown(Package package, Rundown rundown)
+    {
+        rundown.AddEntry(new RundownEntry { PackageId = package.Id });
+    }
+
     public void RemovePackageFromRundown(int index)
     {
         if (_selectedRundown is null) return;
