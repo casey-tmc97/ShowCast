@@ -305,7 +305,7 @@ public class EditorCanvas : UserControl, IDisposable
     void RebuildSlide()
     {
         var slide = _vm?.EditingPage;
-        if (slide is null) { _slideImg.Source = null; return; }
+        if (slide is null) { _slideImg.Source = null; _slideImg.Stretch = Stretch.Uniform; return; }
 
         // Reset zoom whenever the editing page changes
         if (slide != _lastEditingPage)
@@ -619,6 +619,7 @@ public class EditorCanvas : UserControl, IDisposable
 
         // Compute the base (un-zoomed) letterbox rect to get a stable normalized origin
         double cw = _overlay.Bounds.Width, ch = _overlay.Bounds.Height;
+        if (cw <= 0 || ch <= 0) return;
         const double aspect = 16.0 / 9.0;
         double bw, bh;
         if (cw / ch > aspect) { bh = ch; bw = bh * aspect; }
