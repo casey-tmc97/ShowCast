@@ -76,4 +76,45 @@ public class MainViewModelRundownTests
         Assert.Equal(3, countAfter);
         Assert.NotEqual(countBefore, countAfter);
     }
+
+    [Fact]
+    public void AddPackageToRundown_AddsEntryToTargetRundown()
+    {
+        var vm = new MainViewModel();
+        var show = vm.AddShow("S");
+        vm.AddPackageToShow("P", show);
+        var pkg = show.Packages.Last();
+
+        var rd = vm.AddRundown("RD");
+
+        vm.AddPackageToRundown(pkg, rd);
+
+        Assert.Single(rd.Entries);
+        Assert.Equal(pkg.Id, rd.Entries[0].PackageId);
+    }
+
+    [Fact]
+    public void AddPackageToRundown_DoesNotAffectCurrentView()
+    {
+        var vm = new MainViewModel();
+        var show = vm.AddShow("S");
+        vm.AddPackageToShow("P", show);
+        var pkg = show.Packages.Last();
+
+        var rd1 = vm.AddRundown("RD1");
+        rd1.AddEntry(new RundownEntry { PackageId = pkg.Id });
+        vm.SelectedRundown = rd1;
+
+        var rd2 = vm.AddRundown("RD2");
+
+        var countBefore = vm.PackageItems.Count;
+        vm.AddPackageToRundown(pkg, rd2);
+        var countAfter = vm.PackageItems.Count;
+
+        // Current view (rd1) is unchanged
+        Assert.Equal(countBefore, countAfter);
+        // Target rundown got the entry
+        Assert.Single(rd2.Entries);
+        Assert.Equal(pkg.Id, rd2.Entries[0].PackageId);
+    }
 }
