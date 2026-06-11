@@ -31,6 +31,7 @@
             <ListBox x:Name="SlideList"
                      ItemsSource="{Binding EditorPages}"
                      SelectedItem="{Binding SelectedEditorPage}"
+                     SelectionMode="Multiple"
                      Background="Transparent"
                      Padding="0"
                      SelectionChanged="OnSelectionChanged">

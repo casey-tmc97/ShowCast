@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -66,6 +67,7 @@ public partial class EditorShowPanel : UserControl
     void OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (VM is null) return;
+        VM.SetEditorPageSelection(SlideList.SelectedItems.Cast<PageViewModel>());
         if (SlideList.SelectedItem is PageViewModel pvm)
             VM.SwitchEditingPage(pvm);
     }
@@ -91,7 +93,11 @@ public partial class EditorShowPanel : UserControl
         _dragging = null;   // prevent re-entrance
 
         var data = new DataObject();
-        data.Set("page", src);
+        var selection = VM?.SelectedEditorPages ?? Array.Empty<PageViewModel>();
+        if (selection.Count > 1 && selection.Contains(src))
+            data.Set("pages", selection.ToList());
+        else
+            data.Set("page", src);
         await DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
 
         ClearDropTarget();
@@ -101,7 +107,7 @@ public partial class EditorShowPanel : UserControl
 
     void OnDragOver(object? sender, DragEventArgs e)
     {
-        if (!e.Data.Contains("page"))
+        if (!e.Data.Contains("page") && !e.Data.Contains("pages"))
         {
             e.DragEffects = DragDropEffects.None;
             return;
@@ -125,14 +131,21 @@ public partial class EditorShowPanel : UserControl
     void OnDrop(object? sender, DragEventArgs e)
     {
         ClearDropTarget();
-        if (!e.Data.Contains("page")) return;
-
-        var src = e.Data.Get("page") as PageViewModel;
         var tgt = FindPvm(e.Source as Control);
 
+        if (e.Data.Contains("pages") && tgt is not null)
+        {
+            var srcs = e.Data.Get("pages") as List<PageViewModel>;
+            if (srcs is not null && !srcs.Contains(tgt))
+                VM?.MovePages(srcs, tgt);
+            e.Handled = true;
+            return;
+        }
+
+        if (!e.Data.Contains("page")) return;
+        var src = e.Data.Get("page") as PageViewModel;
         if (src is not null && tgt is not null && src != tgt)
             VM?.MovePage(src, tgt);
-
         e.Handled = true;
     }
 
