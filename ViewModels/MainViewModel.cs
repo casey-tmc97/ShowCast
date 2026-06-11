@@ -1922,6 +1922,72 @@ public class MainViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _selectedEditorPage, value);
     }
 
+    public IReadOnlyList<PageViewModel> SelectedEditorPages { get; private set; } = Array.Empty<PageViewModel>();
+
+    public void SetEditorPageSelection(IEnumerable<PageViewModel> pages)
+    {
+        SelectedEditorPages = pages.ToList();
+    }
+
+    public void RemoveSelectedEditorPages()
+    {
+        if (_editingPackage is null || SelectedEditorPages.Count == 0) return;
+        var toRemove = SelectedEditorPages.ToList();
+        var remaining = EditorPages.Except(toRemove).ToList();
+        int firstIdx = toRemove.Min(p => EditorPages.IndexOf(p));
+        var next = remaining.Count > 0
+            ? remaining.ElementAtOrDefault(Math.Clamp(firstIdx, 0, remaining.Count - 1))
+            : null;
+        foreach (var pvm in toRemove)
+        {
+            _editingPackage.Pages.Remove(pvm.Model);
+            EditorPages.Remove(pvm);
+        }
+        RenameDefaultPages(_editingPackage);
+        SelectedEditorPages = Array.Empty<PageViewModel>();
+        if (next is not null) SwitchEditingPage(next);
+        else CloseEditor();
+    }
+
+    public void DuplicateSelectedEditorPages()
+    {
+        if (_editingPackage is null || SelectedEditorPages.Count == 0) return;
+        var ordered = SelectedEditorPages
+            .OrderBy(p => _editingPackage.IndexOf(p.Model.Id))
+            .ToList();
+        int pkgInsertAt = _editingPackage.IndexOf(ordered.Last().Model.Id) + 1;
+        int editorBase  = EditorPages.IndexOf(ordered.Last());
+        var newVms = new List<PageViewModel>();
+        foreach (var pvm in ordered)
+        {
+            var copy  = pvm.Model.Clone();
+            _editingPackage.InsertPage(pkgInsertAt, copy);
+            var newVm = new PageViewModel(copy, _editingPackage);
+            EditorPages.Insert(editorBase + 1 + newVms.Count, newVm);
+            newVms.Add(newVm);
+            pkgInsertAt++;
+        }
+        RenameDefaultPages(_editingPackage);
+        SwitchEditingPage(newVms.Last());
+    }
+
+    public void MovePages(IList<PageViewModel> srcs, PageViewModel target)
+    {
+        if (_editingPackage is null) return;
+        var ordered   = srcs.OrderBy(p => _editingPackage.IndexOf(p.Model.Id)).ToList();
+        int targetIdx = _editingPackage.IndexOf(target.Model.Id);
+        foreach (var pvm in ordered)
+        {
+            int srcIdx = _editingPackage.IndexOf(pvm.Model.Id);
+            _editingPackage.Pages.RemoveAt(srcIdx);
+            if (srcIdx < targetIdx) targetIdx--;
+        }
+        targetIdx = Math.Clamp(targetIdx, 0, _editingPackage.Pages.Count);
+        for (int i = 0; i < ordered.Count; i++)
+            _editingPackage.InsertPage(targetIdx + i, ordered[i].Model);
+        RebuildEditorPages(_editingPageVm?.Model ?? ordered[0].Model);
+    }
+
     public void OpenEditor(PageViewModel? pvm)
     {
         if (pvm is null) return;
