@@ -160,7 +160,10 @@ public partial class EditorShowPanel : UserControl
 
         // If right-clicking outside the current selection, reset to just this page
         if (!VM.SelectedEditorPages.Contains(pvm))
+        {
             SlideList.SelectedItem = pvm;
+            VM.SetEditorPageSelection(new[] { pvm });
+        }
 
         bool isMulti = VM.SelectedEditorPages.Count > 1;
         int n = VM.SelectedEditorPages.Count;
