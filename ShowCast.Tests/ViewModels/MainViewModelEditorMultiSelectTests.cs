@@ -7,9 +7,9 @@ namespace ShowCast.Tests.ViewModels;
 
 public class MainViewModelEditorMultiSelectTests
 {
-    // Creates a VM with an open editor on a 4-page package.
-    // AddPackageToShow creates page[0]; we add pages[1..3] manually.
-    // OpenEditor on page[0] calls RebuildEditorPages, giving us ep0..ep3.
+    // Creates a 4-page package: page[0] is AddPackageToShow's default page,
+    // pages[1..3] are added manually with names "2"/"3"/"4".
+    // OpenEditor rebuilds EditorPages → ep0..ep3.
     static (MainViewModel vm, Package pkg,
             PageViewModel ep0, PageViewModel ep1,
             PageViewModel ep2, PageViewModel ep3) Setup()
@@ -61,6 +61,7 @@ public class MainViewModelEditorMultiSelectTests
     [Fact]
     public void RemoveSelectedEditorPages_WhenAllPagesRemoved_ClosesEditor()
     {
+        // Needs a 1-page package; Setup() provides 4 pages, so set up inline.
         var vm   = new MainViewModel();
         var show = vm.AddShow("S");
         vm.AddPackageToShow("P", show);
