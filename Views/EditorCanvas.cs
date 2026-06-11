@@ -704,6 +704,8 @@ public class EditorCanvas : UserControl, IDisposable
                     EndCustomEdit();
                     this.Focus();
                     StartDrag(HandleKind.Move, edPt);
+                    e.Pointer.Capture(_overlay);
+                    e.Handled = true;
                     return;
                 }
                 // Keep _imeBox focused — do NOT call this.Focus() here
