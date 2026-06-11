@@ -184,7 +184,7 @@ public partial class ItemsPanel : UserControl
         }
 
         var availableRundowns = VM.ShowFile.Rundowns
-            .Where(rd => !rd.Entries.Any(e => e.PackageId == package.Id))
+            .Where(rd => !rd.Entries.Any(entry => entry.PackageId == package.Id))
             .ToList();
 
         if (availableRundowns.Count > 0)
