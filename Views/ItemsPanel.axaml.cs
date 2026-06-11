@@ -5,6 +5,7 @@ using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using ShowCast.Core;
 using ShowCast.ViewModels;
+using System.Linq;
 
 namespace ShowCast.Views;
 
@@ -179,6 +180,24 @@ public partial class ItemsPanel : UserControl
             moveDown.Click += (_, _) => { if (idx >= 0) { VM.SelectedPackageItemIndex = idx; VM.MoveRundownItem(1); } };
             menu.Items.Add(moveUp);
             menu.Items.Add(moveDown);
+            menu.Items.Add(new Separator());
+        }
+
+        var availableRundowns = VM.ShowFile.Rundowns
+            .Where(rd => !rd.Entries.Any(e => e.PackageId == package.Id))
+            .ToList();
+
+        if (availableRundowns.Count > 0)
+        {
+            var addToRundown = new MenuItem { Header = "Add to Rundown" };
+            foreach (var rd in availableRundowns)
+            {
+                var captured = rd;
+                var rdItem = new MenuItem { Header = captured.Name };
+                rdItem.Click += (_, _) => VM.AddPackageToRundown(package, captured);
+                addToRundown.Items.Add(rdItem);
+            }
+            menu.Items.Add(addToRundown);
             menu.Items.Add(new Separator());
         }
 
