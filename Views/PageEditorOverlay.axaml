@@ -31,12 +31,18 @@
                         Click="OnRedo"
                         ToolTip.Tip="Redo (Ctrl+Y)"/>
 
-                <!-- Page name -->
-                <TextBlock Grid.Column="3"
-                           Text="{Binding EditingPageName, FallbackValue='Page Editor'}"
-                           Foreground="#cccccc" FontSize="13" FontWeight="Bold"
-                           VerticalAlignment="Center"
-                           HorizontalAlignment="Center"/>
+                <!-- Page name (double-click to rename) -->
+                <Panel Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Name="PageNameText"
+                               Text="{Binding EditingPageName, FallbackValue='Page Editor'}"
+                               Foreground="#cccccc" FontSize="13" FontWeight="Bold"
+                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    <TextBox Name="PageNameBox"
+                             IsVisible="False"
+                             FontSize="13" FontWeight="Bold"
+                             MinWidth="120"
+                             VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                </Panel>
 
                 <!-- Add Text -->
                 <Button Grid.Column="4" Content="+ Text"

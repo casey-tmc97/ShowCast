@@ -14,11 +14,15 @@ public partial class PageEditorOverlay : UserControl
     {
         InitializeComponent();
         TheInspector.SetCanvas(TheCanvas);
+        PageNameText.DoubleTapped += OnPageNameDoubleTapped;
+        PageNameBox.KeyDown       += OnPageNameBoxKeyDown;
+        PageNameBox.LostFocus     += OnPageNameBoxLostFocus;
     }
 
     MainViewModel? VM => DataContext as MainViewModel;
 
     Key? _nudgeKey;
+    bool _isRenaming;
 
     protected override void OnDataContextChanged(EventArgs e)
     {
@@ -57,6 +61,46 @@ public partial class PageEditorOverlay : UserControl
     void OnRedo(object? sender, RoutedEventArgs e)           => VM?.Redo();
     void OnDeleteLayer(object? sender, RoutedEventArgs e)    => VM?.DeleteSelectedLayers();
     void OnPreviewAnimation(object? sender, RoutedEventArgs e) => TheCanvas.PreviewAnimation();
+
+    void OnPageNameDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (VM?.SelectedEditorPage is null) return;
+        _isRenaming = true;
+        PageNameBox.Text = VM.EditingPageName;
+        PageNameText.IsVisible = false;
+        PageNameBox.IsVisible  = true;
+        PageNameBox.Focus();
+        PageNameBox.SelectAll();
+        e.Handled = true;
+    }
+
+    void OnPageNameBoxKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Return) { CommitRename(); e.Handled = true; }
+        if (e.Key == Key.Escape) { CancelRename(); e.Handled = true; }
+    }
+
+    void OnPageNameBoxLostFocus(object? sender, RoutedEventArgs e)
+    {
+        if (_isRenaming) CancelRename();
+    }
+
+    void CommitRename()
+    {
+        _isRenaming = false;
+        var name = PageNameBox.Text?.Trim() ?? string.Empty;
+        if (name.Length > 0 && VM?.SelectedEditorPage is { } pvm)
+            VM.RenamePage(pvm, name);
+        PageNameBox.IsVisible  = false;
+        PageNameText.IsVisible = true;
+    }
+
+    void CancelRename()
+    {
+        _isRenaming = false;
+        PageNameBox.IsVisible  = false;
+        PageNameText.IsVisible = true;
+    }
 
     async void OnAddImage(object? sender, RoutedEventArgs e)
     {
