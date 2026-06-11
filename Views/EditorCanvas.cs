@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
@@ -112,6 +113,11 @@ public class EditorCanvas : UserControl, IDisposable
     readonly Grid _rootGrid = new();
 
 
+    // ── Zoom state ────────────────────────────────────────────────────────────
+    double _zoomLevel      = 1.0;
+    Point  _zoomOriginNorm = new(0.5, 0.5);
+    Page?  _lastEditingPage;
+
     // ── Drag state ────────────────────────────────────────────────────────────
     MainViewModel?          _vm;
     readonly List<IDisposable> _subs = new();
@@ -197,6 +203,7 @@ public class EditorCanvas : UserControl, IDisposable
         _overlay.PointerMoved    += OnPointerMoved;
         _overlay.PointerReleased += OnPointerReleased;
         _overlay.DoubleTapped    += OnDoubleTapped;
+        _overlay.PointerWheelChanged += OnWheelZoom;
 
         _animTimer.Tick += OnAnimTick;
 
@@ -300,11 +307,20 @@ public class EditorCanvas : UserControl, IDisposable
         var slide = _vm?.EditingPage;
         if (slide is null) { _slideImg.Source = null; return; }
 
+        // Reset zoom whenever the editing page changes
+        if (slide != _lastEditingPage)
+        {
+            _zoomLevel       = 1.0;
+            _zoomOriginNorm  = new Point(0.5, 0.5);
+            _lastEditingPage = slide;
+        }
+
         using var surface = SKSurface.Create(new SKImageInfo(RenderW, RenderH, SKColorType.Rgba8888));
         PageRenderer.Render(surface.Canvas, slide, LayerRole.All, RenderW, RenderH, useLiveTimers: false);
         UpdateSlideImage(surface);
 
         UpdateHandles();
+        UpdateSlideLayout();
         RebuildGrid();
         RebuildSafeBoundaries();
     }
@@ -325,6 +341,17 @@ public class EditorCanvas : UserControl, IDisposable
                 fb.Address, fb.RowBytes, 0, 0);
         }
         _slideImg.Source = wb;
+    }
+
+    void UpdateSlideLayout()
+    {
+        var ir = GetImageRect();
+        _slideImg.Width  = ir.Width;
+        _slideImg.Height = ir.Height;
+        _slideImg.HorizontalAlignment = HorizontalAlignment.Left;
+        _slideImg.VerticalAlignment   = VerticalAlignment.Top;
+        _slideImg.Margin  = new Thickness(ir.X, ir.Y, 0, 0);
+        _slideImg.Stretch = Stretch.Fill;
     }
 
     // ── Rulers ────────────────────────────────────────────────────────────────
@@ -584,6 +611,31 @@ public class EditorCanvas : UserControl, IDisposable
 
     // ── Coordinate helpers ────────────────────────────────────────────────────
 
+    void OnWheelZoom(object? sender, PointerWheelEventArgs e)
+    {
+        if (!e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
+
+        var cursor = e.GetPosition(_overlay);
+
+        // Compute the base (un-zoomed) letterbox rect to get a stable normalized origin
+        double cw = _overlay.Bounds.Width, ch = _overlay.Bounds.Height;
+        const double aspect = 16.0 / 9.0;
+        double bw, bh;
+        if (cw / ch > aspect) { bh = ch; bw = bh * aspect; }
+        else                  { bw = cw; bh = bw / aspect; }
+        double bx = (cw - bw) / 2, by = (ch - bh) / 2;
+
+        _zoomOriginNorm = new Point(
+            (cursor.X - bx) / bw,
+            (cursor.Y - by) / bh);
+
+        double factor = e.Delta.Y > 0 ? 1.1 : 1.0 / 1.1;
+        _zoomLevel = Math.Clamp(_zoomLevel * factor, 0.25, 4.0);
+
+        RebuildSlide();
+        e.Handled = true;
+    }
+
     public static Rect ComputeZoomedRect(Rect baseRect, double zoomLevel, Point originNorm)
     {
         if (zoomLevel == 1.0) return baseRect;
@@ -605,7 +657,8 @@ public class EditorCanvas : UserControl, IDisposable
         double iw, ih;
         if (cw / ch > aspect) { ih = ch; iw = ih * aspect; }
         else                  { iw = cw; ih = iw / aspect; }
-        return new Rect((cw - iw) / 2, (ch - ih) / 2, iw, ih);
+        var baseRect = new Rect((cw - iw) / 2, (ch - ih) / 2, iw, ih);
+        return ComputeZoomedRect(baseRect, _zoomLevel, _zoomOriginNorm);
     }
 
     (float nx, float ny) ToNorm(Point pt)
