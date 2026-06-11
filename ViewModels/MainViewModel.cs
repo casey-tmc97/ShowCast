@@ -1922,7 +1922,12 @@ public class MainViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _selectedEditorPage, value);
     }
 
-    public IReadOnlyList<PageViewModel> SelectedEditorPages { get; private set; } = Array.Empty<PageViewModel>();
+    private IReadOnlyList<PageViewModel> _selectedEditorPages = Array.Empty<PageViewModel>();
+    public IReadOnlyList<PageViewModel> SelectedEditorPages
+    {
+        get => _selectedEditorPages;
+        private set => this.RaiseAndSetIfChanged(ref _selectedEditorPages, value);
+    }
 
     public void SetEditorPageSelection(IEnumerable<PageViewModel> pages)
     {
