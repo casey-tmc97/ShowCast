@@ -289,6 +289,9 @@ public partial class MainWindow : Window
 
     void OnManual(object? sender, RoutedEventArgs e) => OpenManual();
 
+    async void OnAltCodeReference(object? sender, RoutedEventArgs e)
+        => await new AltCodeReferenceDialog().ShowDialog(this);
+
     static void OpenManual()
     {
         var path = System.IO.Path.Combine(AppContext.BaseDirectory, "Docs", "manual.html");

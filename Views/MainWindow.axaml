@@ -59,6 +59,8 @@
                     <MenuItem Header="_Help" Foreground="White">
                         <MenuItem Header="User Manual" InputGesture="F1" Click="OnManual"/>
                         <Separator />
+                        <MenuItem Header="Alt Code Reference…" Click="OnAltCodeReference"/>
+                        <Separator />
                         <MenuItem Header="Check for Updates…" Click="OnCheckForUpdates"/>
                     </MenuItem>
                 </Menu>

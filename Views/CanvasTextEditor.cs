@@ -11,6 +11,7 @@ using Avalonia.Threading;
 using ShowCast.Core;
 using ShowCast.Engine;
 using ShowCast.ViewModels;
+using static ShowCast.Core.AltCodes;
 using SkiaSharp;
 
 namespace ShowCast.Views;
@@ -46,6 +47,13 @@ public sealed class CanvasTextEditor
 
     // ── IME input ─────────────────────────────────────────────────────────────
     TextBox? _imeBox;
+
+    // ── Alt code accumulation (Windows Alt+NumPad character entry) ────────────
+    bool _altAccumulating;
+    bool _altExtended;          // leading-zero prefix → CP1252; otherwise → CP437
+    int  _altCode;
+    int  _altDigitCount;
+    bool _suppressNextTextInput; // swallow the OS WM_CHAR that duplicates our insertion
 
     public CanvasTextEditor(
         SlideLayer              layer,
@@ -113,6 +121,7 @@ public sealed class CanvasTextEditor
         Canvas.SetLeft(_imeBox, -200);
         Canvas.SetTop (_imeBox, -200);
         _imeBox.AddHandler(InputElement.KeyDownEvent,   OnImeKeyDown,   RoutingStrategies.Bubble, handledEventsToo: true);
+        _imeBox.AddHandler(InputElement.KeyUpEvent,     OnImeKeyUp,     RoutingStrategies.Bubble, handledEventsToo: true);
         _imeBox.AddHandler(InputElement.TextInputEvent, OnImeTextInput, RoutingStrategies.Bubble, handledEventsToo: true);
         _overlay.Children.Add(_imeBox);
         Dispatcher.UIThread.Post(() => _imeBox?.Focus());
@@ -152,10 +161,17 @@ public sealed class CanvasTextEditor
         if (_imeBox is not null)
         {
             _imeBox.RemoveHandler(InputElement.KeyDownEvent,   OnImeKeyDown);
+            _imeBox.RemoveHandler(InputElement.KeyUpEvent,     OnImeKeyUp);
             _imeBox.RemoveHandler(InputElement.TextInputEvent, OnImeTextInput);
             _overlay.Children.Remove(_imeBox);
             _imeBox = null;
         }
+
+        _altAccumulating       = false;
+        _altExtended           = false;
+        _altCode               = 0;
+        _altDigitCount         = 0;
+        _suppressNextTextInput = false;
     }
 
     public void UpdateImageRect(Rect imageRect)
@@ -347,10 +363,40 @@ public sealed class CanvasTextEditor
 
     // ── Keyboard ──────────────────────────────────────────────────────────────
 
-    void OnImeKeyDown(object? sender, KeyEventArgs e)   => OnKeyDown(e);
+    void OnImeKeyDown(object? sender, KeyEventArgs e) => OnKeyDown(e);
+
+    void OnImeKeyUp(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.LeftAlt && e.Key != Key.RightAlt) return;
+        if (!_altAccumulating) return;
+
+        // Extended mode needs at least the leading zero plus one more digit
+        bool valid = _altExtended ? _altDigitCount > 1 : _altDigitCount > 0;
+        if (valid)
+        {
+            char? c = ToChar(_altCode, _altExtended);
+            if (c.HasValue)
+            {
+                InsertText(c.Value.ToString());
+                _suppressNextTextInput = true;
+            }
+        }
+
+        _altAccumulating = false;
+        _altExtended     = false;
+        _altCode         = 0;
+        _altDigitCount   = 0;
+        e.Handled        = true;
+    }
 
     void OnImeTextInput(object? sender, TextInputEventArgs e)
     {
+        if (_suppressNextTextInput)
+        {
+            _suppressNextTextInput = false;
+            e.Handled = true;
+            return;
+        }
         if (string.IsNullOrEmpty(e.Text)) return;
         InsertText(e.Text);
         e.Handled = true;
@@ -360,6 +406,36 @@ public sealed class CanvasTextEditor
     {
         bool ctrl  = e.KeyModifiers.HasFlag(KeyModifiers.Control);
         bool shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
+        bool alt   = e.KeyModifiers.HasFlag(KeyModifiers.Alt);
+
+        // Alt+NumPad digit accumulation for Windows Alt codes
+        if (alt && e.Key >= Key.NumPad0 && e.Key <= Key.NumPad9)
+        {
+            int digit = (int)(e.Key - Key.NumPad0);
+            if (!_altAccumulating)
+            {
+                _altAccumulating = true;
+                _altExtended     = digit == 0;   // leading zero → CP1252
+                _altCode         = digit;
+                _altDigitCount   = 1;
+            }
+            else
+            {
+                _altCode = _altCode * 10 + digit;
+                _altDigitCount++;
+            }
+            e.Handled = true;
+            return;
+        }
+
+        // Non-numpad key while Alt is held cancels accumulation
+        if (alt && _altAccumulating && e.Key != Key.LeftAlt && e.Key != Key.RightAlt)
+        {
+            _altAccumulating = false;
+            _altExtended     = false;
+            _altCode         = 0;
+            _altDigitCount   = 0;
+        }
 
         switch (e.Key)
         {
@@ -498,4 +574,5 @@ public sealed class CanvasTextEditor
     void ClearSelection() { _selStart = _selEnd = -1; }
 
     void FireSpanFormatChanged() => _spanFormatChanged(GetFormatAtCursor());
+
 }
