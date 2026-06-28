@@ -660,7 +660,14 @@ public class MainViewModel : ViewModelBase
                               $"\"positionMs\":{videoPosMs},\"durationMs\":{videoDurMs}}}";
 
         var outputParts = OutputStates.Select(o =>
-            $"{{\"id\":\"{o.Config.Id}\",\"name\":\"{EscapeJson(o.Config.Name)}\",\"blanked\":{(o.LivePage == null ? "true" : "false")}}}");
+        {
+            var lp = o.LivePage;
+            string lpJson = lp is not null
+                ? $"{{\"id\":\"{lp.Id}\",\"name\":\"{EscapeJson(lp.Name)}\"}}"
+                : "null";
+            return $"{{\"id\":\"{o.Config.Id}\",\"name\":\"{EscapeJson(o.Config.Name)}\"," +
+                   $"\"blanked\":{(lp == null ? "true" : "false")},\"livePage\":{lpJson}}}";
+        });
         string outputsSection = "[" + string.Join(",", outputParts) + "]";
 
         string selectedOutputName = EscapeJson(SelectedOutput?.Config.Name);
