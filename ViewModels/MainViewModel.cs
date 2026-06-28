@@ -612,7 +612,11 @@ public class MainViewModel : ViewModelBase
 
     public string BuildCompanionState()
     {
-        var livePage = SelectedOutput?.LivePage;
+        // Prefer SelectedOutput's live page; fall back to the first output with anything live.
+        var liveOutput = SelectedOutput?.LivePage != null
+                         ? SelectedOutput
+                         : OutputStates.FirstOrDefault(o => o.LivePage != null);
+        var livePage = liveOutput?.LivePage;
         string pageSection = livePage is not null
             ? $"{{\"id\":\"{livePage.Id}\",\"name\":\"{EscapeJson(livePage.Name)}\"}}"
             : "null";
@@ -646,9 +650,11 @@ public class MainViewModel : ViewModelBase
                               $"\"positionMs\":{audioPosMs},\"durationMs\":{audioDurMs}," +
                               $"\"playlists\":{playlistsJson}}}";
 
-        var (videoPosMs, videoDurMs) = SelectedOutput?.VideoRegistry?.GetPrimaryTime() ?? (0, 0);
+        // Use the same output fallback for video state.
+        var videoOutput = liveOutput ?? SelectedOutput;
+        var (videoPosMs, videoDurMs) = videoOutput?.VideoRegistry?.GetPrimaryTime() ?? (0, 0);
         bool videoPlaying = videoDurMs > 0;
-        string videoTrackName = EscapeJson(SelectedOutput?.VideoRegistry?.GetPrimaryName() ?? "");
+        string videoTrackName = EscapeJson(videoOutput?.VideoRegistry?.GetPrimaryName() ?? "");
         string videoSection = $"{{\"playing\":{(videoPlaying ? "true" : "false")}," +
                               $"\"trackName\":\"{videoTrackName}\"," +
                               $"\"positionMs\":{videoPosMs},\"durationMs\":{videoDurMs}}}";
