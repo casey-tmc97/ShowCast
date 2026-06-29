@@ -291,7 +291,12 @@ public class EditorCanvas : UserControl, IDisposable
 
     // ── Slide rendering ───────────────────────────────────────────────────────
 
-    void OnSlideContentChanged() { _animTimer.Stop(); RebuildSlide(); }
+    void OnSlideContentChanged()
+    {
+        _animTimer.Stop();
+        RebuildSlide();
+        _textEditor?.InvalidateOverlay();
+    }
 
     void RebuildSlideAnimated(double elapsedMs)
     {

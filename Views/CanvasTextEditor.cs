@@ -183,6 +183,14 @@ public sealed class CanvasTextEditor
         UpdateOverlayVisuals();
     }
 
+    public void InvalidateOverlay()
+    {
+        if (_imeBox is null) return;
+        _layout?.Dispose();
+        _layout = null;
+        UpdateOverlayVisuals();
+    }
+
     public SpanFormatInfo GetFormatAtCursor()
     {
         // When a selection is active, reflect the format of the selection start so inspector
