@@ -42,7 +42,7 @@ public class UpdateDownloadDialog : Window
         _errorText   = new TextBlock { Foreground = SolidColorBrush.Parse("#e07050"), FontSize = 12, TextWrapping = TextWrapping.Wrap };
 
         var cancelBtn  = MakeButton("Cancel",             "#3a3a3a",  80);
-        var installBtn = MakeButton("Install && Restart", "#2e7d32", 140);
+        var installBtn = MakeButton("Install & Restart", "#2e7d32", 140);
         var closeBtn   = MakeButton("Close App",          "#555555",  90);
         var retryBtn   = MakeButton("Try Again",          "#555555",  90);
         var errorClose = MakeButton("Close",              "#3a3a3a",  80);
