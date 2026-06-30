@@ -815,9 +815,18 @@ public static class PageRenderer
 
     static List<string> WrapText(string text, SKPaint paint, float maxWidth)
     {
-        var result = new List<string>();
-        foreach (var rawLine in text.Split('\n'))
+        var result   = new List<string>();
+        var rawLines = text.Split('\n');
+        // Skip only the final empty element produced by a trailing '\n' — SpanLayout
+        // handles that as a cursor-only line outside the content block.  Middle empty
+        // lines (from consecutive \n\n) are preserved so line indices here match
+        // SpanLayout's charRects, keeping the cursor overlay in sync with DrawPlainText.
+        int limit = rawLines.Length > 0 && rawLines[^1].Length == 0
+                        ? rawLines.Length - 1
+                        : rawLines.Length;
+        for (int ri = 0; ri < limit; ri++)
         {
+            var rawLine = rawLines[ri];
             var words   = rawLine.Split(' ');
             var current = string.Empty;
             foreach (var word in words)
@@ -831,7 +840,9 @@ public static class PageRenderer
                     current = word;
                 }
             }
-            if (current.Length > 0) result.Add(current);
+            // Always add the result for this raw line so middle blank lines (\n\n)
+            // occupy their slot; DrawText("") is a harmless no-op in SkiaSharp.
+            if (current.Length > 0 || rawLine.Length == 0) result.Add(current);
         }
         return result;
     }

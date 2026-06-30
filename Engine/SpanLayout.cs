@@ -270,7 +270,12 @@ public static class SpanLayout
 
         // ── Vertical layout ───────────────────────────────────────────────────
         float maxLH  = paints.Count > 0 ? paints.Max(p => p.lineH) : defaultLineH;
-        float totalH = lineGroups.Count * maxLH;
+        // Exclude only the trailing cursor-only empty group (added above for trailing \n)
+        // from totalH.  Middle empty groups (from \n\n) are counted so SpanLayout line
+        // indices match WrapText/DrawSpans, keeping the cursor overlay in sync.
+        int trailingEmpty = (lineGroups.Count > 0 && lineGroups[^1].Count == 0) ? 1 : 0;
+        int contentLines  = Math.Max(lineGroups.Count - trailingEmpty, 1);
+        float totalH = contentLines * maxLH;
         float startY = layer.TextVAlign switch
         {
             TextVAlign.Bottom => by + bh - totalH,

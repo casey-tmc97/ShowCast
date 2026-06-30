@@ -406,9 +406,9 @@ public sealed class CanvasTextEditor
             return;
         }
         if (string.IsNullOrEmpty(e.Text)) return;
-        // Windows sends WM_CHAR with '\r' after Enter — KeyDown already inserted '\n',
-        // so strip carriage returns here to prevent double insertion.
-        string text = e.Text.Replace("\r", "");
+        // Enter is handled exclusively in OnImeKeyDown; strip any CR/LF that
+        // Windows or Avalonia may forward via TextInput to prevent double insertion.
+        string text = e.Text.Replace("\r", "").Replace("\n", "");
         if (string.IsNullOrEmpty(text)) return;
         InsertText(text);
         e.Handled = true;
