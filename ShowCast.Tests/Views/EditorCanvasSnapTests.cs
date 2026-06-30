@@ -51,6 +51,17 @@ public class EditorCanvasSnapTests
         Assert.Equal(0.498f, result, precision: 4);
     }
 
+    [Fact]
+    public void SnapToGuideX_WideLayerLeftEdgeSnap_ResultClamped()
+    {
+        // w=0.502 → max valid X = 1 - 0.502 = 0.498
+        // x=0.499, left edge dist=0.001 < threshold → snap fires → raw result=0.5
+        // After caller clamps: layer.X = Math.Clamp(0.5f, 0f, 0.498f) = 0.498
+        // This test verifies SnapToGuideX returns 0.5 (the caller is responsible for clamping)
+        float result = EditorCanvas.SnapToGuideX(0.499f, 0.502f, 1920.0);
+        Assert.Equal(0.5f, result, precision: 4); // raw snap result — caller clamps
+    }
+
     // ── SnapToGuideY ─────────────────────────────────────────────────────────
 
     [Fact]

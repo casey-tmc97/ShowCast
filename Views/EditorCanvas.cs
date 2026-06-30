@@ -923,6 +923,8 @@ public class EditorCanvas : UserControl, IDisposable
                     layer.Y = Math.Clamp(SnapY(_origY + dy), 0f, Math.Max(0f, 1f - layer.Height));
                     layer.X = SnapToGuideX(layer.X, layer.Width,  ir.Width);
                     layer.Y = SnapToGuideY(layer.Y, layer.Height, ir.Height);
+                    layer.X = Math.Clamp(layer.X, 0f, Math.Max(0f, 1f - layer.Width));
+                    layer.Y = Math.Clamp(layer.Y, 0f, Math.Max(0f, 1f - layer.Height));
                 }
                 break;
             case HandleKind.SE:
