@@ -11,7 +11,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>ShowCast</AssemblyName>
     <RootNamespace>ShowCast</RootNamespace>
-    <Version>1.1.9</Version>
+    <Version>1.1.10</Version>
     <!-- Exclude the NDI 6 SDK example folder that was installed inside the project tree.
          DefaultItemExcludes runs at glob-expansion time, before Compile items are formed. -->
     <DefaultItemExcludes>$(DefaultItemExcludes);NDI 6 SDK\**;NDI 6 SDK/**;ShowCast.Tests\**</DefaultItemExcludes>
