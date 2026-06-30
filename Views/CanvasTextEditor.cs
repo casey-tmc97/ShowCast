@@ -406,7 +406,11 @@ public sealed class CanvasTextEditor
             return;
         }
         if (string.IsNullOrEmpty(e.Text)) return;
-        InsertText(e.Text);
+        // Windows sends WM_CHAR with '\r' after Enter — KeyDown already inserted '\n',
+        // so strip carriage returns here to prevent double insertion.
+        string text = e.Text.Replace("\r", "");
+        if (string.IsNullOrEmpty(text)) return;
+        InsertText(text);
         e.Handled = true;
     }
 

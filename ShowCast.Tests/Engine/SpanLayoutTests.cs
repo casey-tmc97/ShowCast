@@ -167,4 +167,35 @@ public class SpanLayoutTests
         Assert.Equal(yLine0, result.GetCharRect(4).Top);  // 'o' of Hello still line 0
         Assert.Equal(yLine1, result.GetCharRect(7).Top);  // 'o' of World still line 1
     }
+
+    [Fact]
+    public void TrailingNewline_CursorAtTextEndIsOnSecondLine()
+    {
+        // "Hello\n" — pressing Enter at end of "Hello" creates this text.
+        // Cursor lands at index 6 (text.Length). It must be on line 1, not at (0,0).
+        var layer = SingleSpanLayer("Hello\n");
+        var result = SpanLayout.Compute(layer, TestRect);
+
+        Assert.Equal(2, result.Lines.Count);
+        float yLine0 = result.GetCharRect(0).Top;
+        float yLine1 = result.GetCharRect(6).Top;   // cursor after the \n
+        Assert.True(yLine1 > yLine0, "cursor after trailing \\n must be below line 0");
+        Assert.True(result.GetCharRect(6).Left > 0 || result.GetCharRect(6).Top > 0,
+            "cursor rect must not be the default SKRect(0,0,0,0)");
+    }
+
+    [Fact]
+    public void DoubleNewline_EmptyMiddleLineCursorIsNotDefault()
+    {
+        // "Hello\n\nWorld" — the empty middle line at index 6 must have a real cursor rect.
+        var layer = SingleSpanLayer("Hello\n\nWorld");
+        var result = SpanLayout.Compute(layer, TestRect);
+
+        Assert.Equal(3, result.Lines.Count);
+        float yLine0 = result.GetCharRect(0).Top;
+        float yLine1 = result.GetCharRect(6).Top;   // empty line
+        float yLine2 = result.GetCharRect(7).Top;   // 'W'
+        Assert.True(yLine1 > yLine0, "empty middle line must be below line 0");
+        Assert.True(yLine2 > yLine1, "line 2 must be below empty middle line");
+    }
 }

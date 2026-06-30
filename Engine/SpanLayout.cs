@@ -260,6 +260,13 @@ public static class SpanLayout
         }
         if (cur.Count > 0) { lineGroups.Add(cur); lineGroupStarts.Add(nextStart); }
         if (lineGroups.Count == 0) { lineGroups.Add(new()); lineGroupStarts.Add(0); }
+        // Text ending with \n creates an empty trailing line; the word-wrap loop
+        // skips it (cur is empty), so we add it explicitly so the cursor has a rect.
+        if (tokens.Count > 0 && tokens[^1].txt == "\n")
+        {
+            lineGroups.Add(new List<(string txt, int si, int cs, float tw, float lh, float bs, float kn)>());
+            lineGroupStarts.Add(nextStart);
+        }
 
         // ── Vertical layout ───────────────────────────────────────────────────
         float maxLH  = paints.Count > 0 ? paints.Max(p => p.lineH) : defaultLineH;
@@ -330,11 +337,23 @@ public static class SpanLayout
                 lineCharEnd = tok.cs + tok.txt.Length;
             }
 
-            // Cursor after last char on this line (skip for empty lines — char already placed by previous line)
+            // Cursor after last char on this line
             if (ltoks.Count > 0 && lineCharEnd <= text.Length)
             {
                 charRects[lineCharEnd]   = new SKRect(rx, lineTop, rx, lineTop + lineH);
                 charLineIdx[lineCharEnd] = li;
+            }
+            else if (ltoks.Count == 0 && lineCharStart <= text.Length)
+            {
+                // Empty line (\n\n or trailing \n): cursor sits at the line's X origin
+                float emptyX = layer.TextHAlign switch
+                {
+                    TextHAlign.Right  => bx + bw,
+                    TextHAlign.Center => bx + bw / 2f,
+                    _                 => bx
+                };
+                charRects[lineCharStart]   = new SKRect(emptyX, lineTop, emptyX, lineTop + lineH);
+                charLineIdx[lineCharStart] = li;
             }
 
             lines.Add(new LayoutLine

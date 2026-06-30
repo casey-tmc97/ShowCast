@@ -262,7 +262,7 @@ public class EditorCanvas : UserControl, IDisposable
         if (_vm is null) return;
 
         _vm.SlideContentChanged += OnSlideContentChanged;
-        _subs.Add(_vm.WhenAnyValue(x => x.EditingSlide).Subscribe(_ => { EndCustomEdit(); RebuildSlide(); }));
+        _subs.Add(_vm.WhenAnyValue(x => x.EditingPage).Subscribe(_ => { EndCustomEdit(); RebuildSlide(); }));
         _subs.Add(_vm.WhenAnyValue(x => x.SelectedLayer).Subscribe(_ => UpdateHandles()));
         _subs.Add(_vm.WhenAnyValue(x => x.SelectedLayers).Subscribe(_ => UpdateHandles()));
         _subs.Add(_vm.WhenAnyValue(x => x.ShowGrid)            .Subscribe(v => { _gridCanvas.IsVisible = v; RebuildGrid(); }));
