@@ -459,10 +459,30 @@ public class EditorCanvas : UserControl, IDisposable
         var ir = GetImageRect();
         if (ir.Width <= 0) return;
 
-        // Action safe: 5% inset — amber dashed
         AddSafeRect(ir, 0.05, Color.FromArgb(200, 255, 165, 0), "Action");
-        // Title safe: 10% inset — red dashed
         AddSafeRect(ir, 0.10, Color.FromArgb(200, 220, 60, 60), "Title");
+
+        var dash   = new Avalonia.Collections.AvaloniaList<double> { 8, 4 };
+        var stroke = new SolidColorBrush(Color.FromArgb(150, 255, 255, 255));
+
+        _safeCanvas.Children.Add(new Line
+        {
+            StartPoint       = new Point(ir.X, ir.Y + ir.Height / 2),
+            EndPoint         = new Point(ir.X + ir.Width, ir.Y + ir.Height / 2),
+            Stroke           = stroke,
+            StrokeThickness  = 0.75,
+            StrokeDashArray  = dash,
+            IsHitTestVisible = false
+        });
+        _safeCanvas.Children.Add(new Line
+        {
+            StartPoint       = new Point(ir.X + ir.Width / 2, ir.Y),
+            EndPoint         = new Point(ir.X + ir.Width / 2, ir.Y + ir.Height),
+            Stroke           = stroke,
+            StrokeThickness  = 0.75,
+            StrokeDashArray  = dash,
+            IsHitTestVisible = false
+        });
     }
 
     void AddSafeRect(Rect ir, double inset, Color color, string label)
