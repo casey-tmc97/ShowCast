@@ -5,7 +5,7 @@
   },
   "projects": {
     "C:\\Users\\Admin\\Documents\\GitHub\\ShowCast\\ShowCast.csproj": {
-      "version": "1.0.0",
+      "version": "1.1.8",
       "restore": {
         "projectUniqueName": "C:\\Users\\Admin\\Documents\\GitHub\\ShowCast\\ShowCast.csproj",
         "projectName": "ShowCast",
@@ -17,14 +17,14 @@
           "C:\\Users\\Admin\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
-          "net9.0"
+          "net8.0"
         ],
         "sources": {
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "net9.0": {
-            "targetAlias": "net9.0",
+          "net8.0": {
+            "targetAlias": "net8.0",
             "projectReferences": {}
           }
         },
@@ -41,8 +41,8 @@
         "SdkAnalysisLevel": "9.0.300"
       },
       "frameworks": {
-        "net9.0": {
-          "targetAlias": "net9.0",
+        "net8.0": {
+          "targetAlias": "net8.0",
           "dependencies": {
             "Avalonia": {
               "target": "Package",
@@ -78,7 +78,7 @@
             },
             "System.Text.Json": {
               "target": "Package",
-              "version": "[9.0.0, )"
+              "version": "[8.0.5, )"
             },
             "VideoLAN.LibVLC.Windows": {
               "target": "Package",
@@ -118,14 +118,14 @@
           "C:\\Users\\Admin\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
-          "net9.0"
+          "net8.0"
         ],
         "sources": {
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "net9.0": {
-            "targetAlias": "net9.0",
+          "net8.0": {
+            "targetAlias": "net8.0",
             "projectReferences": {
               "C:\\Users\\Admin\\Documents\\GitHub\\ShowCast\\ShowCast.csproj": {
                 "projectPath": "C:\\Users\\Admin\\Documents\\GitHub\\ShowCast\\ShowCast.csproj"
@@ -146,9 +146,13 @@
         "SdkAnalysisLevel": "9.0.300"
       },
       "frameworks": {
-        "net9.0": {
-          "targetAlias": "net9.0",
+        "net8.0": {
+          "targetAlias": "net8.0",
           "dependencies": {
+            "Avalonia": {
+              "target": "Package",
+              "version": "[11.2.2, )"
+            },
             "Microsoft.NET.Test.Sdk": {
               "target": "Package",
               "version": "[17.11.1, )"

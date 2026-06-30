@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using ReactiveUI;
@@ -13,10 +15,47 @@ public partial class RundownPanel : UserControl
 {
     readonly List<IDisposable> _subs = new();
     bool _syncing;
+    Vector _savedScrollOffset;
 
     public RundownPanel() => InitializeComponent();
 
     MainViewModel? VM => DataContext as MainViewModel;
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        if (e.Root is Window w)
+        {
+            w.Deactivated += OnWindowDeactivated;
+            w.Activated   += OnWindowActivated;
+        }
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        if (e.Root is Window w)
+        {
+            w.Deactivated -= OnWindowDeactivated;
+            w.Activated   -= OnWindowActivated;
+        }
+    }
+
+    void OnWindowDeactivated(object? sender, EventArgs e)
+    {
+        var sv = TreeList.FindDescendantOfType<ScrollViewer>();
+        if (sv is not null) _savedScrollOffset = sv.Offset;
+    }
+
+    void OnWindowActivated(object? sender, EventArgs e)
+    {
+        // Post at Render priority — fires after Avalonia's Loaded-priority BringIntoView scroll.
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            var sv = TreeList.FindDescendantOfType<ScrollViewer>();
+            sv?.SetCurrentValue(ScrollViewer.OffsetProperty, _savedScrollOffset);
+        }, Avalonia.Threading.DispatcherPriority.Render);
+    }
 
     protected override void OnDataContextChanged(EventArgs e)
     {
