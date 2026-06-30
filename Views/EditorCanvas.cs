@@ -710,6 +710,50 @@ public class EditorCanvas : UserControl, IDisposable
         return (float)Math.Round(v / step) * step;
     }
 
+    internal static float SnapToGuideX(float x, float w, double irWidth)
+    {
+        const float guide = 0.5f;
+        float thresh = (float)(8.0 / irWidth);
+
+        float best = float.MaxValue;
+        float result = x;
+
+        float d = Math.Abs(x - guide);
+        if (d < thresh && d < best) { best = d; result = guide; }
+
+        float rx = x + w;
+        d = Math.Abs(rx - guide);
+        if (d < thresh && d < best) { best = d; result = guide - w; }
+
+        float cx = x + w / 2f;
+        d = Math.Abs(cx - guide);
+        if (d < thresh && d < best) { best = d; result = guide - w / 2f; }
+
+        return result;
+    }
+
+    internal static float SnapToGuideY(float y, float h, double irHeight)
+    {
+        const float guide = 0.5f;
+        float thresh = (float)(8.0 / irHeight);
+
+        float best = float.MaxValue;
+        float result = y;
+
+        float d = Math.Abs(y - guide);
+        if (d < thresh && d < best) { best = d; result = guide; }
+
+        float by = y + h;
+        d = Math.Abs(by - guide);
+        if (d < thresh && d < best) { best = d; result = guide - h; }
+
+        float cy = y + h / 2f;
+        d = Math.Abs(cy - guide);
+        if (d < thresh && d < best) { best = d; result = guide - h / 2f; }
+
+        return result;
+    }
+
     // ── Pointer events ────────────────────────────────────────────────────────
 
     void OnPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -877,6 +921,8 @@ public class EditorCanvas : UserControl, IDisposable
                 {
                     layer.X = Math.Clamp(SnapX(_origX + dx), 0f, Math.Max(0f, 1f - layer.Width));
                     layer.Y = Math.Clamp(SnapY(_origY + dy), 0f, Math.Max(0f, 1f - layer.Height));
+                    layer.X = SnapToGuideX(layer.X, layer.Width,  ir.Width);
+                    layer.Y = SnapToGuideY(layer.Y, layer.Height, ir.Height);
                 }
                 break;
             case HandleKind.SE:
