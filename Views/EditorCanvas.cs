@@ -459,8 +459,8 @@ public class EditorCanvas : UserControl, IDisposable
         var ir = GetImageRect();
         if (ir.Width <= 0) return;
 
-        AddSafeRect(ir, 0.05, Color.FromArgb(200, 255, 165, 0), "Action");
-        AddSafeRect(ir, 0.10, Color.FromArgb(200, 220, 60, 60), "Title");
+        AddSafeRect(ir, 0.05, Color.FromArgb(200, 255, 165, 0), "Action"); // Action safe: 5% inset — amber dashed
+        AddSafeRect(ir, 0.10, Color.FromArgb(200, 220, 60, 60), "Title");  // Title safe: 10% inset — red dashed
 
         var dash   = new Avalonia.Collections.AvaloniaList<double> { 8, 4 };
         var stroke = new SolidColorBrush(Color.FromArgb(150, 255, 255, 255));
