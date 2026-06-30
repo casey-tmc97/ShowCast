@@ -5,7 +5,7 @@
 #define PublishDir   "..\publish\win-x64"
 
 [Setup]
-AppId={{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}
+AppId={{FBB2398E-4DF7-4262-95EA-3D8C30FB2EF1}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
