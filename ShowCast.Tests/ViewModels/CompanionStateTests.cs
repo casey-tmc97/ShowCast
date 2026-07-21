@@ -68,4 +68,17 @@ public class CompanionStateTests
         var ids = playlists.EnumerateArray().Select(p => p.GetProperty("id").GetString()).ToList();
         Assert.Contains(expectedId, ids);
     }
+
+    [Fact]
+    public void BuildCompanionState_PageTimer_InactiveWhenNothingLive()
+    {
+        var vm = new MainViewModel();
+        var json = vm.BuildCompanionState();
+        var doc = JsonDocument.Parse(json);
+        var pageTimer = doc.RootElement.GetProperty("pageTimer");
+
+        Assert.False(pageTimer.GetProperty("active").GetBoolean());
+        Assert.Equal(0, pageTimer.GetProperty("remainingMs").GetInt64());
+        Assert.Equal(0, pageTimer.GetProperty("durationMs").GetInt64());
+    }
 }

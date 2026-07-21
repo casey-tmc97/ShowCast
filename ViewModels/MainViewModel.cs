@@ -672,9 +672,37 @@ public class MainViewModel : ViewModelBase
 
         string selectedOutputName = EscapeJson(SelectedOutput?.Config.Name);
 
+        var (pageTimerActive, pageTimerRemainingMs, pageTimerDurationMs) = GetPageTimerState();
+        string pageTimerSection = $"{{\"active\":{(pageTimerActive ? "true" : "false")}," +
+                                  $"\"remainingMs\":{pageTimerRemainingMs},\"durationMs\":{pageTimerDurationMs}}}";
+
         return $"{{\"type\":\"state\",\"page\":{pageSection},\"rundown\":{rundownSection}," +
                $"\"audio\":{audioSection},\"video\":{videoSection},\"outputs\":{outputsSection}," +
-               $"\"selectedOutputName\":\"{selectedOutputName}\"}}\n";
+               $"\"selectedOutputName\":\"{selectedOutputName}\",\"pageTimer\":{pageTimerSection}}}\n";
+    }
+
+    /// <summary>
+    /// Remaining/total time for the live page's "Go to Next" auto-advance timer, whether
+    /// driven by a plain duration or (for video pages) the video's own length — mirrors the
+    /// same source data TickCountdown() uses for the on-screen countdown bar.
+    /// </summary>
+    (bool active, long remainingMs, long durationMs) GetPageTimerState()
+    {
+        if (_livePageVm is null) return (false, 0, 0);
+
+        if (HasVideoLayers(_livePageVm.Model))
+        {
+            var (timeMs, lengthMs) = _liveOutputForCountdown?.VideoRegistry?.GetPrimaryTime() ?? (0, 0);
+            if (lengthMs <= 0) return (false, 0, 0);
+            long remaining = Math.Max(0, lengthMs - timeMs);
+            return (true, remaining, lengthMs);
+        }
+
+        int durationMs = _livePageVm.Model.DurationMs;
+        if (durationMs <= 0) return (false, 0, 0);
+        double elapsed = (DateTime.UtcNow - _livePageStartTime).TotalMilliseconds;
+        long remainingMs = (long)Math.Max(0, durationMs - elapsed);
+        return (true, remainingMs, durationMs);
     }
 
     void PushStateToCompanion() => _companion?.PushState(BuildCompanionState());
@@ -1119,12 +1147,17 @@ public class MainViewModel : ViewModelBase
         _livePageStartTime = DateTime.UtcNow;
 
         bool hasVideo = HasVideoLayers(liveVm.Model);
-        if (!hasVideo && liveVm.Model.DurationMs <= 0) return;
+        if (!hasVideo && liveVm.Model.DurationMs <= 0)
+        {
+            UpdateMediaTickTimer();
+            return;
+        }
 
         _countdownTimer = new System.Timers.Timer(100) { AutoReset = true };
         _countdownTimer.Elapsed += (_, _) =>
             Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(TickCountdown);
         _countdownTimer.Start();
+        UpdateMediaTickTimer();
     }
 
     void StopCountdownTimer()
@@ -1135,6 +1168,7 @@ public class MainViewModel : ViewModelBase
         _livePageVm?.ClearCountdown();
         _livePageVm = null;
         _liveOutputForCountdown = null;
+        UpdateMediaTickTimer();
     }
 
     void TickCountdown()
@@ -1254,8 +1288,13 @@ public class MainViewModel : ViewModelBase
 
     void UpdateMediaTickTimer()
     {
+        bool pageDurationTimerActive = _livePageVm is not null
+                                     && !HasVideoLayers(_livePageVm.Model)
+                                     && _livePageVm.Model.DurationMs > 0;
+
         bool anyPlaying = AudioChannels.Any(ch => ch.Player.State == PlaybackState.Playing)
-                       || OutputStates.Any(o => o.VideoRegistry?.GetPrimaryTime().lengthMs > 0);
+                       || OutputStates.Any(o => o.VideoRegistry?.GetPrimaryTime().lengthMs > 0)
+                       || pageDurationTimerActive;
 
         if (anyPlaying && _mediaTickTimer is null)
         {
